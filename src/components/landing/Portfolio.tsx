@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Button from "@/components/buttons/buttons";
 
 const featuredVideo = {
   title: "Financial Personality",
@@ -173,9 +174,14 @@ export default function Portfolio() {
               </div>
             </div>
 
-            <a href="/getQuote" className="btn-base btn-ghost mt-6 w-full">
+            <Button
+              href="/getQuote"
+              variant="primary"
+              size="md"
+              className="mt-6 w-full"
+            >
               Get Estimate for Your Manuscript
-            </a>
+            </Button>
           </div>
         </div>
       </div>
