@@ -1653,7 +1653,7 @@ export default function GetQuote() {
             <div className="vpgq-details-panel">
               <div className="vpgq-sub-panel">
                 <span className="vpgq-label" style={{ color: "#60c8ff" }}>
-                  Manuscript Details
+                  Manuscript details
                 </span>
 
                 <div className="vpgq-grid">
@@ -1722,7 +1722,7 @@ export default function GetQuote() {
                     </select>
 
                     {shouldShowFieldTag("size", bookSize) && (
-                      <span className="vpgq-field-tag">Size</span>
+                      <span className="vpgq-field-tag">Book Size</span>
                     )}
                   </div>
 
@@ -1794,7 +1794,7 @@ export default function GetQuote() {
                     />
 
                     {shouldShowFieldTag("number", whatsapp) && (
-                      <span className="vpgq-field-tag">Number</span>
+                      <span className="vpgq-field-tag">WhatsApp</span>
                     )}
                   </div>
 
