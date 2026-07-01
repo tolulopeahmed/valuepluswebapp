@@ -28,6 +28,26 @@ const defaultQuoteEstimate: QuoteEstimateDetail = {
   estimateInView: true,
 };
 
+// Person/login icon — clean minimal silhouette, universally understood
+function LoginIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,24 +58,17 @@ export default function Navbar() {
     let rafId: number | null = null;
 
     const onScroll = () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
+      if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         setScrolled(window.scrollY > 60);
       });
     };
 
     onScroll();
-
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
     };
   }, []);
@@ -64,10 +77,7 @@ export default function Navbar() {
     let rafId: number | null = null;
 
     const applyQuoteEstimate = (nextEstimate: QuoteEstimateDetail) => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
+      if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         setQuoteEstimate(nextEstimate);
       });
@@ -75,7 +85,6 @@ export default function Navbar() {
 
     const onQuoteEstimate = (event: Event) => {
       const customEvent = event as CustomEvent<QuoteEstimateDetail>;
-
       applyQuoteEstimate({
         formattedTotal: customEvent.detail?.formattedTotal || "₦0",
         hasSelection: Boolean(customEvent.detail?.hasSelection),
@@ -89,16 +98,10 @@ export default function Navbar() {
     window.addEventListener("valueplus:quote-estimate", onQuoteEstimate);
 
     const existingEstimate = (window as QuoteWindow).__valuePlusQuoteEstimate;
-
-    if (existingEstimate) {
-      applyQuoteEstimate(existingEstimate);
-    }
+    if (existingEstimate) applyQuoteEstimate(existingEstimate);
 
     return () => {
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-      }
-
+      if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("valueplus:quote-estimate", onQuoteEstimate);
     };
   }, []);
@@ -142,6 +145,7 @@ export default function Navbar() {
           }`}
         >
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-8">
+            {/* Logo / mobile quote pill */}
             <div className="flex min-w-0 flex-1 items-center md:flex-none">
               <Link
                 href="/"
@@ -168,7 +172,6 @@ export default function Navbar() {
                     Estimated <br />
                     total
                   </span>
-
                   <span className="rounded-full bg-[#16a34a] px-4 py-2 text-[1.08rem] font-black leading-none tracking-[-0.055em] text-white shadow-[0_14px_35px_rgba(22,163,74,0.34)]">
                     {quoteEstimate.formattedTotal}
                   </span>
@@ -176,6 +179,7 @@ export default function Navbar() {
               )}
             </div>
 
+            {/* Desktop nav links */}
             <div className="hidden items-center gap-7 text-[0.7rem] font-black uppercase tracking-widest text-white/60 md:flex">
               {menuItems.map((item) => (
                 <Link key={item.label} className="nav-link" href={item.href}>
@@ -184,35 +188,63 @@ export default function Navbar() {
               ))}
             </div>
 
+            {/* Desktop CTA buttons */}
             <div className="hidden items-center gap-3 md:flex">
               <Button href="/login" variant="secondary" size="sm">
                 Log in
               </Button>
-
               <Button href="/pricing" variant="primary" size="sm">
                 Start Publishing Course
               </Button>
             </div>
 
-            <label
-              htmlFor="mobile-menu-toggle"
-              aria-label="Open menu"
-              className="mobile-menu-button"
-            >
-              <span className="mobile-menu-line" />
-              <span className="mobile-menu-line" />
-              <span className="mobile-menu-line" />
-            </label>
+            {/* Mobile right cluster: login icon + hamburger */}
+            <div className="flex items-center gap-2 md:hidden">
+              {/*
+               * Login icon button — sits right next to the hamburger.
+               * Styled to match the hamburger button visually (same size,
+               * same glass background, same border radius).
+               */}
+              <Link
+                href="/login"
+                aria-label="Log in"
+                className="relative z-[3100] inline-flex h-[2.55rem] w-[2.55rem] min-w-[2.55rem] items-center justify-center rounded-[0.95rem] border border-white/14 text-white/80 backdrop-blur-[16px]"
+                style={{
+                  background:
+                    "linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04)), rgba(255,255,255,0.045)",
+                  boxShadow:
+                    "0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.11)",
+                  WebkitBackdropFilter: "blur(16px) saturate(1.4)",
+                  touchAction: "manipulation",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                <LoginIcon className="h-[1.1rem] w-[1.1rem]" />
+              </Link>
+
+              {/* Hamburger */}
+              <label
+                htmlFor="mobile-menu-toggle"
+                aria-label="Open menu"
+                className="mobile-menu-button"
+              >
+                <span className="mobile-menu-line" />
+                <span className="mobile-menu-line" />
+                <span className="mobile-menu-line" />
+              </label>
+            </div>
           </div>
         </nav>
       </header>
 
+      {/* Mobile backdrop */}
       <label
         htmlFor="mobile-menu-toggle"
         aria-label="Close mobile menu"
         className="mobile-menu-backdrop"
       />
 
+      {/* Mobile sidebar */}
       <aside id="mobile-sidebar" className="mobile-sidebar">
         <div className="flex items-center justify-between">
           <Link
@@ -264,7 +296,6 @@ export default function Navbar() {
           >
             Log in
           </Button>
-
           <Button
             href="/pricing"
             variant="primary"
@@ -280,7 +311,6 @@ export default function Navbar() {
           <p className="text-xs font-black uppercase tracking-[0.18em] text-white/35">
             BECOME A PUBLISHER
           </p>
-
           <p className="mt-2 text-sm leading-6 text-white/50">
             Learn the A—Z of Publishing in Just 6 Modules and publish your first
             book.

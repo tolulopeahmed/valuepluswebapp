@@ -447,7 +447,7 @@ export default function GetQuote() {
 
   const [bookTitle, setBookTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [bookSize, setBookSize] = useState(bookSizes[0]);
+  const [bookSize, setBookSize] = useState("");
   const [copies, setCopies] = useState("");
   const [pages, setPages] = useState("");
   const [words, setWords] = useState("");

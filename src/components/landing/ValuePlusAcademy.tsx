@@ -3,9 +3,10 @@ import Button from "../buttons/buttons";
 
 const academyLessons = [
   "FOUNDATIONS: A—Z of Publishing",
-  "SOFTJOB: Inside, Cover & Editing",
-  "PUBLISHING: KDP, Prints, etc.",
-  "MARKETING and SELLING",
+  "DESIGN: Inside and Cover",
+  "Proofreading and Editing",
+  "PRINTING: Presswork",
+  "Distribution: KDP & Selar",
 ];
 
 const academyModules = [
@@ -208,7 +209,7 @@ export default function ValuePlusAcademy() {
                 </span>
 
                 <span className="inline-flex items-center text-xs font-black uppercase tracking-widest text-[#fb9906] opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                  View pricing →
+                  START COURSE →
                 </span>
               </div>
             </Link>
