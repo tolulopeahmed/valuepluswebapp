@@ -1633,8 +1633,11 @@ export default function GetQuote() {
       />
 
       <section className="vpgq-root quote-section-dark px-4 py-14 md:py-20">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start">
-          <div className="lg:sticky lg:top-28">
+        <div
+          className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.72fr_1.28fr] lg:items-start"
+          style={{ marginTop: -20 }}
+        >
+          <div className="lg:sticky lg:top-28" style={{ marginTop: -20 }}>
             <h2 className="display-heading section-heading text-white">
               Enter manuscript details.{" "}
               <span className="text-[#fbbf24]">Get estimate cost.</span>
