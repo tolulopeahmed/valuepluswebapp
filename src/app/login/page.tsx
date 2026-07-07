@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import Button from "@/components/buttons/buttons";
+import { useRouter } from "next/navigation";
 
 type AuthMode = "login" | "signup" | "forgot";
 
@@ -48,7 +49,7 @@ function FieldTag({ label }: { label: string }) {
 }
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<AuthMode>("login");
+  const [mode, setMode] = useState<AuthMode>("login" as const);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -61,6 +62,7 @@ export default function LoginPage() {
 
   const [focused, setFocused] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const router = useRouter();
 
   function markComplete(id: string, value: string) {
     setFocused(null);
@@ -121,10 +123,15 @@ export default function LoginPage() {
 
     setLoading(false);
 
+    if (mode === ("login" as AuthMode)) {
+      router.push("/main/app");
+      return;
+    }
+
     if (mode === "forgot") {
       setDone(true);
     }
-  }
+  } // 👈 THIS CLOSES handleSubmit
 
   const titles: Record<AuthMode, { h: string; sub: string }> = {
     login: {
