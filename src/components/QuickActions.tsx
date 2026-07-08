@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Button from "./buttons/buttons";
 
 function Icon({ path, size = 22 }: { path: string; size?: number }) {
   return (
@@ -56,25 +57,40 @@ function QuickActionRow({
       ? "text-[rgb(239,199,0)]"
       : tone === "green"
         ? "text-[#4ade80]"
-        : "text-white/40";
+        : "text-white/48";
+
   return (
-    <button
+    <Button
+      type="button"
+      variant="secondary"
+      size="md"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3 text-left transition-colors hover:border-white/[0.14] hover:bg-white/[0.06]"
+      className="quick-action-btn group !h-auto !min-h-0 !w-full !justify-start !rounded-xl !px-0 !py-0 text-left"
     >
-      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-white/60">
-        <Icon path={icon} size={15} />
-      </span>
-      <span className="flex-1 text-[0.78rem] font-black text-white/85">
-        {label}
-      </span>
-      {value && (
-        <span className={`text-[0.62rem] font-black ${valueClass}`}>
-          {value}
+      <span className="quick-action-inner">
+        <span className="quick-action-icon">
+          <Icon path={icon} size={15} />
         </span>
-      )}
-      <Icon path={ICONS.chevronR} size={13} />
-    </button>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[0.78rem] font-black normal-case tracking-normal text-white/88">
+            {label}
+          </span>
+        </span>
+
+        {value && (
+          <span
+            className={`flex-shrink-0 text-[0.62rem] font-black normal-case tracking-normal ${valueClass}`}
+          >
+            {value}
+          </span>
+        )}
+
+        <span className="quick-action-chevron">
+          <Icon path={ICONS.chevronR} size={13} />
+        </span>
+      </span>
+    </Button>
   );
 }
 
@@ -105,7 +121,11 @@ export default function QuickActions({
       label: "View certificates",
       onClick: go("certificates"),
     },
-    { icon: ICONS.refer, label: "Study community", onClick: go("community") },
+    {
+      icon: ICONS.refer,
+      label: "Study community",
+      onClick: go("community"),
+    },
     {
       icon: ICONS.fire,
       label: "Streak freeze",
@@ -122,7 +142,11 @@ export default function QuickActions({
       tone: "gold",
       onClick: go("withdraw"),
     },
-    { icon: ICONS.book, label: "Start a new book", onClick: go("new-book") },
+    {
+      icon: ICONS.book,
+      label: "Start a new book",
+      onClick: go("new-book"),
+    },
     {
       icon: ICONS.refer,
       label: "Refer & earn",
@@ -145,17 +169,29 @@ export default function QuickActions({
   return (
     <div className="flex flex-col gap-2">
       {visible.map((a, i) => (
-        <QuickActionRow key={i} {...a} />
+        <div
+          key={a.label}
+          className="quick-action-in"
+          style={{ animationDelay: `${i * 55}ms` }}
+        >
+          <QuickActionRow {...a} />
+        </div>
       ))}
 
       {hasHidden && (
         <div
-          className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{ maxHeight: expanded ? `${hidden.length * 60}px` : "0px" }}
+          className="overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.2,0.9,0.2,1)]"
+          style={{ maxHeight: expanded ? `${hidden.length * 72}px` : "0px" }}
         >
           <div className="flex flex-col gap-2 pt-2">
             {hidden.map((a, i) => (
-              <QuickActionRow key={i} {...a} />
+              <div
+                key={a.label}
+                className="quick-action-in"
+                style={{ animationDelay: `${i * 55}ms` }}
+              >
+                <QuickActionRow {...a} />
+              </div>
             ))}
           </div>
         </div>
@@ -163,19 +199,162 @@ export default function QuickActions({
 
       {hasHidden && (
         <button
+          type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="mt-1 flex items-center justify-center gap-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.1em] text-white/40 transition-colors hover:text-white/70"
+          className="quick-action-more group mt-1 flex items-center justify-center gap-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.1em] text-white/45 transition-colors hover:text-white/75 active:scale-95"
         >
-          <span className="h-px flex-1 bg-white/10" />
+          <span className="h-px flex-1 bg-white/10 transition-colors group-hover:bg-white/18" />
+
           <span
-            className={`transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+            className={`grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-white/[0.05] transition-all duration-300 ${
+              expanded ? "rotate-180" : ""
+            }`}
           >
             <Icon path={ICONS.chevronDown} size={13} />
           </span>
+
           {expanded ? "Show less" : `${hidden.length} more`}
-          <span className="h-px flex-1 bg-white/10" />
+
+          <span className="h-px flex-1 bg-white/10 transition-colors group-hover:bg-white/18" />
         </button>
       )}
+
+      <style jsx global>{`
+        .quick-action-btn {
+          position: relative;
+          overflow: hidden;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+          background:
+            radial-gradient(
+              circle at 16% 0%,
+              rgba(239, 199, 0, 0.13),
+              transparent 48%
+            ),
+            rgba(255, 255, 255, 0.07) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 10px 24px rgba(0, 0, 0, 0.16) !important;
+          backdrop-filter: blur(18px) saturate(1.32);
+          -webkit-backdrop-filter: blur(18px) saturate(1.32);
+          transition:
+            transform 220ms ease,
+            border-color 220ms ease,
+            background 220ms ease,
+            box-shadow 220ms ease;
+        }
+
+        .quick-action-btn:hover {
+          transform: translateY(-2px);
+          border-color: rgba(239, 199, 0, 0.3) !important;
+          background:
+            radial-gradient(
+              circle at 16% 0%,
+              rgba(239, 199, 0, 0.2),
+              transparent 50%
+            ),
+            rgba(255, 255, 255, 0.105) !important;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.16),
+            0 14px 30px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        .quick-action-btn:active {
+          transform: scale(0.975);
+        }
+
+        .quick-action-btn .btn-content {
+          width: 100%;
+        }
+
+        .quick-action-inner {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          width: 100%;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.78rem 0.88rem;
+        }
+
+        .quick-action-icon {
+          display: grid;
+          height: 2rem;
+          width: 2rem;
+          flex-shrink: 0;
+          place-items: center;
+          border-radius: 0.78rem;
+          border: 1px solid rgba(239, 199, 0, 0.14);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(255, 255, 255, 0.1),
+              rgba(255, 255, 255, 0.04)
+            ),
+            rgba(239, 199, 0, 0.1);
+          color: rgb(239, 199, 0);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 8px 18px rgba(0, 0, 0, 0.12);
+          transition:
+            transform 220ms ease,
+            background 220ms ease,
+            border-color 220ms ease;
+        }
+
+        .quick-action-btn:hover .quick-action-icon {
+          transform: scale(1.08) rotate(-2deg);
+          border-color: rgba(239, 199, 0, 0.24);
+          background:
+            linear-gradient(
+              180deg,
+              rgba(255, 255, 255, 0.16),
+              rgba(255, 255, 255, 0.05)
+            ),
+            rgba(239, 199, 0, 0.17);
+        }
+
+        .quick-action-chevron {
+          flex-shrink: 0;
+          color: rgba(255, 255, 255, 0.34);
+          transition:
+            transform 220ms ease,
+            color 220ms ease;
+        }
+
+        .quick-action-btn:hover .quick-action-chevron {
+          transform: translateX(2px);
+          color: rgba(239, 199, 0, 0.86);
+        }
+
+        .quick-action-in {
+          animation: quickActionFadeIn 0.45s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+        }
+
+        @keyframes quickActionFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .quick-action-btn,
+          .quick-action-icon,
+          .quick-action-chevron,
+          .quick-action-in {
+            animation: none;
+            transition: none;
+          }
+
+          .quick-action-btn:hover {
+            transform: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }

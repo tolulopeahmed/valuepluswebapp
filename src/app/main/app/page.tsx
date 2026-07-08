@@ -6,9 +6,22 @@ import {
   useCallback,
   useEffect,
   type CSSProperties,
+  type ReactNode,
   Fragment,
 } from "react";
-import { Check, Lock, Play } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  Check,
+  Coins,
+  Flame,
+  GraduationCap,
+  LibraryBig,
+  Lock,
+  Route,
+  Trophy,
+  Wallet,
+} from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import Header from "../../../components/Header";
 import QuickActions from "../../../components/QuickActions";
@@ -614,14 +627,9 @@ function LearnerHeroCards() {
   return [
     {
       key: "focus",
-      // Current-module card: header block up top, bottom row has the
-      // progress bar (left) and Resume (right) on one line. Unfilled
-      // track is a visible grey, not near-black.
       content: (
         <GlassCard accent className="flex h-full flex-col p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
-            {CURRENT_MODULE.module}
-          </p>
+          <SectionLabel>{CURRENT_MODULE.module}</SectionLabel>
 
           <p className="mt-2 text-xl font-black leading-tight text-white">
             {CURRENT_MODULE.title}
@@ -633,13 +641,14 @@ function LearnerHeroCards() {
 
           <div className="mt-4 flex items-end gap-3">
             <div className="min-w-0 flex-1">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,0.28)]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-white/22">
                 <div
                   className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
                   style={{ width: `${CURRENT_MODULE.progress}%` }}
                 />
               </div>
-              <p className="mt-1.5 truncate text-[0.6rem] font-black text-[#3a2c05]">
+
+              <p className="mt-1.5 truncate text-[0.6rem] font-black text-white/58">
                 +{CURRENT_MODULE_XP_EARNED} XP earned
               </p>
             </div>
@@ -659,9 +668,7 @@ function LearnerHeroCards() {
       key: "streak",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
-            This week
-          </p>
+          <SectionLabel>Weekly streak</SectionLabel>
 
           <p className="mt-2 text-2xl font-black leading-none text-white">
             6 / 7 days
@@ -671,15 +678,16 @@ function LearnerHeroCards() {
             {STREAK_DAYS.map((day, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-1">
                 <div
-                  className={`flex h-7 w-full items-center justify-center rounded-lg text-[0.6rem] font-black transition-all ${
+                  className={`flex h-7 w-full items-center justify-center rounded-lg transition-all ${
                     STREAK_DONE[i]
-                      ? "bg-[#171100] text-[rgb(239,199,0)] shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
-                      : "bg-black/20 text-white/40"
+                      ? "bg-white/82 text-[#171100] shadow-[0_4px_12px_rgba(255,255,255,0.18)]"
+                      : "bg-white/18 text-white/45"
                   }`}
                 >
-                  {STREAK_DONE[i] ? "✓" : ""}
+                  {STREAK_DONE[i] && <Check size={13} strokeWidth={3.2} />}
                 </div>
-                <span className="text-[0.48rem] font-black uppercase text-white/40">
+
+                <span className="text-[0.48rem] font-black uppercase text-white/46">
                   {day}
                 </span>
               </div>
@@ -692,9 +700,7 @@ function LearnerHeroCards() {
       key: "xp",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
-            Total XP
-          </p>
+          <SectionLabel>Total XP</SectionLabel>
 
           <p className="mt-2 text-4xl font-black leading-none text-white md:text-3xl">
             {USER.xp.toLocaleString()}
@@ -704,7 +710,7 @@ function LearnerHeroCards() {
             {USER.nextLevelXp - USER.xp} XP to Level {USER.level + 1}
           </p>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,0.28)]">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/22">
             <div
               className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
               style={{
@@ -719,9 +725,7 @@ function LearnerHeroCards() {
       key: "rank",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
-            Leaderboard rank
-          </p>
+          <SectionLabel>Leaderboard rank</SectionLabel>
 
           <p className="mt-2 text-3xl font-black leading-none text-white">#3</p>
 
@@ -1143,7 +1147,7 @@ export default function HomeScreen() {
                   {getGreeting()}.{" "}
                   {mode === "learner"
                     ? "Continue your lessons"
-                    : "Track your books and earnings"}
+                    : "Track your books  earnings"}
                 </Subtitle>
               </div>
 
