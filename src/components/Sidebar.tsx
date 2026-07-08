@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 
 type Mode = "learner" | "publisher";
@@ -49,7 +49,8 @@ interface SidebarProps {
   level: number;
 }
 
-const ACCENT = "rgb(239,199,0)";
+const ACCENT_GOLD = "rgb(239,199,0)";
+const ACCENT_ROSE = "rgb(214,132,139)";
 
 export default function Sidebar({
   open,
@@ -75,6 +76,22 @@ export default function Sidebar({
 
   const items = mode === "learner" ? learnerItems : publisherItems;
   const activeKey = mode === "learner" ? "academy" : "books";
+
+  const modeAccent = mode === "learner" ? ACCENT_GOLD : ACCENT_ROSE;
+
+  // Frosty pill background shifts hue based on active mode.
+  const pillStyle: CSSProperties =
+    mode === "learner"
+      ? {
+          background:
+            "radial-gradient(circle at 18% 15%, rgba(239,199,0,0.30), transparent 62%), rgba(255,255,255,0.06)",
+          borderColor: "rgba(239,199,0,0.35)",
+        }
+      : {
+          background:
+            "radial-gradient(circle at 18% 15%, rgba(214,132,139,0.30), transparent 62%), rgba(255,255,255,0.06)",
+          borderColor: "rgba(214,132,139,0.35)",
+        };
 
   return (
     <>
@@ -130,42 +147,51 @@ export default function Sidebar({
           </button>
         </div>
 
-        <div className="flex items-center justify-between px-5 pt-3">
-          <div className="rounded-full border border-[rgba(239,199,0,0.32)] bg-[rgba(239,199,0,0.12)] px-3 py-1.5">
-            <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-[rgb(239,199,0)]">
+        {/* Combined mode label + toggle, single glass pill */}
+        <div className="px-5 pt-3">
+          <div
+            className="flex items-center justify-between gap-3 rounded-full border px-3 py-1.5 backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.2,0.9,0.2,1)]"
+            style={pillStyle}
+          >
+            <p
+              className="pl-1 text-[0.58rem] font-black uppercase tracking-[0.16em] transition-colors duration-500"
+              style={{ color: modeAccent }}
+            >
               {mode === "learner" ? "Learner" : "Publisher"}
             </p>
-          </div>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={mode === "publisher"}
-            aria-label={
-              mode === "learner"
-                ? "Switch to publisher view"
-                : "Switch to learner view"
-            }
-            onClick={() =>
-              onModeChange(mode === "learner" ? "publisher" : "learner")
-            }
-            className="relative h-6 w-11 flex-shrink-0 rounded-full border border-white/12 bg-white/[0.08] transition-colors active:scale-95"
-            title={mode === "learner" ? "Learner mode" : "Publisher mode"}
-          >
-            <span
-              className="absolute top-0.5 grid h-5 w-5 place-items-center rounded-full text-[#171100] shadow-[0_0_10px_rgba(239,199,0,0.45)] transition-transform duration-200"
-              style={{
-                background: ACCENT,
-                transform:
-                  mode === "publisher" ? "translateX(21px)" : "translateX(2px)",
-              }}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={mode === "publisher"}
+              aria-label={
+                mode === "learner"
+                  ? "Switch to publisher view"
+                  : "Switch to learner view"
+              }
+              onClick={() =>
+                onModeChange(mode === "learner" ? "publisher" : "learner")
+              }
+              className="relative h-6 w-11 flex-shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95"
+              title={mode === "learner" ? "Learner mode" : "Publisher mode"}
             >
-              <Icon
-                path={mode === "learner" ? ICONS.grad : ICONS.book}
-                size={11}
-              />
-            </span>
-          </button>
+              <span
+                className="absolute top-0.5 grid h-5 w-5 place-items-center rounded-full text-[#171100] shadow-[0_0_10px_rgba(239,199,0,0.45)] transition-transform duration-200"
+                style={{
+                  background: ACCENT_GOLD,
+                  transform:
+                    mode === "publisher"
+                      ? "translateX(21px)"
+                      : "translateX(2px)",
+                }}
+              >
+                <Icon
+                  path={mode === "learner" ? ICONS.grad : ICONS.book}
+                  size={11}
+                />
+              </span>
+            </button>
+          </div>
         </div>
 
         <nav className="mt-12 flex-1 overflow-y-auto px-3 pb-4">

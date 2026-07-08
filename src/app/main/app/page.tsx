@@ -6,13 +6,20 @@ import {
   useCallback,
   useEffect,
   type CSSProperties,
+  Fragment,
 } from "react";
+import { Check, Lock } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import Header from "../../../components/Header";
 import QuickActions from "../../../components/QuickActions";
 import Sidebar from "../../../components/Sidebar";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
+import Button from "../../../components/buttons/buttons";
+import LessonDetailModal, {
+  type LessonDetail,
+  type LessonStatus,
+} from "../../../components/LessonDetailsModal";
 
 type Mode = "learner" | "publisher";
 
@@ -25,38 +32,100 @@ const USER = {
   avatar: null as string | null,
 };
 
-const LESSONS = [
+// The 6-module curriculum. progress: 100 = done, 0 = locked/upcoming,
+// anything between = the current in-progress module.
+const MODULES = [
   {
     id: 1,
-    title: "ISBN & Book Registration",
-    module: "Module 2",
-    progress: 100,
+    module: "Module 01",
+    title: "Foundations: A–Z of Publishing",
+    description:
+      "Tools of the Trade: understanding the publishing process, from manuscript to market.",
+    actionTip:
+      "Revisit your notes on the manuscript-to-market pipeline before moving on — everything else builds on this.",
+    xp: 120,
     duration: "12 min",
+    progress: 100,
   },
   {
     id: 2,
-    title: "Cover Design Principles",
-    module: "Module 3",
-    progress: 65,
+    module: "Module 02",
+    title: "Design: Inside and Cover",
+    description:
+      "Cover design, inside design, formatting and layout, and everything that makes a book reader-ready.",
+    actionTip:
+      "Sketch three cover directions before opening any design tool — constraints spark better covers than a blank canvas.",
+    xp: 200,
     duration: "18 min",
+    progress: 65,
   },
   {
     id: 3,
-    title: "Typesetting & Layout",
-    module: "Module 3",
+    module: "Module 03",
+    title: "Proofreading and Editing",
+    description:
+      "Getting the book error-free and updating it to ensure high engagement and readability.",
+    actionTip:
+      "Read your manuscript aloud — your ear will catch awkward phrasing your eyes skim right past.",
+    xp: 150,
+    duration: "15 min",
     progress: 0,
-    duration: "22 min",
   },
   {
     id: 4,
-    title: "Print-on-Demand Basics",
-    module: "Module 4",
+    module: "Module 04",
+    title: "Printing: Presswork",
+    description:
+      "From back-cover printing and lamination to inside printing, perfect-binding, sewing, trimming and packaging.",
+    actionTip:
+      "Order a single physical proof before committing to a full print run — screens lie about paper weight and color.",
+    xp: 180,
+    duration: "20 min",
     progress: 0,
-    duration: "15 min",
+  },
+  {
+    id: 5,
+    module: "Module 05",
+    title: "Distribution: KDP, Selar, etc.",
+    description:
+      "Upload, metadata, pricing strategy, and getting your book into readers' hands.",
+    actionTip:
+      "Write your book's metadata and keywords before uploading — retrofitting SEO after launch costs you early sales.",
+    xp: 220,
+    duration: "18 min",
+    progress: 0,
+  },
+  {
+    id: 6,
+    module: "Module 06",
+    title: "Capstone: Publish First Book",
+    description:
+      "Write a book about an important area of your life that you've succeeded in and publish it for others to achieve the same.",
+    actionTip:
+      "Set a firm publish date now — a deadline turns a capstone project into a finished book.",
+    xp: 200,
+    duration: "25 min",
+    progress: 0,
   },
 ];
 
-const CURRENT_LESSON = LESSONS[1];
+function lessonStatus(progress: number, isCurrentId: boolean): LessonStatus {
+  if (progress === 100) return "done";
+  if (isCurrentId) return "current";
+  return "upcoming";
+}
+
+const CURRENT_MODULE =
+  MODULES.find((m) => m.progress > 0 && m.progress < 100) ?? MODULES[0];
+
+const MODULE_EARNED_XP = MODULES.reduce((sum, m) => {
+  if (m.progress === 100) return sum + m.xp;
+  if (m.id === CURRENT_MODULE.id)
+    return sum + Math.round((m.xp * m.progress) / 100);
+  return sum;
+}, 0);
+
+const MODULE_TOTAL_XP = MODULES.reduce((s, m) => s + m.xp, 0);
 
 const BOOKS = [
   {
@@ -179,6 +248,9 @@ function getGreeting() {
   return "Good evening";
 }
 
+// GlassCard: top of the card now carries most of the accent glow and
+// stays light; only the very bottom edge dips into a shallow dark base.
+// `accent` turns the glow up further for the hero row.
 function GlassCard({
   children,
   className = "",
@@ -193,18 +265,20 @@ function GlassCard({
   return (
     <div
       className={`relative overflow-hidden rounded-2xl border transition-all duration-300 ${
-        accent ? "border-[rgba(239,199,0,0.32)]" : "border-white/[0.08]"
+        accent
+          ? "border-[rgba(239,199,0,0.4)]"
+          : "border-[rgba(239,199,0,0.18)]"
       } ${className}`}
       style={{
         background: accent
-          ? "radial-gradient(circle at 12% 0%, rgba(239,199,0,0.22), transparent 48%), radial-gradient(circle at 100% 100%, rgba(200,115,122,0.16), transparent 42%), linear-gradient(155deg, #201907 0%, #120f08 100%)"
-          : "radial-gradient(circle at 12% 0%, rgba(239,199,0,0.075), transparent 52%), linear-gradient(155deg, #171823 0%, #10121a 100%)",
+          ? "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.48), transparent 60%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.22), transparent 55%), linear-gradient(180deg, #362809 0%, #1e160a 55%, #14100a 100%)"
+          : "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.26), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.14), transparent 55%), linear-gradient(180deg, #26212f 0%, #191725 55%, #121120 100%)",
         boxShadow:
-          "0 12px 34px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.055)",
+          "0 12px 34px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)",
         ...style,
       }}
     >
-      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
       {children}
     </div>
   );
@@ -334,6 +408,116 @@ function HeroSlider({
   );
 }
 
+// ─────────────────────────────────────────────
+// Horizontal step icon (shared visual language with the vertical list)
+// ─────────────────────────────────────────────
+
+function StepNode({ status, index }: { status: LessonStatus; index: number }) {
+  if (status === "done") {
+    return (
+      <div
+        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+        style={{
+          background: "rgb(74,222,128)",
+          boxShadow: "0 0 0 3px rgba(74,222,128,0.16)",
+        }}
+      >
+        <Check size={15} strokeWidth={3} className="text-[#0b1a0f]" />
+      </div>
+    );
+  }
+
+  if (status === "current") {
+    return (
+      <div
+        className="vp-pulse-ring flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border-2 text-[0.62rem] font-black"
+        style={{
+          borderColor: "rgb(239,199,0)",
+          background: "rgba(239,199,0,0.16)",
+          color: "rgb(239,199,0)",
+        }}
+      >
+        {index + 1}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/25">
+      <Lock size={12} strokeWidth={2.25} />
+    </div>
+  );
+}
+
+function ProgressRoadmap({
+  items,
+}: {
+  items: { id: string | number; label: string; status: LessonStatus }[];
+}) {
+  return (
+    <GlassCard className="p-4 md:p-5">
+      <SectionLabel>Course roadmap</SectionLabel>
+
+      <div className="flex items-start">
+        {items.map((item, i) => (
+          <Fragment key={item.id}>
+            <div className="flex w-14 flex-shrink-0 flex-col items-center gap-2 md:w-20">
+              <StepNode status={item.status} index={i} />
+              <span
+                className={`text-center text-[0.44rem] font-black uppercase leading-tight tracking-wider md:text-[0.5rem] ${
+                  item.status === "upcoming"
+                    ? "text-white/25"
+                    : item.status === "current"
+                      ? "text-[rgb(239,199,0)]"
+                      : "text-white/55"
+                }`}
+              >
+                {item.label}
+              </span>
+            </div>
+
+            {i < items.length - 1 && (
+              <div
+                className="mt-4 h-[2px] flex-1 rounded-full transition-colors duration-500"
+                style={{
+                  background:
+                    item.status === "done"
+                      ? "rgb(74,222,128)"
+                      : "rgba(255,255,255,0.1)",
+                }}
+              />
+            )}
+          </Fragment>
+        ))}
+      </div>
+    </GlassCard>
+  );
+}
+
+function LearnerRoadmap() {
+  const items = MODULES.map((m) => ({
+    id: m.id,
+    label: m.title.split(" ").slice(0, 2).join(" "),
+    status: lessonStatus(m.progress, m.id === CURRENT_MODULE.id),
+  }));
+
+  return <ProgressRoadmap items={items} />;
+}
+
+function PublisherRoadmap() {
+  const items = BOOKS.map((book) => ({
+    id: book.id,
+    label: book.title.split(" ").slice(0, 2).join(" "),
+    status: (book.status === "published"
+      ? "done"
+      : book.status === "in_progress"
+        ? "current"
+        : "upcoming") as LessonStatus,
+  }));
+
+  return <ProgressRoadmap items={items} />;
+}
+
 function StageBars({
   activeIndex,
   label,
@@ -432,39 +616,58 @@ function MainTab({
 }
 
 function LearnerHeroCards() {
-  const progressPct = Math.round((USER.xp / USER.nextLevelXp) * 100);
-
   return [
     {
       key: "focus",
+      // Current-module card: title/progress up top, Resume pinned as a
+      // small floating pill in the bottom-right corner (QuickSave-style).
       content: (
-        <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/75">
-            Learning progress
+        <GlassCard accent className="relative h-full p-5 pb-16">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+            {CURRENT_MODULE.module}
           </p>
 
-          <p className="mt-2 text-4xl font-black leading-none text-white md:text-3xl">
-            {USER.xp.toLocaleString()} XP
+          <p className="mt-2 text-xl font-black leading-tight text-white">
+            {CURRENT_MODULE.title}
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/42">
-            {USER.nextLevelXp - USER.xp} XP to Level {USER.level + 1}
+          <p className="mt-1 text-[0.68rem] text-white/50">
+            {CURRENT_MODULE.progress}% complete · {CURRENT_MODULE.duration}
           </p>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-white/[0.08]">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/25">
             <div
               className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_12px_rgba(239,199,0,0.5)] transition-all duration-700"
-              style={{ width: `${progressPct}%` }}
+              style={{ width: `${CURRENT_MODULE.progress}%` }}
             />
           </div>
+
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-[0.6rem] font-black uppercase tracking-[0.06em] text-white/45">
+              {CURRENT_MODULE.progress}% covered
+            </span>
+            <span className="text-[0.62rem] font-black text-[rgb(239,199,0)]">
+              +{Math.round((CURRENT_MODULE.xp * CURRENT_MODULE.progress) / 100)}{" "}
+              XP earned
+            </span>
+          </div>
+
+          <Button
+            size="sm"
+            variant="primary"
+            className="absolute bottom-4 right-4 !w-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+          >
+            <Icon path={ICONS.play} size={11} />
+            Resume
+          </Button>
         </GlassCard>
       ),
     },
     {
       key: "streak",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
+        <GlassCard accent className="h-full p-5">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             This week
           </p>
 
@@ -479,7 +682,7 @@ function LearnerHeroCards() {
                   className={`flex h-7 w-full items-center justify-center rounded-lg text-[0.6rem] font-black transition-all ${
                     STREAK_DONE[i]
                       ? "bg-[rgb(239,199,0)] text-[#171100] shadow-[0_4px_12px_rgba(239,199,0,0.3)]"
-                      : "bg-white/[0.06] text-white/30"
+                      : "bg-black/20 text-white/30"
                   }`}
                 >
                   {STREAK_DONE[i] ? "✓" : ""}
@@ -494,42 +697,43 @@ function LearnerHeroCards() {
       ),
     },
     {
-      key: "current-lesson",
+      key: "xp",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
-            {CURRENT_LESSON.module}
+        <GlassCard accent className="h-full p-5">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+            Total XP
           </p>
 
-          <p className="mt-2 truncate text-lg font-black text-white">
-            {CURRENT_LESSON.title}
+          <p className="mt-2 text-4xl font-black leading-none text-white md:text-3xl">
+            {USER.xp.toLocaleString()}
           </p>
 
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+          <p className="mt-1 text-[0.68rem] text-white/50">
+            {USER.nextLevelXp - USER.xp} XP to Level {USER.level + 1}
+          </p>
+
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/25">
             <div
-              className="h-full rounded-full bg-[rgb(239,199,0)]"
-              style={{ width: `${CURRENT_LESSON.progress}%` }}
+              className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_12px_rgba(239,199,0,0.5)] transition-all duration-700"
+              style={{
+                width: `${Math.round((USER.xp / USER.nextLevelXp) * 100)}%`,
+              }}
             />
           </div>
-
-          <button className="mt-4 flex items-center gap-2 rounded-xl bg-[rgb(239,199,0)] px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#171100] transition-transform hover:scale-[1.02] active:scale-95">
-            <Icon path={ICONS.play} size={12} />
-            Resume
-          </button>
         </GlassCard>
       ),
     },
     {
       key: "rank",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
+        <GlassCard accent className="h-full p-5">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             Leaderboard rank
           </p>
 
           <p className="mt-2 text-3xl font-black leading-none text-white">#3</p>
 
-          <p className="mt-1 text-[0.68rem] text-white/42">
+          <p className="mt-1 text-[0.68rem] text-white/50">
             1,780 XP behind #1
           </p>
         </GlassCard>
@@ -549,7 +753,7 @@ function PublisherHeroCards() {
       content: (
         <GlassCard accent className="h-full p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/75">
+            <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
               Total earned
             </p>
             <Icon path={ICONS.cash} size={16} />
@@ -568,8 +772,8 @@ function PublisherHeroCards() {
     {
       key: "sales",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
+        <GlassCard accent className="h-full p-5">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             Total sales
           </p>
 
@@ -577,7 +781,7 @@ function PublisherHeroCards() {
             {totalSales}
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/42">
+          <p className="mt-1 text-[0.68rem] text-white/50">
             copies sold across all books
           </p>
         </GlassCard>
@@ -586,8 +790,8 @@ function PublisherHeroCards() {
     {
       key: "books",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
+        <GlassCard accent className="h-full p-5">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             Books published
           </p>
 
@@ -596,15 +800,15 @@ function PublisherHeroCards() {
             <span className="text-base text-white/30">/ {BOOKS.length}</span>
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/42">1 in progress</p>
+          <p className="mt-1 text-[0.68rem] text-white/50">1 in progress</p>
         </GlassCard>
       ),
     },
     {
       key: "payout",
       content: (
-        <GlassCard className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-white/35">
+        <GlassCard accent className="relative h-full p-5 pb-16">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             Available payout
           </p>
 
@@ -612,59 +816,146 @@ function PublisherHeroCards() {
             {naira(103247)}
           </p>
 
-          <button className="mt-4 rounded-xl bg-[rgb(239,199,0)] px-4 py-2 text-[0.62rem] font-black uppercase tracking-[0.1em] text-[#171100] transition-transform hover:scale-[1.02] active:scale-95">
+          <Button
+            size="sm"
+            variant="primary"
+            className="absolute bottom-4 right-4 !w-auto whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+          >
             Withdraw
-          </button>
+          </Button>
         </GlassCard>
       ),
     },
   ];
 }
 
-function LessonsSection() {
-  return (
-    <div>
-      <SectionLabel>All lessons</SectionLabel>
+// ─────────────────────────────────────────────
+// "All lessons" — MyFund "All Stages" style vertical list
+// ─────────────────────────────────────────────
 
-      <div className="grid gap-2 md:grid-cols-2">
-        {LESSONS.map((lesson, i) => (
-          <GlassCard
-            key={lesson.id}
-            className="vp-card-in p-3.5"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-xs font-black ${
-                  lesson.progress === 100
-                    ? "bg-[rgba(74,222,128,0.15)] text-[#4ade80]"
-                    : lesson.progress > 0
-                      ? "bg-[rgba(239,199,0,0.12)] text-[rgb(239,199,0)]"
-                      : "bg-white/[0.05] text-white/25"
-                }`}
-              >
-                {lesson.progress === 100
-                  ? "✓"
-                  : lesson.progress > 0
-                    ? `${lesson.progress}%`
-                    : "–"}
-              </div>
+function AllLessonsSection({
+  onSelect,
+}: {
+  onSelect: (lesson: LessonDetail) => void;
+}) {
+  return (
+    <GlassCard className="p-4 md:p-5">
+      <div className="mb-4 flex items-baseline justify-between">
+        <SectionLabel>All lessons</SectionLabel>
+        <span className="text-[0.6rem] font-black text-white/35">
+          {MODULE_EARNED_XP.toLocaleString()} /{" "}
+          {MODULE_TOTAL_XP.toLocaleString()} XP
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        {MODULES.map((m, i) => {
+          const status = lessonStatus(m.progress, m.id === CURRENT_MODULE.id);
+          const isCurrent = status === "current";
+
+          const barColor =
+            status === "done"
+              ? "rgb(74,222,128)"
+              : status === "current"
+                ? "rgb(239,199,0)"
+                : "rgba(255,255,255,0.12)";
+
+          return (
+            <button
+              key={m.id}
+              onClick={() =>
+                onSelect({
+                  index: i + 1,
+                  total: MODULES.length,
+                  moduleLabel: m.module,
+                  title: m.title,
+                  description: m.description,
+                  actionTip: m.actionTip,
+                  xp: m.xp,
+                  status,
+                })
+              }
+              className={`group flex w-full items-start gap-3 rounded-xl px-2.5 py-3 text-left transition-all active:scale-[0.99] ${
+                isCurrent ? "border" : "border border-transparent"
+              }`}
+              style={
+                isCurrent
+                  ? {
+                      background: "rgba(239,199,0,0.08)",
+                      borderColor: "rgba(239,199,0,0.32)",
+                    }
+                  : undefined
+              }
+            >
+              <span
+                className="mt-0.5 h-full min-h-[2.75rem] w-[3px] flex-shrink-0 self-stretch rounded-full transition-colors"
+                style={{ background: barColor }}
+              />
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.78rem] font-black text-white/82">
-                  {lesson.title}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[0.6rem] font-black uppercase tracking-[0.08em] ${
+                      status === "upcoming" ? "text-white/30" : "text-white/45"
+                    }`}
+                  >
+                    {m.module}
+                  </span>
+
+                  {isCurrent && (
+                    <span
+                      className="inline-flex items-center rounded-full px-2 py-[1px] text-[0.44rem] font-black uppercase tracking-[0.1em]"
+                      style={{
+                        background: "rgba(239,199,0,0.18)",
+                        color: "rgb(239,199,0)",
+                      }}
+                    >
+                      You are here
+                    </span>
+                  )}
+                </div>
+
+                <p
+                  className={`mt-0.5 truncate text-[0.85rem] font-black ${
+                    status === "upcoming" ? "text-white/40" : "text-white"
+                  }`}
+                >
+                  {m.title}
                 </p>
-                <p className="text-[0.55rem] text-white/32">
-                  {lesson.module} · {lesson.duration}
+
+                <p className="mt-0.5 text-[0.58rem] text-white/30">
+                  {m.duration} · {m.xp} XP
                 </p>
               </div>
 
-              <Icon path={ICONS.chevronR} size={14} />
-            </div>
-          </GlassCard>
-        ))}
+              <span className="mt-1 flex-shrink-0">
+                {status === "done" && (
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[rgba(74,222,128,0.16)] text-[#4ade80]">
+                    <Check size={13} strokeWidth={3} />
+                  </span>
+                )}
+
+                {status === "current" && (
+                  <span
+                    className="vp-pulse-ring grid h-6 w-6 place-items-center rounded-full border-2"
+                    style={{
+                      borderColor: "rgb(239,199,0)",
+                      background: "rgba(239,199,0,0.14)",
+                    }}
+                  />
+                )}
+
+                {status === "upcoming" && (
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-white/25">
+                    <Lock size={11} strokeWidth={2.25} />
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -715,9 +1006,9 @@ function BooksSection() {
                 )}
               </div>
 
-              <button className="flex-shrink-0 rounded-xl border border-white/[0.12] bg-white/[0.06] px-3 py-2 text-[0.58rem] font-black uppercase tracking-[0.1em] text-white/70 transition-all hover:border-[rgba(239,199,0,0.3)] hover:bg-[rgba(239,199,0,0.08)] hover:text-[rgb(239,199,0)] active:scale-95">
+              <Button variant="secondary" size="sm" className="flex-shrink-0">
                 Manage
-              </button>
+              </Button>
             </div>
           </GlassCard>
         ))}
@@ -805,6 +1096,9 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("learner");
+  const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
+    null,
+  );
 
   const heroCards =
     mode === "learner" ? LearnerHeroCards() : PublisherHeroCards();
@@ -865,6 +1159,10 @@ export default function HomeScreen() {
               <HeroSlider cards={heroCards} />
             </div>
 
+            <div className="vp-card-in" style={{ animationDelay: "80ms" }}>
+              {mode === "learner" ? <LearnerRoadmap /> : <PublisherRoadmap />}
+            </div>
+
             <div className="grid gap-4 md:grid-cols-3 md:gap-6">
               <div
                 className="vp-card-in md:col-span-1"
@@ -903,12 +1201,22 @@ export default function HomeScreen() {
               </div>
             </div>
 
-            {mode === "learner" ? <LessonsSection /> : <BooksSection />}
+            {mode === "learner" ? (
+              <AllLessonsSection onSelect={setSelectedLesson} />
+            ) : (
+              <BooksSection />
+            )}
           </div>
         </main>
       </div>
 
       <MainTab active={activeTab} onTab={setActiveTab} />
+
+      <LessonDetailModal
+        open={selectedLesson !== null}
+        onClose={() => setSelectedLesson(null)}
+        lesson={selectedLesson}
+      />
 
       <style jsx global>{`
         @keyframes vpFadeInUp {
@@ -926,8 +1234,23 @@ export default function HomeScreen() {
           animation: vpFadeInUp 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both;
         }
 
+        @keyframes vpPulseRing {
+          0%,
+          100% {
+            box-shadow: 0 0 0 0 rgba(239, 199, 0, 0.5);
+          }
+          50% {
+            box-shadow: 0 0 0 7px rgba(239, 199, 0, 0);
+          }
+        }
+
+        .vp-pulse-ring {
+          animation: vpPulseRing 1.8s ease-in-out infinite;
+        }
+
         @media (prefers-reduced-motion: reduce) {
-          .vp-card-in {
+          .vp-card-in,
+          .vp-pulse-ring {
             animation: none;
           }
         }
