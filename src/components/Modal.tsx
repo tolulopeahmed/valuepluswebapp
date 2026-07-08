@@ -36,15 +36,17 @@ export default function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center md:p-4">
       <div
         onClick={onClose}
         className="vp-modal-backdrop-in absolute inset-0"
         style={{ background: "rgba(4,3,1,0.72)", backdropFilter: "blur(10px)" }}
       />
 
+      {/* Full-bleed on mobile (no side margin, top-only rounding); capped
+          width and fully rounded once we hit md. */}
       <div
-        className={`vp-modal-panel-in relative w-full max-w-md overflow-hidden rounded-t-3xl border md:rounded-3xl ${className}`}
+        className={`vp-modal-panel-in relative w-full overflow-hidden rounded-t-3xl border md:w-full md:max-w-md md:rounded-3xl ${className}`}
         style={{
           borderColor: "rgba(239,199,0,0.24)",
           background:

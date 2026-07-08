@@ -32,8 +32,8 @@ const USER = {
   avatar: null as string | null,
 };
 
-// The 6-module curriculum. progress: 100 = done, 0 = locked/upcoming,
-// anything between = the current in-progress module.
+// 6-module curriculum. Lessons 1 & 2 are complete; Lesson 3 is the one
+// currently in progress; 4–6 are locked/upcoming.
 const MODULES = [
   {
     id: 1,
@@ -57,7 +57,7 @@ const MODULES = [
       "Sketch three cover directions before opening any design tool — constraints spark better covers than a blank canvas.",
     xp: 200,
     duration: "18 min",
-    progress: 65,
+    progress: 100,
   },
   {
     id: 3,
@@ -69,7 +69,7 @@ const MODULES = [
       "Read your manuscript aloud — your ear will catch awkward phrasing your eyes skim right past.",
     xp: 150,
     duration: "15 min",
-    progress: 0,
+    progress: 40,
   },
   {
     id: 4,
@@ -118,10 +118,13 @@ function lessonStatus(progress: number, isCurrentId: boolean): LessonStatus {
 const CURRENT_MODULE =
   MODULES.find((m) => m.progress > 0 && m.progress < 100) ?? MODULES[0];
 
+const CURRENT_MODULE_XP_EARNED = Math.round(
+  (CURRENT_MODULE.xp * CURRENT_MODULE.progress) / 100,
+);
+
 const MODULE_EARNED_XP = MODULES.reduce((sum, m) => {
   if (m.progress === 100) return sum + m.xp;
-  if (m.id === CURRENT_MODULE.id)
-    return sum + Math.round((m.xp * m.progress) / 100);
+  if (m.id === CURRENT_MODULE.id) return sum + CURRENT_MODULE_XP_EARNED;
   return sum;
 }, 0);
 
@@ -248,9 +251,8 @@ function getGreeting() {
   return "Good evening";
 }
 
-// GlassCard: top of the card now carries most of the accent glow and
-// stays light; only the very bottom edge dips into a shallow dark base.
-// `accent` turns the glow up further for the hero row.
+// GlassCard: accent glow lives at the top, fading into a thin dark base —
+// same family the sidebar uses, just brighter/less top-heavy dark.
 function GlassCard({
   children,
   className = "",
@@ -271,8 +273,8 @@ function GlassCard({
       } ${className}`}
       style={{
         background: accent
-          ? "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.48), transparent 60%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.22), transparent 55%), linear-gradient(180deg, #362809 0%, #1e160a 55%, #14100a 100%)"
-          : "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.26), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.14), transparent 55%), linear-gradient(180deg, #26212f 0%, #191725 55%, #121120 100%)",
+          ? "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.42), transparent 60%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.18), transparent 55%), linear-gradient(180deg, #362809 0%, #1e160a 55%, #14100a 100%)"
+          : "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.24), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.13), transparent 55%), linear-gradient(180deg, #26212f 0%, #191725 55%, #121120 100%)",
         boxShadow:
           "0 12px 34px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)",
         ...style,
@@ -376,7 +378,7 @@ function HeroSlider({
         onTouchStart={() => {
           pausedUntil.current = Date.now() + 15000;
         }}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:overflow-visible lg:grid-cols-4"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:items-stretch md:overflow-visible lg:grid-cols-4"
       >
         {cards.map((card, i) => (
           <div
@@ -409,7 +411,7 @@ function HeroSlider({
 }
 
 // ─────────────────────────────────────────────
-// Horizontal step icon (shared visual language with the vertical list)
+// Horizontal step icon (shared visual language with vertical list)
 // ─────────────────────────────────────────────
 
 function StepNode({ status, index }: { status: LessonStatus; index: number }) {
@@ -619,10 +621,11 @@ function LearnerHeroCards() {
   return [
     {
       key: "focus",
-      // Current-module card: title/progress up top, Resume pinned as a
-      // small floating pill in the bottom-right corner (QuickSave-style).
+      // Current-module card, sized like MyFund's savings card: header
+      // block up top, then a single bottom row with the progress bar on
+      // the left and Resume pinned bottom-right on the same line.
       content: (
-        <GlassCard accent className="relative h-full p-5 pb-16">
+        <GlassCard accent className="flex h-full flex-col p-5">
           <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             {CURRENT_MODULE.module}
           </p>
@@ -635,31 +638,27 @@ function LearnerHeroCards() {
             {CURRENT_MODULE.progress}% complete · {CURRENT_MODULE.duration}
           </p>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/25">
-            <div
-              className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_12px_rgba(239,199,0,0.5)] transition-all duration-700"
-              style={{ width: `${CURRENT_MODULE.progress}%` }}
-            />
-          </div>
+          <div className="mt-4 flex items-end gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-black/30">
+                <div
+                  className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
+                  style={{ width: `${CURRENT_MODULE.progress}%` }}
+                />
+              </div>
+              <p className="mt-1.5 truncate text-[0.6rem] font-black text-[rgb(239,199,0)]">
+                +{CURRENT_MODULE_XP_EARNED} XP earned
+              </p>
+            </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[0.6rem] font-black uppercase tracking-[0.06em] text-white/45">
-              {CURRENT_MODULE.progress}% covered
-            </span>
-            <span className="text-[0.62rem] font-black text-[rgb(239,199,0)]">
-              +{Math.round((CURRENT_MODULE.xp * CURRENT_MODULE.progress) / 100)}{" "}
-              XP earned
-            </span>
+            <Button
+              size="sm"
+              variant="primary"
+              className="!w-auto flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+            >
+              Resume
+            </Button>
           </div>
-
-          <Button
-            size="sm"
-            variant="primary"
-            className="absolute bottom-4 right-4 !w-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
-          >
-            <Icon path={ICONS.play} size={11} />
-            Resume
-          </Button>
         </GlassCard>
       ),
     },
@@ -712,9 +711,9 @@ function LearnerHeroCards() {
             {USER.nextLevelXp - USER.xp} XP to Level {USER.level + 1}
           </p>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/25">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/30">
             <div
-              className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_12px_rgba(239,199,0,0.5)] transition-all duration-700"
+              className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
               style={{
                 width: `${Math.round((USER.xp / USER.nextLevelXp) * 100)}%`,
               }}
@@ -807,7 +806,7 @@ function PublisherHeroCards() {
     {
       key: "payout",
       content: (
-        <GlassCard accent className="relative h-full p-5 pb-16">
+        <GlassCard accent className="flex h-full flex-col p-5">
           <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
             Available payout
           </p>
@@ -816,13 +815,15 @@ function PublisherHeroCards() {
             {naira(103247)}
           </p>
 
-          <Button
-            size="sm"
-            variant="primary"
-            className="absolute bottom-4 right-4 !w-auto whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
-          >
-            Withdraw
-          </Button>
+          <div className="mt-4 flex items-center justify-end">
+            <Button
+              size="sm"
+              variant="primary"
+              className="!w-auto whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+            >
+              Withdraw
+            </Button>
+          </div>
         </GlassCard>
       ),
     },
