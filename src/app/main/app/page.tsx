@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   Fragment,
 } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, Play } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import Header from "../../../components/Header";
 import QuickActions from "../../../components/QuickActions";
@@ -225,7 +225,6 @@ const ICONS = {
     "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75",
   withdraw: "M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6",
   more: "M5 12h.01M12 12h.01M19 12h.01",
-  play: "M5 3l14 9-14 9V3z",
   book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
   chevronR: "M9 18l6-6-6-6",
   trend: "M23 6l-9.5 9.5-5-5L1 18 M17 6h6v6",
@@ -251,8 +250,9 @@ function getGreeting() {
   return "Good evening";
 }
 
-// GlassCard: accent glow lives at the top, fading into a thin dark base —
-// same family the sidebar uses, just brighter/less top-heavy dark.
+// GlassCard: warm olive-gold wash top-to-bottom, matching the reference —
+// the top stays bright and saturated, the bottom only dips slightly
+// darker. No portion of the card should read as near-black anymore.
 function GlassCard({
   children,
   className = "",
@@ -268,19 +268,19 @@ function GlassCard({
     <div
       className={`relative overflow-hidden rounded-2xl border transition-all duration-300 ${
         accent
-          ? "border-[rgba(239,199,0,0.4)]"
-          : "border-[rgba(239,199,0,0.18)]"
+          ? "border-[rgba(239,199,0,0.45)]"
+          : "border-[rgba(239,199,0,0.22)]"
       } ${className}`}
       style={{
         background: accent
-          ? "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.42), transparent 60%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.18), transparent 55%), linear-gradient(180deg, #362809 0%, #1e160a 55%, #14100a 100%)"
-          : "radial-gradient(130% 65% at 14% -6%, rgba(239,199,0,0.24), transparent 62%), radial-gradient(90% 60% at 100% 105%, rgba(214,132,139,0.13), transparent 55%), linear-gradient(180deg, #26212f 0%, #191725 55%, #121120 100%)",
+          ? "radial-gradient(120% 90% at 20% 0%, rgba(239,199,0,0.5), transparent 72%), linear-gradient(180deg, #6b5111 0%, #4a3811 45%, #2e2410 100%)"
+          : "radial-gradient(120% 90% at 20% 0%, rgba(239,199,0,0.34), transparent 72%), linear-gradient(180deg, #4a4258 0%, #342e42 45%, #201c2c 100%)",
         boxShadow:
-          "0 12px 34px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.08)",
+          "0 12px 34px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.1)",
         ...style,
       }}
     >
-      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
       {children}
     </div>
   );
@@ -621,12 +621,12 @@ function LearnerHeroCards() {
   return [
     {
       key: "focus",
-      // Current-module card, sized like MyFund's savings card: header
-      // block up top, then a single bottom row with the progress bar on
-      // the left and Resume pinned bottom-right on the same line.
+      // Current-module card: header block up top, bottom row has the
+      // progress bar (left) and Resume (right) on one line. Unfilled
+      // track is a visible grey, not near-black.
       content: (
         <GlassCard accent className="flex h-full flex-col p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             {CURRENT_MODULE.module}
           </p>
 
@@ -634,19 +634,19 @@ function LearnerHeroCards() {
             {CURRENT_MODULE.title}
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/50">
+          <p className="mt-1 text-[0.68rem] text-white/70">
             {CURRENT_MODULE.progress}% complete · {CURRENT_MODULE.duration}
           </p>
 
           <div className="mt-4 flex items-end gap-3">
             <div className="min-w-0 flex-1">
-              <div className="h-2 w-full overflow-hidden rounded-full bg-black/30">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,0.28)]">
                 <div
                   className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
                   style={{ width: `${CURRENT_MODULE.progress}%` }}
                 />
               </div>
-              <p className="mt-1.5 truncate text-[0.6rem] font-black text-[rgb(239,199,0)]">
+              <p className="mt-1.5 truncate text-[0.6rem] font-black text-[#3a2c05]">
                 +{CURRENT_MODULE_XP_EARNED} XP earned
               </p>
             </div>
@@ -654,9 +654,9 @@ function LearnerHeroCards() {
             <Button
               size="sm"
               variant="primary"
-              className="!w-auto flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+              className="!w-auto flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(0,0,0,0.3)]"
             >
-              Resume
+              RESUME
             </Button>
           </div>
         </GlassCard>
@@ -666,7 +666,7 @@ function LearnerHeroCards() {
       key: "streak",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             This week
           </p>
 
@@ -680,13 +680,13 @@ function LearnerHeroCards() {
                 <div
                   className={`flex h-7 w-full items-center justify-center rounded-lg text-[0.6rem] font-black transition-all ${
                     STREAK_DONE[i]
-                      ? "bg-[rgb(239,199,0)] text-[#171100] shadow-[0_4px_12px_rgba(239,199,0,0.3)]"
-                      : "bg-black/20 text-white/30"
+                      ? "bg-[#171100] text-[rgb(239,199,0)] shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                      : "bg-black/20 text-white/40"
                   }`}
                 >
                   {STREAK_DONE[i] ? "✓" : ""}
                 </div>
-                <span className="text-[0.48rem] font-black uppercase text-white/25">
+                <span className="text-[0.48rem] font-black uppercase text-white/40">
                   {day}
                 </span>
               </div>
@@ -699,7 +699,7 @@ function LearnerHeroCards() {
       key: "xp",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             Total XP
           </p>
 
@@ -707,11 +707,11 @@ function LearnerHeroCards() {
             {USER.xp.toLocaleString()}
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/50">
+          <p className="mt-1 text-[0.68rem] text-white/70">
             {USER.nextLevelXp - USER.xp} XP to Level {USER.level + 1}
           </p>
 
-          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-black/30">
+          <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-[rgba(0,0,0,0.28)]">
             <div
               className="h-full rounded-full bg-[rgb(239,199,0)] shadow-[0_0_10px_rgba(239,199,0,0.5)] transition-all duration-700"
               style={{
@@ -726,13 +726,13 @@ function LearnerHeroCards() {
       key: "rank",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             Leaderboard rank
           </p>
 
           <p className="mt-2 text-3xl font-black leading-none text-white">#3</p>
 
-          <p className="mt-1 text-[0.68rem] text-white/50">
+          <p className="mt-1 text-[0.68rem] text-white/70">
             1,780 XP behind #1
           </p>
         </GlassCard>
@@ -752,7 +752,7 @@ function PublisherHeroCards() {
       content: (
         <GlassCard accent className="h-full p-5">
           <div className="flex items-center justify-between">
-            <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+            <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
               Total earned
             </p>
             <Icon path={ICONS.cash} size={16} />
@@ -772,7 +772,7 @@ function PublisherHeroCards() {
       key: "sales",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             Total sales
           </p>
 
@@ -780,7 +780,7 @@ function PublisherHeroCards() {
             {totalSales}
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/50">
+          <p className="mt-1 text-[0.68rem] text-white/70">
             copies sold across all books
           </p>
         </GlassCard>
@@ -790,16 +790,16 @@ function PublisherHeroCards() {
       key: "books",
       content: (
         <GlassCard accent className="h-full p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             Books published
           </p>
 
           <p className="mt-2 text-3xl font-black leading-none text-white">
             {publishedCount}{" "}
-            <span className="text-base text-white/30">/ {BOOKS.length}</span>
+            <span className="text-base text-white/40">/ {BOOKS.length}</span>
           </p>
 
-          <p className="mt-1 text-[0.68rem] text-white/50">1 in progress</p>
+          <p className="mt-1 text-[0.68rem] text-white/70">1 in progress</p>
         </GlassCard>
       ),
     },
@@ -807,7 +807,7 @@ function PublisherHeroCards() {
       key: "payout",
       content: (
         <GlassCard accent className="flex h-full flex-col p-5">
-          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[rgb(239,199,0)]/85">
+          <p className="text-[0.52rem] font-black uppercase tracking-[0.2em] text-[#3a2c05]">
             Available payout
           </p>
 
@@ -819,7 +819,7 @@ function PublisherHeroCards() {
             <Button
               size="sm"
               variant="primary"
-              className="!w-auto whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(239,199,0,0.4)]"
+              className="!w-auto whitespace-nowrap rounded-full px-4 shadow-[0_10px_24px_rgba(0,0,0,0.3)]"
             >
               Withdraw
             </Button>
@@ -843,7 +843,7 @@ function AllLessonsSection({
     <GlassCard className="p-4 md:p-5">
       <div className="mb-4 flex items-baseline justify-between">
         <SectionLabel>All lessons</SectionLabel>
-        <span className="text-[0.6rem] font-black text-white/35">
+        <span className="text-[0.6rem] font-black text-white/45">
           {MODULE_EARNED_XP.toLocaleString()} /{" "}
           {MODULE_TOTAL_XP.toLocaleString()} XP
         </span>
@@ -859,7 +859,7 @@ function AllLessonsSection({
               ? "rgb(74,222,128)"
               : status === "current"
                 ? "rgb(239,199,0)"
-                : "rgba(255,255,255,0.12)";
+                : "rgba(255,255,255,0.15)";
 
           return (
             <button
@@ -882,8 +882,8 @@ function AllLessonsSection({
               style={
                 isCurrent
                   ? {
-                      background: "rgba(239,199,0,0.08)",
-                      borderColor: "rgba(239,199,0,0.32)",
+                      background: "rgba(239,199,0,0.1)",
+                      borderColor: "rgba(239,199,0,0.35)",
                     }
                   : undefined
               }
@@ -897,7 +897,7 @@ function AllLessonsSection({
                 <div className="flex items-center gap-2">
                   <span
                     className={`text-[0.6rem] font-black uppercase tracking-[0.08em] ${
-                      status === "upcoming" ? "text-white/30" : "text-white/45"
+                      status === "upcoming" ? "text-white/35" : "text-white/55"
                     }`}
                   >
                     {m.module}
@@ -918,13 +918,13 @@ function AllLessonsSection({
 
                 <p
                   className={`mt-0.5 truncate text-[0.85rem] font-black ${
-                    status === "upcoming" ? "text-white/40" : "text-white"
+                    status === "upcoming" ? "text-white/45" : "text-white"
                   }`}
                 >
                   {m.title}
                 </p>
 
-                <p className="mt-0.5 text-[0.58rem] text-white/30">
+                <p className="mt-0.5 text-[0.58rem] text-white/38">
                   {m.duration} · {m.xp} XP
                 </p>
               </div>
@@ -947,7 +947,7 @@ function AllLessonsSection({
                 )}
 
                 {status === "upcoming" && (
-                  <span className="grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-white/25">
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-white/30">
                     <Lock size={11} strokeWidth={2.25} />
                   </span>
                 )}
@@ -1141,7 +1141,7 @@ export default function HomeScreen() {
                 <Subtitle>
                   {getGreeting()}.{" "}
                   {mode === "learner"
-                    ? "Continue your publishing lessons"
+                    ? "Continue your lessons"
                     : "Track your books and earnings"}
                 </Subtitle>
               </div>
