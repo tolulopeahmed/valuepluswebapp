@@ -20,11 +20,12 @@ import LessonDetailModal, {
   type LessonDetail,
   type LessonStatus,
 } from "../../../components/LessonDetailsModal";
+import MarqueeName from "../../../components/MarqueeName";
 
 type Mode = "learner" | "publisher";
 
 const USER = {
-  firstName: "Tolulope Ahmed",
+  firstName: "Oluwaseunfunmilayo",
   streak: 7,
   xp: 2340,
   level: 4,
@@ -316,19 +317,11 @@ function ProfileAvatar({
           style={{
             borderColor: "rgb(239,199,0)",
             background: "linear-gradient(145deg, grey, silver)",
-            marginTop: -5,
           }}
         >
           {initial}
         </div>
       )}
-
-      <span
-        className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full border-2 border-[#070b12] text-[0.5rem] font-black text-[#171100]"
-        style={{ background: "rgb(239,199,0)" }}
-      >
-        ✓
-      </span>
     </button>
   );
 }
@@ -1135,9 +1128,17 @@ export default function HomeScreen() {
 
         <main className="px-4 pb-28 pt-4 md:px-8 md:pb-10 md:pt-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-4 md:gap-6">
-            <div className="vp-card-in flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Title>Hi, {USER.firstName.split(" ")[0]}</Title>
+            <div className="vp-card-in flex items-start gap-3 overflow-hidden">
+              <div className="min-w-0 flex-1 overflow-hidden pr-2">
+                <Title className="block max-w-full overflow-hidden">
+                  <span className="flex min-w-0 max-w-full items-center overflow-hidden">
+                    <MarqueeName
+                      text={`Hi, ${USER.firstName.split(" ")[0]}`}
+                      className="min-w-0 flex-1"
+                      fadeColor="rgba(7,11,18,0.96)"
+                    />
+                  </span>
+                </Title>
                 <Subtitle>
                   {getGreeting()}.{" "}
                   {mode === "learner"
@@ -1146,11 +1147,13 @@ export default function HomeScreen() {
                 </Subtitle>
               </div>
 
-              <ProfileAvatar
-                name={USER.firstName}
-                avatar={USER.avatar}
-                onClick={() => setSidebarOpen(true)}
-              />
+              <div className="flex-shrink-0">
+                <ProfileAvatar
+                  name={USER.firstName}
+                  avatar={USER.avatar}
+                  onClick={() => setSidebarOpen(true)}
+                />
+              </div>
             </div>
 
             <div className="vp-card-in" style={{ animationDelay: "60ms" }}>

@@ -177,7 +177,7 @@ export default function LoginPage() {
           <Link href="/">
             <Image
               src="/images/logos/valueplus-logo-white2.png"
-              alt="ValuePlus Publishing"
+              alt="ValuePlus"
               width={145}
               height={42}
               className="h-8 w-auto object-contain"

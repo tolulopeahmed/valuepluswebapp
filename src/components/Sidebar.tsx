@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 type Mode = "learner" | "publisher";
 
@@ -228,10 +229,12 @@ export default function Sidebar({
               Chat Admin
             </button>
 
-            <button className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-semibold text-red-300/85 transition-all hover:text-red-200 active:scale-[0.98]">
-              <Icon path={ICONS.logout} size={18} />
-              Log Out
-            </button>
+            <Link href="/login">
+              <button className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-semibold text-red-300/85 transition-all hover:text-red-200 active:scale-[0.98]">
+                <Icon path={ICONS.logout} size={18} />
+                Log Out
+              </button>
+            </Link>
           </div>
         </nav>
 

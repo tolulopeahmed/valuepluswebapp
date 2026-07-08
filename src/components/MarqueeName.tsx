@@ -1,80 +1,160 @@
 "use client";
 
-import { useRef, useState, useEffect, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 
 interface MarqueeStyle extends CSSProperties {
   "--marquee-distance"?: string;
+  "--marquee-duration"?: string;
 }
 
 export default function MarqueeName({
   text,
   className = "",
+  textClassName = "",
+  fadeColor = "rgba(7,11,18,0.96)",
 }: {
   text: string;
   className?: string;
+  textClassName?: string;
+  fadeColor?: string;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const [overflow, setOverflow] = useState(false);
-  const [distance, setDistance] = useState(0);
+  const frameRef = useRef<number | null>(null);
+
+  const [marquee, setMarquee] = useState({
+    overflow: false,
+    distance: 0,
+  });
+
+  const scheduleMeasure = useCallback(() => {
+    if (frameRef.current !== null) {
+      cancelAnimationFrame(frameRef.current);
+    }
+
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+
+      const container = containerRef.current;
+      const textEl = textRef.current;
+
+      if (!container || !textEl) return;
+
+      const diff = textEl.scrollWidth - container.clientWidth;
+
+      const next = {
+        overflow: diff > 4,
+        distance: Math.max(0, diff + 28),
+      };
+
+      setMarquee((prev) => {
+        if (
+          prev.overflow === next.overflow &&
+          prev.distance === next.distance
+        ) {
+          return prev;
+        }
+
+        return next;
+      });
+    });
+  }, []);
 
   useEffect(() => {
-    const check = () => {
-      const c = containerRef.current;
-      const t = textRef.current;
-      if (!c || !t) return;
-      const diff = t.scrollWidth - c.clientWidth;
-      setOverflow(diff > 4);
-      setDistance(diff + 24);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, [text]);
+    scheduleMeasure();
 
-  const spanStyle: MarqueeStyle | undefined = overflow
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleMeasure)
+        : null;
+
+    const container = containerRef.current;
+    const textEl = textRef.current;
+
+    if (resizeObserver) {
+      if (container) resizeObserver.observe(container);
+      if (textEl) resizeObserver.observe(textEl);
+    }
+
+    window.addEventListener("resize", scheduleMeasure);
+
+    if ("fonts" in document) {
+      document.fonts?.ready?.then(scheduleMeasure).catch(() => undefined);
+    }
+
+    return () => {
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current);
+      }
+
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+    };
+  }, [text, scheduleMeasure]);
+
+  const duration = Math.min(10, Math.max(5.8, marquee.distance / 18));
+
+  const spanStyle: MarqueeStyle | undefined = marquee.overflow
     ? {
-        animation: `marquee-scroll 6s ease-in-out infinite`,
-        "--marquee-distance": `-${distance}px`,
+        animation:
+          "marquee-name-scroll var(--marquee-duration) ease-in-out 0.45s infinite",
+        "--marquee-distance": `-${marquee.distance}px`,
+        "--marquee-duration": `${duration}s`,
       }
     : undefined;
 
   return (
-    <div
+    <span
       ref={containerRef}
-      className={`relative overflow-hidden ${className}`}
-      style={{ maxWidth: "100%" }}
+      className={`relative block max-w-full overflow-hidden ${className}`}
     >
       <span
         ref={textRef}
-        className="inline-block whitespace-nowrap"
+        className={`marquee-name-text inline-block whitespace-nowrap ${textClassName}`}
         style={spanStyle}
       >
         {text}
       </span>
-      {overflow && (
-        <div
+
+      {marquee.overflow && (
+        <span
           className="pointer-events-none absolute inset-y-0 right-0 w-8"
           style={{
-            background: "linear-gradient(to right, transparent, #070b12)",
+            background: `linear-gradient(to right, transparent, ${fadeColor})`,
           }}
         />
       )}
+
       <style jsx>{`
-        @keyframes marquee-scroll {
+        @keyframes marquee-name-scroll {
           0%,
-          15% {
+          16% {
             transform: translateX(0);
           }
-          50%,
-          65% {
+
+          52%,
+          68% {
             transform: translateX(var(--marquee-distance));
           }
+
           100% {
             transform: translateX(0);
           }
         }
+
+        @media (prefers-reduced-motion: reduce) {
+          .marquee-name-text {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
       `}</style>
-    </div>
+    </span>
   );
 }
