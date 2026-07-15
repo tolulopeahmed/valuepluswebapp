@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type Mode = "learner" | "publisher";
 
 function Icon({ path, size = 22 }: { path: string; size?: number }) {
@@ -90,9 +92,12 @@ export default function Header({
           >
             <Icon path={ICONS.menu} size={15} />
           </button>
-          <p className="truncate text-[0.68rem] font-black uppercase tracking-[0.16em] text-white/40 md:hidden">
+          <Link
+            href="/"
+            className="truncate text-[0.68rem] font-black uppercase tracking-[0.16em] text-white/40 md:hidden"
+          >
             ValuePlus
-          </p>
+          </Link>
         </div>
 
         <button

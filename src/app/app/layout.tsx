@@ -1,0 +1,124 @@
+// src/app/app/layout.tsx
+
+"use client";
+
+import { useEffect, type CSSProperties } from "react";
+import Header from "../../components/Header";
+import Sidebar from "../../components/Sidebar";
+import MainTab from "../../components/MainTab";
+import { AppShellProvider, useAppShell, type Mode } from "./AppShellContext";
+import { USER } from "./MockUser";
+import { VP_PAGE_BG } from "./GlassCard";
+
+type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
+
+const ACCENT_RGB: Record<Mode, string> = {
+  learner: "245,197,24",
+  publisher: "224,106,86",
+};
+
+function AppShellInner({ children }: { children: React.ReactNode }) {
+  const { mode, setMode, sidebarOpen, setSidebarOpen } = useAppShell();
+
+  // globals.css sets body { background: var(--vp-ink) } (near-black) for
+  // the marketing pages, which is intentional there. But on mobile Safari,
+  // overscroll/rubber-band briefly reveals the body's background past the
+  // edges of this wrapper — so while this layout is mounted we swap body's
+  // background to match, and put it back on unmount.
+  useEffect(() => {
+    const prevBg = document.body.style.background;
+    document.body.style.background = VP_PAGE_BG;
+    return () => {
+      document.body.style.background = prevBg;
+    };
+  }, []);
+
+  const rootStyle: CSSVars = {
+    background: `radial-gradient(circle at 50% -10%, rgba(var(--vp-accent-rgb),0.05), transparent 40%), linear-gradient(180deg, #12163a 0%, ${VP_PAGE_BG} 45%, #090b22 100%)`,
+    fontFamily: "'Product Sans', 'Proxima Nova', sans-serif",
+    "--vp-accent-rgb": ACCENT_RGB[mode],
+  };
+
+  return (
+    <div
+      className="relative min-h-[100svh] overflow-x-hidden md:flex"
+      style={rootStyle}
+    >
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        mode={mode}
+        onModeChange={setMode}
+        firstName={USER.firstName}
+        xp={USER.xp}
+        level={USER.level}
+      />
+
+      <div className="min-w-0 flex-1">
+        <Header
+          streak={USER.streak}
+          notificationCount={2}
+          mode={mode}
+          onModeChange={setMode}
+          onMenuPress={() => setSidebarOpen(true)}
+          onBellPress={() => {}}
+        />
+
+        <main className="px-4 pb-28 pt-4 md:px-8 md:pb-10 md:pt-6">
+          <div className="mx-auto flex max-w-6xl flex-col gap-5 md:gap-6">
+            {children}
+          </div>
+        </main>
+      </div>
+
+      {/* MainTab already has md:hidden baked in, so desktop only ever sees Header */}
+      <MainTab />
+
+      <style jsx global>{`
+        @keyframes vpFadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .vp-card-in {
+          animation: vpFadeInUp 0.5s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+        }
+
+        @keyframes vpPulseRing {
+          0%,
+          100% {
+            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.5);
+          }
+          50% {
+            box-shadow: 0 0 0 7px rgba(var(--vp-accent-rgb), 0);
+          }
+        }
+
+        .vp-pulse-ring {
+          animation: vpPulseRing 1.8s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .vp-card-in,
+          .vp-pulse-ring {
+            animation: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AppShellProvider>
+      <AppShellInner>{children}</AppShellInner>
+    </AppShellProvider>
+  );
+}

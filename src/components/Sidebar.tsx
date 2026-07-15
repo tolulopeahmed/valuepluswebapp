@@ -6,6 +6,13 @@ import Link from "next/link";
 
 type Mode = "learner" | "publisher";
 
+type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
+
+const ACCENT_RGB: Record<Mode, string> = {
+  learner: "239,199,0",
+  publisher: "214,120,45",
+};
+
 function Icon({ path, size = 22 }: { path: string; size?: number }) {
   return (
     <svg
@@ -50,9 +57,6 @@ interface SidebarProps {
   level: number;
 }
 
-const ACCENT_GOLD = "rgb(239,199,0)";
-const ACCENT_ROSE = "rgb(214,132,139)";
-
 export default function Sidebar({
   open,
   onClose,
@@ -78,21 +82,22 @@ export default function Sidebar({
   const items = mode === "learner" ? learnerItems : publisherItems;
   const activeKey = mode === "learner" ? "academy" : "books";
 
-  const modeAccent = mode === "learner" ? ACCENT_GOLD : ACCENT_ROSE;
+  // Frosty pill background/border/text/toggle all read from
+  // var(--vp-accent-rgb), which is set locally on the <aside> below —
+  // Sidebar stays self-contained even if used outside the home page.
+  const pillStyle: CSSProperties = {
+    background:
+      "radial-gradient(circle at 18% 15%, rgba(var(--vp-accent-rgb),0.30), transparent 62%), rgba(255,255,255,0.06)",
+    borderColor: "rgba(var(--vp-accent-rgb),0.35)",
+  };
 
-  // Frosty pill background shifts hue based on active mode.
-  const pillStyle: CSSProperties =
-    mode === "learner"
-      ? {
-          background:
-            "radial-gradient(circle at 18% 15%, rgba(239,199,0,0.30), transparent 62%), rgba(255,255,255,0.06)",
-          borderColor: "rgba(239,199,0,0.35)",
-        }
-      : {
-          background:
-            "radial-gradient(circle at 18% 15%, rgba(214,132,139,0.30), transparent 62%), rgba(255,255,255,0.06)",
-          borderColor: "rgba(214,132,139,0.35)",
-        };
+  const asideStyle: CSSVars = {
+    background:
+      "radial-gradient(circle at 12% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 46%), radial-gradient(circle at 100% 100%, rgba(200,115,122,0.22), transparent 42%), linear-gradient(155deg, #352808 0%, #241a08 48%, #171106 100%)",
+    borderRight: "1px solid rgba(var(--vp-accent-rgb),0.2)",
+    boxShadow: "18px 0 40px rgba(0,0,0,0.35)",
+    "--vp-accent-rgb": ACCENT_RGB[mode],
+  };
 
   return (
     <>
@@ -113,12 +118,7 @@ export default function Sidebar({
         className={`fixed bottom-0 left-0 top-0 z-50 flex w-[min(82vw,20rem)] flex-col font-['PP_Telegraf'] transition-transform duration-[380ms] ease-[cubic-bezier(0.2,0.95,0.2,1)] md:sticky md:z-0 md:w-64 md:flex-shrink-0 md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{
-          background:
-            "radial-gradient(circle at 12% 0%, rgba(239,199,0,0.32), transparent 46%), radial-gradient(circle at 100% 100%, rgba(200,115,122,0.22), transparent 42%), linear-gradient(155deg, #352808 0%, #241a08 48%, #171106 100%)",
-          borderRight: "1px solid rgba(239,199,0,0.2)",
-          boxShadow: "18px 0 40px rgba(0,0,0,0.35)",
-        }}
+        style={asideStyle}
       >
         <div className="flex items-center justify-between px-5 pb-3 pt-5">
           <div className="min-w-0">
@@ -148,7 +148,9 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* Combined mode label + toggle, single glass pill */}
+        {/* Combined mode label + toggle, single glass pill. Color follows
+            var(--vp-accent-rgb) — gold in Learner mode, copper in
+            Publisher mode. */}
         <div className="px-5 pt-3">
           <div
             className="flex items-center justify-between gap-3 rounded-full border px-3 py-1.5 backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.2,0.9,0.2,1)]"
@@ -156,7 +158,7 @@ export default function Sidebar({
           >
             <p
               className="pl-1 text-[0.58rem] font-black uppercase tracking-[0.16em] transition-colors duration-500"
-              style={{ color: modeAccent }}
+              style={{ color: "rgb(var(--vp-accent-rgb))" }}
             >
               {mode === "learner" ? "Learner" : "Publisher"}
             </p>
@@ -177,9 +179,10 @@ export default function Sidebar({
               title={mode === "learner" ? "Learner mode" : "Publisher mode"}
             >
               <span
-                className="absolute top-0.5 grid h-5 w-5 place-items-center rounded-full text-[#171100] shadow-[0_0_10px_rgba(239,199,0,0.45)] transition-transform duration-200"
+                className="absolute top-0.5 grid h-5 w-5 place-items-center rounded-full text-[#171100] transition-transform duration-200"
                 style={{
-                  background: ACCENT_GOLD,
+                  background: "rgb(var(--vp-accent-rgb))",
+                  boxShadow: "0 0 10px rgba(var(--vp-accent-rgb),0.45)",
                   transform:
                     mode === "publisher"
                       ? "translateX(21px)"
@@ -205,12 +208,12 @@ export default function Sidebar({
                   key={item.key}
                   className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-semibold transition-all active:scale-[0.98] ${
                     isActive
-                      ? "text-[rgb(239,199,0)]"
+                      ? "text-[rgb(var(--vp-accent-rgb))]"
                       : "text-white/70 hover:text-white"
                   }`}
                   style={{
                     background: isActive
-                      ? "rgba(239,199,0,0.11)"
+                      ? "rgba(var(--vp-accent-rgb),0.11)"
                       : "transparent",
                   }}
                 >

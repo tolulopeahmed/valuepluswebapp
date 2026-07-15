@@ -7,7 +7,7 @@ export default function Title({
 }) {
   return (
     <p
-      className={`font-telegraf text-[2.7rem] tracking-tighter font-black leading-tight text-white md:text-[2.2rem] ${className}`}
+      className={`font-telegraf text-[2.7rem] tracking-tight font-black leading-tight text-white md:text-[2.2rem] ${className}`}
     >
       {children}
     </p>

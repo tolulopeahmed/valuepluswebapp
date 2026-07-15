@@ -124,7 +124,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (mode === ("login" as AuthMode)) {
-      router.push("/main/app");
+      router.push("/app");
       return;
     }
 
