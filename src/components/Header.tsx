@@ -79,7 +79,7 @@ export default function Header({
     <header
       className="sticky top-0 z-30 px-4 pb-3 pt-4 md:px-8 md:pb-4 md:pt-6"
       style={{
-        background: "rgba(7,11,18,0.85)",
+        background: "black",
         backdropFilter: "blur(16px) saturate(1.4)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
