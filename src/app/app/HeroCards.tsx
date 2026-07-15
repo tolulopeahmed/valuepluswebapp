@@ -151,7 +151,7 @@ function ReferralRewardsCard({
             </span>
           ))} */}
           <p className="mt-1.5 text-[0.9rem] text-white/60">
-            {data.referralCount} friends joined · {naira(data.perReferral)} each
+            {data.referralCount} friends
           </p>
         </div>
 

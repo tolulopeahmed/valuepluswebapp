@@ -2,7 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-export const VP_PAGE_BG = "#0e1230";
+export const VP_PAGE_BG = "#080d22";
 export const VP_CARD_BG = "#2D375A";
 
 export default function GlassCard({
