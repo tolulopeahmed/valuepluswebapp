@@ -1,9 +1,9 @@
-// src/components/Transactions.tsx
+// src/app/components/Transactions.tsx
 
 "use client";
 
 import { useState } from "react";
-import { Target, CheckCircle2, type LucideIcon } from "lucide-react";
+import { Users, BookOpen, RefreshCcw, type LucideIcon } from "lucide-react";
 import SectionLabel from "./SectionLabel";
 import Modal from "./Modal";
 
@@ -33,44 +33,34 @@ const MOCK_TRANSACTIONS: TransactionGroup[] = [
     items: [
       {
         id: "1",
-        title: "Test 2 Cancelled",
+        title: "Referral Reward",
         date: "Jul 12, 2026 · 1:53 PM",
         status: "confirmed",
         type: "credit",
-        amount: 198,
-        Icon: Target,
+        amount: 5000,
+        Icon: Users,
       },
       {
         id: "2",
-        title: "Target Savings Created (Test)",
+        title: "Book Sale",
         date: "Jul 12, 2026 · 1:52 PM",
         status: "confirmed",
         type: "credit",
-        amount: 200,
-        Icon: Target,
+        amount: 12500,
+        Icon: BookOpen,
       },
       {
         id: "3",
-        title: "Target Savings Initial Funding",
+        title: "Book Reprint",
         date: "Jul 12, 2026 · 1:52 PM",
-        status: "confirmed",
+        status: "pending",
         type: "debit",
-        amount: 200,
-        Icon: CheckCircle2,
+        amount: 32000,
+        Icon: RefreshCcw,
       },
     ],
   },
 ];
-
-function formatParts(value: number) {
-  const [whole, decimal] = value
-    .toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-    .split(".");
-  return { whole, decimal };
-}
 
 // Status/amount semantics stay universal (green = confirmed/credit, warm =
 // debit, red = failed) — only the chrome around them (icon tiles, text,
@@ -107,75 +97,67 @@ function amountColorFor(tx: Transaction) {
   return AMOUNT_COLOR[tx.type];
 }
 
-// Renders the ₦ sign and decimal tail smaller than the whole-number part,
-// same proportions as the reference design.
-function Amount({
+// Renders the naira sign and the decimal tail at ~0.55em so they sit smaller
+// than the whole-number amount, same proportion as the reference design.
+function MoneyDisplay({
   value,
   color,
-  size = "row",
+  className = "",
 }: {
   value: number;
   color: string;
-  size?: "row" | "modal";
+  className?: string;
 }) {
-  const { whole, decimal } = formatParts(value);
-  const wholeSize = size === "modal" ? "text-[2rem]" : "text-[1.05rem]";
-  const smallSize = size === "modal" ? "text-[0.85rem]" : "text-[0.62rem]";
-
+  const [whole, decimal] = value.toFixed(2).split(".");
   return (
-    <span className="font-black leading-none" style={{ color }}>
-      <span className={`${smallSize} align-top`}>₦</span>
-      <span className={wholeSize}>{whole}</span>
-      <span className={smallSize}>.{decimal}</span>
+    <span className={className} style={{ color }}>
+      <span style={{ fontSize: "0.55em" }}>₦</span>
+      {Number(whole).toLocaleString()}
+      <span style={{ fontSize: "0.55em" }}>.{decimal}</span>
     </span>
   );
 }
 
 function TransactionRow({
   tx,
-  onSelect,
+  onOpen,
 }: {
   tx: Transaction;
-  onSelect: (tx: Transaction) => void;
+  onOpen: (tx: Transaction) => void;
 }) {
   const status = STATUS_STYLES[tx.status];
-  const amountColor = amountColorFor(tx);
 
   return (
     <button
       type="button"
-      onClick={() => onSelect(tx)}
-      className="flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left backdrop-blur-sm transition-colors duration-200 active:bg-white/[0.06]"
+      onClick={() => onOpen(tx)}
+      className="flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2.5 text-left transition-colors duration-200 active:bg-white/[0.07]"
       style={{
-        background:
-          "linear-gradient(135deg, rgba(var(--vp-accent-rgb),0.14), rgba(var(--vp-accent-rgb),0.05))",
-        borderColor: "rgba(var(--vp-accent-rgb),0.2)",
+        background: "#1E1E1E",
+        borderColor: "rgba(255,255,255,0.07)",
       }}
     >
       <div
-        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border"
+        className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border"
         style={{
           background: "rgba(var(--vp-accent-rgb),0.16)",
           borderColor: "rgba(var(--vp-accent-rgb),0.3)",
         }}
       >
         <tx.Icon
-          size={17}
+          size={18}
           strokeWidth={1.8}
           style={{ color: "rgb(var(--vp-accent-rgb))" }}
         />
       </div>
 
-      <div className="min-w-0 flex-1">
-        <p
-          className="truncate text-[0.85rem] font-semibold leading-tight"
-          style={{ color: "rgba(var(--vp-accent-rgb),0.92)" }}
-        >
+      <div className="flex min-w-0 flex-1 flex-col justify-center">
+        <p className="truncate text-[1.12rem] font-bold leading-tight text-white/75">
           {tx.title}
         </p>
-        <p className="mt-0.5 text-[0.62rem] text-white/40">{tx.date}</p>
+        <p className="mt-1 text-[0.52rem] text-white/40">{tx.date}</p>
         <span
-          className="mt-1 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[0.52rem] font-black uppercase tracking-wide"
+          className="mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.44rem] font-black uppercase tracking-wide"
           style={{
             background: status.bg,
             borderColor: status.border,
@@ -186,10 +168,111 @@ function TransactionRow({
         </span>
       </div>
 
-      <div className="flex-shrink-0 text-right">
-        <Amount value={tx.amount} color={amountColor} />
+      <div className="flex flex-shrink-0 items-center">
+        <MoneyDisplay
+          value={tx.amount}
+          color={amountColorFor(tx)}
+          className="text-right text-[1.2rem] font-black leading-none"
+        />
       </div>
     </button>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  last = false,
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between py-2.5 ${
+        last ? "" : "border-b border-white/[0.06]"
+      }`}
+    >
+      <span className="text-[0.62rem] uppercase tracking-wide text-white/40">
+        {label}
+      </span>
+      <span className="text-[0.78rem] font-semibold text-white/85">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function TransactionDetailsModal({
+  tx,
+  onClose,
+}: {
+  tx: Transaction | null;
+  onClose: () => void;
+}) {
+  if (!tx) return null;
+  const status = STATUS_STYLES[tx.status];
+  const color = amountColorFor(tx);
+
+  return (
+    <Modal open={!!tx} onClose={onClose}>
+      <div className="flex flex-col items-center text-center">
+        <div
+          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
+          style={{ background: status.bg, borderColor: status.border }}
+        >
+          <tx.Icon size={22} strokeWidth={1.8} style={{ color: status.text }} />
+        </div>
+
+        <MoneyDisplay
+          value={tx.amount}
+          color={color}
+          className="text-4xl font-black leading-none"
+        />
+
+        <p className="mt-3 text-[0.95rem] font-semibold text-white/90">
+          {tx.title}
+        </p>
+        <p className="mt-1 text-[0.72rem] text-white/45">{tx.date}</p>
+
+        <span
+          className="mt-3 inline-flex items-center rounded-full border px-3 py-1 text-[0.6rem] font-black uppercase tracking-wide"
+          style={{
+            background: status.bg,
+            borderColor: status.border,
+            color: status.text,
+          }}
+        >
+          {tx.status}
+        </span>
+
+        <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4">
+          <DetailRow
+            label="Type"
+            value={tx.type === "credit" ? "Credit" : "Debit"}
+          />
+          <DetailRow label="Date" value={tx.date} />
+          <DetailRow
+            label="Reference ID"
+            value={`TXN-${tx.id.padStart(6, "0")}`}
+            last
+          />
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-6 w-full rounded-2xl py-3 text-sm font-bold"
+          style={{
+            background: "rgb(var(--vp-accent-rgb))",
+            color: "#171100",
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -200,18 +283,18 @@ export default function Transactions() {
     <div className="flex flex-col gap-2">
       <SectionLabel>My recent transactions</SectionLabel>
 
-      <div className="flex flex-col gap-3 rounded-[1.75rem] border border-white/[0.06] bg-white/[0.03] p-2.5">
+      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/[0.06] bg-white/[0.03] p-2.5">
         {MOCK_TRANSACTIONS.map((group) => (
           <div key={group.month} className="flex flex-col gap-1.5">
             <p
-              className="px-1 pb-0.5 text-[0.8rem] font-bold"
+              className="px-1 pb-0.5 text-[0.78rem] font-bold"
               style={{ color: "rgb(var(--vp-accent-rgb))" }}
             >
               {group.month}
             </p>
             <div className="flex flex-col gap-1.5">
               {group.items.map((tx) => (
-                <TransactionRow key={tx.id} tx={tx} onSelect={setSelected} />
+                <TransactionRow key={tx.id} tx={tx} onOpen={setSelected} />
               ))}
             </div>
           </div>
@@ -225,66 +308,10 @@ export default function Transactions() {
         View all transactions...
       </button>
 
-      <Modal open={!!selected} onClose={() => setSelected(null)}>
-        {selected && (
-          <div className="flex flex-col items-center text-center">
-            <div
-              className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
-              style={{
-                background: "rgba(var(--vp-accent-rgb),0.16)",
-                borderColor: "rgba(var(--vp-accent-rgb),0.3)",
-              }}
-            >
-              <selected.Icon
-                size={24}
-                strokeWidth={1.8}
-                style={{ color: "rgb(var(--vp-accent-rgb))" }}
-              />
-            </div>
-
-            <Amount
-              value={selected.amount}
-              color={amountColorFor(selected)}
-              size="modal"
-            />
-
-            <p className="mt-3 text-[0.95rem] font-semibold text-white">
-              {selected.title}
-            </p>
-            <p className="mt-1 text-[0.72rem] text-white/50">{selected.date}</p>
-
-            <span
-              className="mt-3 inline-flex items-center rounded-md border px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-wide"
-              style={{
-                background: STATUS_STYLES[selected.status].bg,
-                borderColor: STATUS_STYLES[selected.status].border,
-                color: STATUS_STYLES[selected.status].text,
-              }}
-            >
-              {selected.status}
-            </span>
-
-            <div className="mt-5 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-1">
-              <div className="flex items-center justify-between border-b border-white/10 py-2.5">
-                <span className="text-[0.65rem] uppercase tracking-wide text-white/40">
-                  Type
-                </span>
-                <span className="text-[0.8rem] font-semibold capitalize text-white/85">
-                  {selected.type}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-[0.65rem] uppercase tracking-wide text-white/40">
-                  Reference ID
-                </span>
-                <span className="text-[0.75rem] text-white/60">
-                  {selected.id.padStart(8, "0")}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <TransactionDetailsModal
+        tx={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }

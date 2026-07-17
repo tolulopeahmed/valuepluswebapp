@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -10,12 +11,30 @@ interface ModalProps {
   className?: string;
 }
 
+// Nothing external ever changes here — this is purely a way to ask "has
+// this component hydrated on the client yet?" without the setState-in-effect
+// pattern. React renders the server snapshot (false) on the server and
+// during the first client render (so hydration matches), then swaps to the
+// client snapshot (true) right after, no manual setState involved.
+const noopSubscribe = () => () => {};
+function useIsMounted() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 export default function Modal({
   open,
   onClose,
   children,
   className = "",
 }: ModalProps) {
+  // Portal target isn't available during SSR — this stays false until
+  // hydration finishes so we only ever try document.body on the client.
+  const mounted = useIsMounted();
+
   useEffect(() => {
     if (!open) return;
 
@@ -33,24 +52,38 @@ export default function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Rendered into document.body via a portal — not just a component with a
+  // high z-index. Any ancestor with a `transform` (including the vp-card-in
+  // entrance animation, even once it settles at translateY(0)) becomes a
+  // containing block for `position: fixed` descendants, which would shrink
+  // this backdrop down to that ancestor's box instead of the viewport. The
+  // portal sidesteps that entirely by not being nested inside it.
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center md:p-4">
+      {/* Dark, blurred scrim behind the panel — standard modal behavior,
+          just tuned to a navy tint so it sits with the rest of the brand
+          instead of a neutral black. */}
       <div
         onClick={onClose}
         className="vp-modal-backdrop-in absolute inset-0"
-        style={{ background: "rgba(4,3,1,0.72)", backdropFilter: "blur(10px)" }}
+        style={{
+          background: "rgba(6,8,18,0.75)",
+          backdropFilter: "blur(10px)",
+        }}
       />
 
       {/* Full-bleed on mobile (no side margin, top-only rounding); capped
-          width and fully rounded once we hit md. */}
+          width and fully rounded once we hit md. Dark navy panel with a
+          soft gold glow in the top-left corner — same accent language as
+          the rest of the app, applied to the modal chrome. */}
       <div
         className={`vp-modal-panel-in relative w-full overflow-hidden rounded-t-3xl border md:w-full md:max-w-md md:rounded-3xl ${className}`}
         style={{
-          borderColor: "rgba(239,199,0,0.24)",
+          borderColor: "rgba(239,199,0,0.22)",
           background:
-            "radial-gradient(120% 55% at 15% 0%, rgba(239,199,0,0.24), transparent 62%), linear-gradient(180deg, #2c2410 0%, #1a160c 45%, #100d08 100%)",
+            "radial-gradient(120% 55% at 15% 0%, rgba(239,199,0,0.16), transparent 62%), linear-gradient(180deg, #1B2340 0%, #10152A 45%, #0A0E1B 100%)",
           boxShadow: "0 24px 60px rgba(0,0,0,0.55)",
         }}
         onClick={(e) => e.stopPropagation()}
@@ -100,6 +133,7 @@ export default function Modal({
           }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }
