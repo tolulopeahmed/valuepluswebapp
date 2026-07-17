@@ -9,7 +9,7 @@ import Subtitle from "../../components/Subtitle";
 import MarqueeName from "../../components/MarqueeName";
 import HeroCards from "./HeroCards";
 // import SidePanel from "./SidePanel";
-import MomentumBars from "./MomentumBars";
+import Transactions from "../../components/Transactions";
 import { useAppShell } from "./AppShellContext";
 import { USER } from "./MockUser";
 import {
@@ -135,14 +135,10 @@ export default function HomeScreen() {
         {mode === "learner" ? <LearnerRoadmap /> : <PublisherRoadmap />}
       </div>
 
-      <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
-        <SectionLabel>Quick actions</SectionLabel>
-        <QuickActions
-          mode={mode}
-          onNavigate={(dest) => console.log("navigate:", dest)}
-        />
-      </div>
-
+      {/*
+        Quick actions and recent transactions share a row on desktop, where
+        there's enough width for two columns — they stack on mobile instead.
+      */}
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         {/* <div
           className="vp-card-in md:col-span-1"
@@ -151,11 +147,16 @@ export default function HomeScreen() {
           <SidePanel mode={mode} />
         </div> */}
 
-        <div
-          className="vp-card-in md:col-span-1"
-          style={{ animationDelay: "180ms" }}
-        >
-          <MomentumBars mode={mode} />
+        <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
+          <SectionLabel>Quick actions</SectionLabel>
+          <QuickActions
+            mode={mode}
+            onNavigate={(dest) => console.log("navigate:", dest)}
+          />
+        </div>
+
+        <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
+          <Transactions />
         </div>
       </div>
 

@@ -28,9 +28,33 @@ export interface PublisherStatsData {
   weeklyDelta: number;
 }
 
+// Every slide (module progress, referral rewards, earnings) shares this
+// height so the deck never jumps as you swipe between them, and so the
+// same slide renders identically tall on mobile and desktop.
+const CARD_HEIGHT = "min-h-[210px]";
+
 function naira(n: number) {
   return `₦${n.toLocaleString()}`;
 }
+
+// Course titles vary wildly in length. Rather than let a long one blow out
+// the card, step the font size down as the string grows, then clamp to two
+// lines as a hard backstop — the reserved title slot stays a fixed height
+// either way, so the card height never depends on what's in it.
+function titleSizeClass(title: string) {
+  const len = title.length;
+  if (len > 40) return "text-lg";
+  if (len > 28) return "text-xl";
+  if (len > 18) return "text-2xl";
+  return "text-3xl";
+}
+
+const lineClampStyle: React.CSSProperties = {
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+};
 
 // Shared pill-button styling so every slide's CTA (Resume / Withdraw)
 // looks and behaves identically — same gold fill, same tap spring.
@@ -69,15 +93,17 @@ function ModuleProgressCard({
   onResume?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className={`flex h-full ${CARD_HEIGHT} flex-col p-5`}>
       <SectionLabel>{data.module}</SectionLabel>
 
-      <p
-        className="mt-1 text-xl font-black leading-tight text-white"
-        style={{ fontSize: 30 }}
-      >
-        {data.title}
-      </p>
+      <div className="mt-1 flex min-h-[64px] items-start">
+        <p
+          className={`${titleSizeClass(data.title)} font-black leading-tight text-white`}
+          style={lineClampStyle}
+        >
+          {data.title}
+        </p>
+      </div>
 
       <p className="mt-1 text-[0.68rem] text-white/60">
         {data.progress}% complete · {data.duration}
@@ -118,7 +144,7 @@ function ReferralRewardsCard({
   const avatarCount = Math.min(data.referralCount, 4);
 
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className={`flex h-full ${CARD_HEIGHT} flex-col p-5`}>
       <div className="flex items-center justify-between">
         <SectionLabel>Referral rewards</SectionLabel>
         <span
@@ -172,7 +198,7 @@ function EarningsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className={`flex h-full ${CARD_HEIGHT} flex-col p-5`}>
       <div className="flex items-center justify-between">
         <SectionLabel>Total earned</SectionLabel>
         <span className="text-[rgb(var(--vp-accent-rgb))]">
