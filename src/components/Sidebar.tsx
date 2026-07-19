@@ -91,11 +91,15 @@ export default function Sidebar({
     borderColor: "rgba(var(--vp-accent-rgb),0.35)",
   };
 
+  // Deep navy base — matches the app shell's background (~rgb(10,14,27),
+  // same family as the ProfileAvatar fallback gradient #3a4763 → #232e47)
+  // instead of the old brown/copper tone. Accent glow still swaps gold
+  // (Learner) / copper (Publisher) via --vp-accent-rgb.
   const asideStyle: CSSVars = {
     background:
-      "radial-gradient(circle at 12% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 46%), radial-gradient(circle at 100% 100%, rgba(200,115,122,0.22), transparent 42%), linear-gradient(155deg, #352808 0%, #241a08 48%, #171106 100%)",
+      "radial-gradient(circle at 12% 0%, rgba(var(--vp-accent-rgb),0.26), transparent 46%), radial-gradient(circle at 100% 100%, rgba(58,71,99,0.38), transparent 42%), linear-gradient(155deg, #1b2440 0%, #121a30 48%, #0a0e1b 100%)",
     borderRight: "1px solid rgba(var(--vp-accent-rgb),0.2)",
-    boxShadow: "18px 0 40px rgba(0,0,0,0.35)",
+    boxShadow: "18px 0 40px rgba(0,0,0,0.45)",
     "--vp-accent-rgb": ACCENT_RGB[mode],
   };
 
@@ -115,7 +119,7 @@ export default function Sidebar({
       />
 
       <aside
-        className={`fixed bottom-0 left-0 top-0 z-50 flex w-[min(82vw,20rem)] flex-col font-['PP_Telegraf'] transition-transform duration-[380ms] ease-[cubic-bezier(0.2,0.95,0.2,1)] md:sticky md:z-0 md:w-64 md:flex-shrink-0 md:translate-x-0 ${
+        className={`fixed bottom-0 left-0 top-0 z-50 flex w-[min(82vw,20rem)] flex-col font-['PP_Telegraf'] transition-transform duration-380 ease-[cubic-bezier(0.2,0.95,0.2,1)] md:sticky md:z-0 md:w-64 md:shrink-0 md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
         style={asideStyle}
@@ -141,7 +145,7 @@ export default function Sidebar({
 
           <button
             onClick={onClose}
-            className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.05] text-white/65 transition-colors hover:text-white md:hidden"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/65 transition-colors hover:text-white md:hidden"
             aria-label="Close menu"
           >
             <Icon path={ICONS.close} size={16} />
@@ -175,7 +179,7 @@ export default function Sidebar({
               onClick={() =>
                 onModeChange(mode === "learner" ? "publisher" : "learner")
               }
-              className="relative h-6 w-11 flex-shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95"
+              className="relative h-6 w-11 shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95"
               title={mode === "learner" ? "Learner mode" : "Publisher mode"}
             >
               <span
@@ -242,7 +246,7 @@ export default function Sidebar({
         </nav>
 
         <div className="px-5 pb-7">
-          <button className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/[0.08] px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all hover:bg-white/[0.12] hover:text-white active:scale-[0.98]">
+          <button className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all hover:bg-white/12 hover:text-white active:scale-[0.98]">
             <Icon path={ICONS.settings} size={19} />
             <span className="text-sm font-semibold">Manage Account</span>
           </button>

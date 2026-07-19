@@ -54,17 +54,9 @@ export default function Modal({
 
   if (!open || !mounted) return null;
 
-  // Rendered into document.body via a portal — not just a component with a
-  // high z-index. Any ancestor with a `transform` (including the vp-card-in
-  // entrance animation, even once it settles at translateY(0)) becomes a
-  // containing block for `position: fixed` descendants, which would shrink
-  // this backdrop down to that ancestor's box instead of the viewport. The
   // portal sidesteps that entirely by not being nested inside it.
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end justify-center md:items-center md:p-4">
-      {/* Dark, blurred scrim behind the panel — standard modal behavior,
-          just tuned to a navy tint so it sits with the rest of the brand
-          instead of a neutral black. */}
+    <div className="fixed inset-0 z-60 flex items-end justify-center md:items-center md:p-4">
       <div
         onClick={onClose}
         className="vp-modal-backdrop-in absolute inset-0"
@@ -74,10 +66,6 @@ export default function Modal({
         }}
       />
 
-      {/* Full-bleed on mobile (no side margin, top-only rounding); capped
-          width and fully rounded once we hit md. Dark navy panel with a
-          soft gold glow in the top-left corner — same accent language as
-          the rest of the app, applied to the modal chrome. */}
       <div
         className={`vp-modal-panel-in relative w-full overflow-hidden rounded-t-3xl border md:w-full md:max-w-md md:rounded-3xl ${className}`}
         style={{

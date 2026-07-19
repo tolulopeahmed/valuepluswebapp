@@ -72,7 +72,7 @@ export default function MainTab() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/[0.06] bg-[black] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/6 bg-[black] pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{ boxShadow: "0 -12px 32px -12px rgba(0,0,0,0.55)" }}
     >
       <LayoutGroup id={layoutGroupId}>
@@ -127,7 +127,7 @@ export default function MainTab() {
                     className="relative"
                   >
                     <Icon
-                      className="h-[22px] w-[22px] transition-colors duration-200"
+                      className="h-22px w-22px transition-colors duration-200"
                       style={{
                         color: isActive ? GOLD : "rgba(255,255,255,0.4)",
                       }}

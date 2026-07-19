@@ -20,11 +20,6 @@ const ACCENT_RGB: Record<Mode, string> = {
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { mode, setMode, sidebarOpen, setSidebarOpen } = useAppShell();
 
-  // globals.css sets body { background: var(--vp-ink) } (near-black) for
-  // the marketing pages, which is intentional there. But on mobile Safari,
-  // overscroll/rubber-band briefly reveals the body's background past the
-  // edges of this wrapper — so while this layout is mounted we swap body's
-  // background to match, and put it back on unmount.
   useEffect(() => {
     const prevBg = document.body.style.background;
     document.body.style.background = VP_PAGE_BG;
@@ -41,7 +36,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="relative min-h-[100svh] overflow-x-hidden md:flex"
+      className="relative min-h-svh overflow-x-hidden md:flex"
       style={rootStyle}
     >
       <Sidebar

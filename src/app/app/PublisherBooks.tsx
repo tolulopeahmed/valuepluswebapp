@@ -88,27 +88,6 @@ function naira(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
-function Icon({ path, size = 22 }: { path: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={path} />
-    </svg>
-  );
-}
-
-const ICONS = {
-  book: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z",
-};
-
 export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
   return (
     <div>
@@ -123,7 +102,7 @@ export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
           >
             <div className="flex items-center gap-3">
               <div
-                className={`h-14 w-10 flex-shrink-0 rounded-lg ${book.cover} border border-white/[0.15]`}
+                className={`h-14 w-10 shrink-0 rounded-lg ${book.cover} border border-white/15`}
               />
 
               <div className="min-w-0 flex-1">
@@ -133,7 +112,7 @@ export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
 
                 <div className="mt-0.5 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center rounded-full px-1.5 py-[2px] text-[0.44rem] font-black uppercase tracking-wider ${
+                    className={`inline-flex items-center rounded-full px-1.5 py-2px text-[0.44rem] font-black uppercase tracking-wider ${
                       book.status === "published"
                         ? "bg-[rgba(74,222,128,0.15)] text-[#4ade80]"
                         : "bg-[rgba(var(--vp-accent-rgb),0.12)] text-[rgb(var(--vp-accent-rgb))]"
@@ -156,7 +135,7 @@ export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
                 )}
               </div>
 
-              <Button variant="secondary" size="sm" className="flex-shrink-0">
+              <Button variant="secondary" size="sm" className="shrink-0">
                 Manage
               </Button>
             </div>

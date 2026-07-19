@@ -41,13 +41,13 @@ function SlideCta({ label, onClick }: { label: string; onClick?: () => void }) {
     <motion.div
       whileTap={shouldReduceMotion ? undefined : { scale: 0.94 }}
       transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      className="flex-shrink-0"
+      className="shrink-0"
     >
       <Button
         size="sm"
         variant="primary"
         onClick={onClick}
-        className="!w-auto items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-xs font-black uppercase tracking-wide"
+        className="w-auto items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-xs font-black uppercase tracking-wide"
         style={{
           backgroundColor: "rgb(var(--vp-accent-rgb))",
           color: "#171100",
@@ -115,14 +115,12 @@ function ReferralRewardsCard({
   data: ReferralStatsData;
   onWithdraw?: () => void;
 }) {
-  const avatarCount = Math.min(data.referralCount, 4);
-
   return (
     <GlassCard accent className="flex h-full flex-col p-5">
       <div className="flex items-center justify-between">
         <SectionLabel>Referral rewards</SectionLabel>
         <span
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
           style={{
             background: "rgba(var(--vp-accent-rgb),0.14)",
             color: "rgb(var(--vp-accent-rgb))",

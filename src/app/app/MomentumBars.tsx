@@ -50,7 +50,7 @@ export default function MomentumBars({ mode }: { mode: Mode }) {
               className={`w-full rounded-t-md transition-all duration-500 ${
                 i === activeIndex
                   ? "bg-[rgb(var(--vp-accent-rgb))] shadow-[0_0_12px_rgba(var(--vp-accent-rgb),0.4)]"
-                  : "bg-white/[0.08]"
+                  : "bg-white/8"
               }`}
               style={{ height: `${18 + i * 9}%` }}
             />

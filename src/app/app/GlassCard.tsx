@@ -21,7 +21,7 @@ export default function GlassCard({
       className={`relative overflow-hidden rounded-[1.15rem] border transition-all duration-300 ${
         accent
           ? "border-[rgba(var(--vp-accent-rgb),0.18)]"
-          : "border-white/[0.06]"
+          : "border-white/0.06"
       } ${className}`}
       style={{
         background: `linear-gradient(180deg, #2F3A5E 0%, ${VP_CARD_BG} 55%, #29325A 100%)`,
@@ -30,7 +30,7 @@ export default function GlassCard({
         ...style,
       }}
     >
-      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent" />
       {children}
     </div>
   );

@@ -7,10 +7,6 @@ export interface HeroSlide {
   content: React.ReactNode;
 }
 
-// Generic, mode-agnostic slide track. Auto-advances on mobile only,
-// pauses for 15s after a manual swipe/dot-tap, and only shows pagination
-// dots once there's more than one slide. Both behaviors switch on
-// automatically the moment a caller passes a longer `slides` array — no
 // changes needed here to support a 2nd, 3rd, or 4th slide.
 export default function HeroSlider({ slides }: { slides: HeroSlide[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
@@ -56,12 +52,12 @@ export default function HeroSlider({ slides }: { slides: HeroSlide[] }) {
         onTouchStart={() => {
           pausedUntil.current = Date.now() + 15000;
         }}
-        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:items-stretch md:overflow-visible lg:grid-cols-4"
+        className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-none] [&::-webkit-scrollbar]:hidden md:grid md:snap-none md:grid-cols-2 md:items-stretch md:overflow-visible lg:grid-cols-4"
       >
         {slides.map((slide, i) => (
           <div
             key={slide.key}
-            className="vp-card-in w-full flex-shrink-0 snap-center md:w-auto"
+            className="vp-card-in w-full shrink-0 snap-center md:w-auto"
             style={{ animationDelay: `${i * 60}ms` }}
           >
             {slide.content}

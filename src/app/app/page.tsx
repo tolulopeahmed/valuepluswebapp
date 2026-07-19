@@ -42,7 +42,7 @@ function ProfileAvatar({
   return (
     <button
       onClick={onClick}
-      className="relative flex-shrink-0 rounded-full transition-transform active:scale-95"
+      className="relative shrink-0 rounded-full transition-transform active:scale-95"
       aria-label="Open profile"
     >
       {avatar ? (
@@ -104,7 +104,7 @@ export default function HomeScreen() {
           </Subtitle>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <ProfileAvatar
             name={USER.firstName}
             avatar={USER.avatar}

@@ -63,7 +63,7 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
         duration: 0.3,
       }}
       whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
-      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left backdrop-blur-sm transition-colors duration-200 active:bg-white/[0.08]"
+      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left backdrop-blur-sm transition-colors duration-200 active:bg-white/8"
       style={{
         background:
           "linear-gradient(135deg, rgba(var(--vp-accent-rgb),0.14), rgba(var(--vp-accent-rgb),0.05))",
@@ -71,7 +71,7 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
       }}
     >
       <span
-        className="flex h-6 w-6 flex-shrink-0 items-center justify-center"
+        className="flex h-6 w-6 shrink-0 items-center justify-center"
         style={{ color: "rgb(var(--vp-accent-rgb))" }}
       >
         <action.Icon size={19} strokeWidth={1.7} />
@@ -82,11 +82,11 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
       </span>
 
       {action.badge ? (
-        <span className="flex-shrink-0 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-wide text-white/80">
+        <span className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-wide text-white/80">
           {action.badge}
         </span>
       ) : (
-        <span className="flex-shrink-0 text-white/30">
+        <span className="shrink-0 text-white/30">
           <ChevronRight size={16} strokeWidth={2} />
         </span>
       )}
@@ -124,14 +124,14 @@ export default function QuickActions({
           className="mt-1 flex flex-col items-center gap-1.5 py-2 text-white/40 transition-colors hover:text-white/60"
         >
           <div className="flex w-full items-center gap-3">
-            <span className="h-px flex-1 bg-white/[0.12]" />
+            <span className="h-px flex-1 bg-white/12" />
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.25 }}
             >
               <ChevronDown size={16} strokeWidth={2} />
             </motion.span>
-            <span className="h-px flex-1 bg-white/[0.12]" />
+            <span className="h-px flex-1 bg-white/12" />
           </div>
 
           <span className="text-[0.72rem] font-semibold">

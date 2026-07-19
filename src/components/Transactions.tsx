@@ -138,7 +138,7 @@ function TransactionRow({
       }}
     >
       <div
-        className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border"
         style={{
           background: "rgba(var(--vp-accent-rgb),0.16)",
           borderColor: "rgba(var(--vp-accent-rgb),0.3)",
@@ -152,7 +152,10 @@ function TransactionRow({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <p className="truncate text-[1.12rem] font-bold leading-tight text-white/75">
+        <p
+          className="truncate text-[1.12rem] font-bold leading-tight text-white/75"
+          style={{ marginBottom: -5 }}
+        >
           {tx.title}
         </p>
         <p className="mt-1 text-[0.52rem] text-white/40">{tx.date}</p>
@@ -168,7 +171,7 @@ function TransactionRow({
         </span>
       </div>
 
-      <div className="flex flex-shrink-0 items-center">
+      <div className="flex shrink-0 items-center">
         <MoneyDisplay
           value={tx.amount}
           color={amountColorFor(tx)}
@@ -191,7 +194,7 @@ function DetailRow({
   return (
     <div
       className={`flex items-center justify-between py-2.5 ${
-        last ? "" : "border-b border-white/[0.06]"
+        last ? "" : "border-b border-white/6"
       }`}
     >
       <span className="text-[0.62rem] uppercase tracking-wide text-white/40">
@@ -247,7 +250,7 @@ function TransactionDetailsModal({
           {tx.status}
         </span>
 
-        <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4">
+        <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/3 px-4">
           <DetailRow
             label="Type"
             value={tx.type === "credit" ? "Credit" : "Debit"}
@@ -283,7 +286,7 @@ export default function Transactions() {
     <div className="flex flex-col gap-2">
       <SectionLabel>My recent transactions</SectionLabel>
 
-      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-white/[0.06] bg-white/[0.03] p-2.5">
+      <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
         {MOCK_TRANSACTIONS.map((group) => (
           <div key={group.month} className="flex flex-col gap-1.5">
             <p

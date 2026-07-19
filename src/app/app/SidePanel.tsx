@@ -52,10 +52,10 @@ export default function SidePanel({ mode }: { mode: Mode }) {
               }`}
             >
               <span
-                className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[0.62rem] font-black ${
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[0.62rem] font-black ${
                   entry.rank === 1
                     ? "bg-[rgb(var(--vp-accent-rgb))] text-[#171100]"
-                    : "bg-white/[0.08] text-white/50"
+                    : "bg-white/8 text-white/50"
                 }`}
               >
                 {entry.rank}
@@ -91,7 +91,7 @@ export default function SidePanel({ mode }: { mode: Mode }) {
             key={i}
             className="flex items-center gap-3 rounded-xl px-2.5 py-2"
           >
-            <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[rgba(74,222,128,0.12)] text-[#4ade80]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(74,222,128,0.12)] text-[#4ade80]">
               <Icon path={ICONS.book} size={14} />
             </span>
 
