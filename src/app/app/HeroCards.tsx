@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Users, Wallet, TrendingUp } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
+import MarqueeName from "../../components/MarqueeName";
 import HeroSlider, { type HeroSlide } from "./HeroSlider";
 import Button from "../../components/buttons/buttons";
 
@@ -72,12 +73,13 @@ function ModuleProgressCard({
     <GlassCard accent className="flex h-full flex-col p-5">
       <SectionLabel>{data.module}</SectionLabel>
 
-      <p
-        className="mt-1 text-xl font-black leading-tight text-white"
-        style={{ fontSize: 30 }}
-      >
-        {data.title}
-      </p>
+      <MarqueeName
+        text={data.title}
+        className="mt-1 block max-w-full"
+        textClassName="font-black leading-tight text-white"
+        fadeColor="#2D375A"
+        style={{ fontSize: 40 }}
+      />
 
       <p className="mt-1 text-[0.68rem] text-white/60">
         {data.progress}% complete · {data.duration}
@@ -149,7 +151,7 @@ function ReferralRewardsCard({
             </span>
           ))} */}
           <p className="mt-1.5 text-[0.9rem] text-white/60">
-            {data.referralCount} friends
+            {data.referralCount} REFERRALS
           </p>
         </div>
 

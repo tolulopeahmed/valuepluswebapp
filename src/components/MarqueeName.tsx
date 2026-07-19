@@ -18,11 +18,13 @@ export default function MarqueeName({
   className = "",
   textClassName = "",
   fadeColor = "rgba(7,11,18,0.96)",
+  style,
 }: {
   text: string;
   className?: string;
   textClassName?: string;
   fadeColor?: string;
+  style?: CSSProperties;
 }) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
@@ -100,14 +102,17 @@ export default function MarqueeName({
 
   const duration = Math.min(10, Math.max(5.8, marquee.distance / 18));
 
-  const spanStyle: MarqueeStyle | undefined = marquee.overflow
-    ? {
-        animation:
-          "marquee-name-scroll var(--marquee-duration) ease-in-out 0.45s infinite",
-        "--marquee-distance": `-${marquee.distance}px`,
-        "--marquee-duration": `${duration}s`,
-      }
-    : undefined;
+  const spanStyle: MarqueeStyle = {
+    ...style,
+    ...(marquee.overflow
+      ? {
+          animation:
+            "marquee-name-scroll var(--marquee-duration) ease-in-out 0.45s infinite",
+          "--marquee-distance": `-${marquee.distance}px`,
+          "--marquee-duration": `${duration}s`,
+        }
+      : {}),
+  };
 
   return (
     <span
@@ -134,17 +139,13 @@ export default function MarqueeName({
       <style jsx>{`
         @keyframes marquee-name-scroll {
           0%,
-          16% {
+          12% {
             transform: translateX(0);
           }
 
-          52%,
-          68% {
-            transform: translateX(var(--marquee-distance));
-          }
-
+          88%,
           100% {
-            transform: translateX(0);
+            transform: translateX(var(--marquee-distance));
           }
         }
 
