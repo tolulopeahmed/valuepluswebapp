@@ -78,7 +78,7 @@ function ModuleProgressCard({
         className="mt-1 block max-w-full"
         textClassName="font-black leading-tight text-white"
         fadeColor="#2D375A"
-        style={{ fontSize: 35 }}
+        style={{ fontSize: 35, fontFamily: "PP Telegraf" }}
       />
 
       <p className="mt-1 text-[0.68rem] text-white/60">
@@ -135,7 +135,10 @@ function ReferralRewardsCard({
         </span>
       </div>
 
-      <p className="mt-1 text-5xl font-black leading-none text-white">
+      <p
+        className="mt-1 text-5xl font-black leading-none text-white"
+        style={{ fontFamily: "PP Telegraf", fontSize: 55 }}
+      >
         {naira(data.totalEarned)}
       </p>
 
