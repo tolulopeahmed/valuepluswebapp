@@ -82,7 +82,7 @@ function ModuleProgressCard({
       />
 
       <p className="mt-1 text-[0.68rem] text-white/60">
-        {data.progress}% complete · {data.duration}
+        +{data.xpEarned} XP earned · {data.duration}
       </p>
 
       <div className="mt-4 flex items-end gap-3">
@@ -94,8 +94,11 @@ function ModuleProgressCard({
             />
           </div>
 
-          <p className="mt-1.5 truncate text-[0.6rem] font-black text-white/45">
-            +{data.xpEarned} XP earned
+          <p
+            className="mt-1.5 truncate text-[0.9rem] font-black text-white/45"
+            style={{ fontFamily: "PP Telegraf", color: "#ffb546" }}
+          >
+            {data.progress}% complete
           </p>
         </div>
 
@@ -150,7 +153,10 @@ function ReferralRewardsCard({
               {String.fromCharCode(65 + i)}
             </span>
           ))} */}
-          <p className="mt-1.5 text-[0.9rem] text-white/60">
+          <p
+            className="mt-1.5 font-proxima tracking-wide text-[0.9rem] text-white/60"
+            style={{ fontFamily: "Proxima Nova" }}
+          >
             {data.referralCount} REFERRALS
           </p>
         </div>
