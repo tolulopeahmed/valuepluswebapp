@@ -33,6 +33,33 @@ function naira(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
+// Renders a naira amount the way MyFund does: small ₦ symbol, small
+// decimal places, big whole-number amount in between. Symbol/decimal
+// sizes are in `em` so they scale automatically with whatever font-size
+// the wrapping element uses — same component works at 55px and at 30px
+// without any per-usage tuning.
+function NairaAmount({
+  value,
+  className = "",
+}: {
+  value: number;
+  className?: string;
+}) {
+  const formatted = value.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const [whole, decimal] = formatted.split(".");
+
+  return (
+    <span className={`inline-flex items-baseline ${className}`}>
+      <span className="mr-1 text-[0.4em] font-black">₦</span>
+      <span>{whole}</span>
+      <span className="text-[0.4em] font-black">.{decimal}</span>
+    </span>
+  );
+}
+
 // Shared pill-button styling so every slide's CTA (Resume / Withdraw)
 // looks and behaves identically — same gold fill, same tap spring.
 function SlideCta({ label, onClick }: { label: string; onClick?: () => void }) {
@@ -136,10 +163,10 @@ function ReferralRewardsCard({
       </div>
 
       <p
-        className="mt-1 text-5xl font-black leading-none text-white"
-        style={{ fontFamily: "PP Telegraf", fontSize: 55 }}
+        className="mt-1 leading-none text-white"
+        style={{ fontFamily: "Proxima Nova", fontSize: 55 }}
       >
-        {naira(data.totalEarned)}
+        <NairaAmount value={data.totalEarned} />
       </p>
 
       <div className="mt-4 flex flex-1 items-end justify-between gap-3">
@@ -157,7 +184,7 @@ function ReferralRewardsCard({
             </span>
           ))} */}
           <p
-            className="mt-1.5 font-proxima tracking-wide text-[0.9rem] text-white/60"
+            className="mt-1.5 tracking-wide text-[0.9rem] text-white/90"
             style={{ fontFamily: "Proxima Nova" }}
           >
             {data.referralCount} REFERRALS
@@ -190,7 +217,7 @@ function EarningsCard({
       </div>
 
       <p className="mt-2 text-4xl font-black leading-none text-white md:text-3xl">
-        {naira(data.totalEarned)}
+        <NairaAmount value={data.totalEarned} />
       </p>
 
       <div className="mt-4 flex flex-1 items-end justify-between">
