@@ -78,7 +78,7 @@ function ModuleProgressCard({
         className="mt-1 block max-w-full"
         textClassName="font-black leading-tight text-white"
         fadeColor="#2D375A"
-        style={{ fontSize: 40 }}
+        style={{ fontSize: 35 }}
       />
 
       <p className="mt-1 text-[0.68rem] text-white/60">
