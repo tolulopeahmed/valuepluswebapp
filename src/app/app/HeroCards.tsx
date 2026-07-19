@@ -185,7 +185,7 @@ function ReferralRewardsCard({
           ))} */}
           <p
             className="mt-1.5 tracking-wide text-[0.9rem] text-white/90"
-            style={{ fontFamily: "Proxima Nova" }}
+            style={{ fontFamily: "PP Telegraf" }}
           >
             {data.referralCount} REFERRALS
           </p>
