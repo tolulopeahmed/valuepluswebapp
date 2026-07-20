@@ -12,7 +12,7 @@ export interface RoadmapItem {
   status: "done" | "current" | "upcoming";
 }
 
-const DONE_GREEN = "87,148,95";
+const DONE_GREEN = "74,222,128";
 const LOCKED_SLATE = "63,68,86";
 
 function StepNode({ status, index }: { status: string; index: number }) {
@@ -68,11 +68,11 @@ export function ProgressRoadmap({
             <button
               type="button"
               onClick={() => onSelect?.(item.id)}
-              className="flex w-14 shrink-0 flex-col items-center gap-2 rounded-lg transition-transform active:scale-95 md:w-20"
+              className="flex w-16 shrink-0 flex-col items-center gap-2 rounded-lg transition-transform active:scale-95 md:w-24"
             >
               <StepNode status={item.status} index={i} />
               <span
-                className={`text-center text-[0.44rem] font-black uppercase leading-tight tracking-wider md:text-[0.5rem] ${
+                className={`text-center text-[0.42rem] font-black uppercase leading-[1.15] tracking-wide break-words md:text-[0.48rem] ${
                   item.status === "upcoming"
                     ? "text-white/25"
                     : item.status === "current"

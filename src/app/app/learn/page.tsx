@@ -107,8 +107,11 @@ function lessonStatus(progress: number, isCurrentId: boolean): LessonStatus {
   return "upcoming";
 }
 
-// GlassCard component — themed with the home page's dark navy +
-// gold-accent gradient.
+// GlassCard — brought in line with the real app/app/GlassCard.tsx: the
+// background gradient is constant (same one behind the "My Progress"
+// hero card), only the border reacts to `accent`.
+const VP_CARD_BG = "#2D375A";
+
 function GlassCard({
   children,
   className = "",
@@ -122,21 +125,19 @@ function GlassCard({
 }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border transition-all duration-300 ${
+      className={`relative overflow-hidden rounded-[1.15rem] border transition-all duration-300 ${
         accent
-          ? "border-[rgba(var(--vp-accent-rgb),0.45)]"
-          : "border-[rgba(var(--vp-accent-rgb),0.22)]"
+          ? "border-[rgba(var(--vp-accent-rgb),0.18)]"
+          : "border-white/[0.06]"
       } ${className}`}
       style={{
-        background: accent
-          ? "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.5), transparent 72%), linear-gradient(180deg, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 46%, #0a0e1b) 0%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 26%, #0a0e1b) 45%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 15%, #0a0e1b) 100%)"
-          : "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.22), transparent 72%), linear-gradient(180deg, #1b2540 0%, #131b30 45%, #0a0e1b 100%)",
+        background: `linear-gradient(180deg, #2F3A5E 0%, ${VP_CARD_BG} 55%, #29325A 100%)`,
         boxShadow:
-          "0 12px 34px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.1)",
+          "0 12px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07)",
         ...style,
       }}
     >
-      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
       {children}
     </div>
   );
@@ -173,7 +174,7 @@ function AllLessonsSection({
   onSelect: (lesson: LessonDetail) => void;
 }) {
   return (
-    <GlassCard className="p-4 md:p-5">
+    <GlassCard accent className="p-4 md:p-5">
       <div className="mb-4 flex items-baseline justify-between">
         <SectionLabel>All lessons</SectionLabel>
         <span className="text-[0.6rem] font-black text-white/45">
@@ -297,7 +298,10 @@ function AllLessonsSection({
 // No wrapper div, no background, no --vp-accent-rgb, no <style jsx global> —
 // all of that is now owned by app/layout.tsx, which every /app/* route
 // (including this one) renders inside of. The <style> block below only
-// defines the local "you are here" glow/pulse animations used on this page.
+// defines the local "you are here" glow animation used on this page —
+// .vp-pulse-ring is intentionally NOT redefined here since layout.tsx
+// already defines it globally; duplicating it risked one definition
+// silently overriding the other.
 export default function LearnPage() {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
@@ -306,20 +310,6 @@ export default function LearnPage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       <style>{`
-        @keyframes vp-pulse-ring {
-          0% {
-            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.55);
-          }
-          70% {
-            box-shadow: 0 0 0 8px rgba(var(--vp-accent-rgb), 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0);
-          }
-        }
-        .vp-pulse-ring {
-          animation: vp-pulse-ring 1.8s ease-out infinite;
-        }
         @keyframes vp-here-glow {
           0%, 100% {
             box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.35);

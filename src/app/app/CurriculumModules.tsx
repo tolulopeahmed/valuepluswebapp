@@ -117,7 +117,7 @@ export function LearnerRoadmap({
 
   const items: RoadmapItem[] = MODULES.map((m) => ({
     id: m.id,
-    label: m.title.split(" ").slice(0, 2).join(" "),
+    label: m.title,
     status: moduleStatus(m, current.id),
   }));
 

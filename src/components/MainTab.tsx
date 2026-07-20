@@ -20,10 +20,9 @@ import { useRouter, usePathname } from "next/navigation";
 
 const GOLD = "rgb(239,199,0)";
 
-type TabId = "home" | "learn" | "refer" | "withdraw" | "more";
+type TabId = "home" | "learn" | "earn" | "withdraw" | "more";
 
-// Loosened so Tab can carry icons from either Heroicons (SVGProps) or
-// lucide-react (LucideProps) — we only ever touch className/style/strokeWidth.
+// Compatible with Heroicons and lucide-react icons.
 type IconComponent = ComponentType<{
   className?: string;
   style?: CSSProperties;
@@ -46,8 +45,18 @@ const TABS: Tab[] = [
     Outline: HomeIcon,
     Solid: HomeIconSolid,
   },
-  { id: "learn", label: "Learn", path: "/app/learn", Outline: BookOpenIcon },
-  { id: "refer", label: "Refer", path: "/app/refer", Outline: UserPlusIcon },
+  {
+    id: "learn",
+    label: "Learn",
+    path: "/app/learn",
+    Outline: BookOpenIcon,
+  },
+  {
+    id: "earn",
+    label: "Earn",
+    path: "/app/earn",
+    Outline: UserPlusIcon,
+  },
   {
     id: "withdraw",
     label: "Withdraw",
@@ -68,11 +77,10 @@ export default function MainTab() {
   const layoutGroupId = useId();
   const shouldReduceMotion = useReducedMotion();
 
-  // Determine active tab based on current path
   const getActiveTabFromPath = (path: string): TabId => {
     if (path === "/app") return "home";
     if (path.startsWith("/app/learn")) return "learn";
-    if (path.startsWith("/app/refer")) return "refer";
+    if (path.startsWith("/app/earn")) return "earn";
     if (path.startsWith("/app/withdraw")) return "withdraw";
     if (path.startsWith("/app/more")) return "more";
     return "home";
@@ -114,7 +122,11 @@ export default function MainTab() {
                   type="button"
                   onClick={() => handleTabClick(tab)}
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.88 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                  }}
                   className="relative flex flex-col items-center gap-1 px-3 py-1.5"
                   aria-current={isActive ? "page" : undefined}
                   aria-label={tab.label}
@@ -170,7 +182,7 @@ export default function MainTab() {
                       fontWeight: isActive ? 700 : 600,
                     }}
                     transition={{ duration: 0.2 }}
-                    className="text-[0.65rem] leading-none"
+                    className="text-[0.65rem] uppercase tracking-[0.08em] leading-none"
                   >
                     {tab.label}
                   </motion.span>
