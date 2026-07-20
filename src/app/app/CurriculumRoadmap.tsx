@@ -51,7 +51,13 @@ function StepNode({ status, index }: { status: string; index: number }) {
   );
 }
 
-export function ProgressRoadmap({ items }: { items: RoadmapItem[] }) {
+export function ProgressRoadmap({
+  items,
+  onSelect,
+}: {
+  items: RoadmapItem[];
+  onSelect?: (id: string | number) => void;
+}) {
   return (
     <div>
       <SectionLabel>Roadmap</SectionLabel>
@@ -59,7 +65,11 @@ export function ProgressRoadmap({ items }: { items: RoadmapItem[] }) {
       <div className="flex items-start">
         {items.map((item, i) => (
           <Fragment key={item.id}>
-            <div className="flex w-14 shrink-0 flex-col items-center gap-2 md:w-20">
+            <button
+              type="button"
+              onClick={() => onSelect?.(item.id)}
+              className="flex w-14 shrink-0 flex-col items-center gap-2 rounded-lg transition-transform active:scale-95 md:w-20"
+            >
               <StepNode status={item.status} index={i} />
               <span
                 className={`text-center text-[0.44rem] font-black uppercase leading-tight tracking-wider md:text-[0.5rem] ${
@@ -72,7 +82,7 @@ export function ProgressRoadmap({ items }: { items: RoadmapItem[] }) {
               >
                 {item.label}
               </span>
-            </div>
+            </button>
 
             {i < items.length - 1 && (
               <div

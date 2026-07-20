@@ -107,7 +107,8 @@ function lessonStatus(progress: number, isCurrentId: boolean): LessonStatus {
   return "upcoming";
 }
 
-// GlassCard component (copied from home page)
+// GlassCard component — themed with the home page's dark navy +
+// gold-accent gradient.
 function GlassCard({
   children,
   className = "",
@@ -128,14 +129,38 @@ function GlassCard({
       } ${className}`}
       style={{
         background: accent
-          ? "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.5), transparent 72%), linear-gradient(180deg, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 46%, #241a08) 0%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 26%, #241a08) 45%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 15%, #241a08) 100%)"
-          : "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.34), transparent 72%), linear-gradient(180deg, #4a4258 0%, #342e42 45%, #201c2c 100%)",
+          ? "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.5), transparent 72%), linear-gradient(180deg, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 46%, #0a0e1b) 0%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 26%, #0a0e1b) 45%, color-mix(in srgb, rgb(var(--vp-accent-rgb)) 15%, #0a0e1b) 100%)"
+          : "radial-gradient(120% 90% at 20% 0%, rgba(var(--vp-accent-rgb),0.22), transparent 72%), linear-gradient(180deg, #1b2540 0%, #131b30 45%, #0a0e1b 100%)",
         boxShadow:
           "0 12px 34px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.1)",
         ...style,
       }}
     >
       <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+      {children}
+    </div>
+  );
+}
+
+// SummaryPill — styled to match QuickActions' ActionRow (same gradient,
+// border, and backdrop-blur treatment) instead of the GlassCard look.
+function SummaryPill({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex flex-col gap-1 rounded-2xl border px-4 py-3 backdrop-blur-sm"
+      style={{
+        background:
+          "linear-gradient(135deg, rgba(var(--vp-accent-rgb),0.14), rgba(var(--vp-accent-rgb),0.05))",
+        borderColor: "rgba(var(--vp-accent-rgb),0.25)",
+      }}
+    >
+      <SectionLabel>{label}</SectionLabel>
       {children}
     </div>
   );
@@ -213,7 +238,7 @@ function AllLessonsSection({
 
                   {isCurrent && (
                     <span
-                      className="inline-flex items-center rounded-full px-2 py-[1px] text-[0.44rem] font-black uppercase tracking-[0.1em]"
+                      className="vp-here-glow inline-flex items-center rounded-full px-2 py-[1px] text-[0.44rem] font-black uppercase tracking-[0.1em]"
                       style={{
                         background: "rgba(var(--vp-accent-rgb),0.18)",
                         color: "rgb(var(--vp-accent-rgb))",
@@ -239,8 +264,8 @@ function AllLessonsSection({
 
               <span className="mt-1 flex-shrink-0">
                 {status === "done" && (
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[rgba(74,222,128,0.16)] text-[#4ade80]">
-                    <Check size={13} strokeWidth={3} />
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[#4ade80] text-[#0a0e1b] shadow-[0_0_10px_rgba(74,222,128,0.55)]">
+                    <Check size={13} strokeWidth={4} />
                   </span>
                 )}
 
@@ -271,7 +296,8 @@ function AllLessonsSection({
 // Main Learn Page Component
 // No wrapper div, no background, no --vp-accent-rgb, no <style jsx global> —
 // all of that is now owned by app/layout.tsx, which every /app/* route
-// (including this one) renders inside of.
+// (including this one) renders inside of. The <style> block below only
+// defines the local "you are here" glow/pulse animations used on this page.
 export default function LearnPage() {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
@@ -279,6 +305,34 @@ export default function LearnPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
+      <style>{`
+        @keyframes vp-pulse-ring {
+          0% {
+            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.55);
+          }
+          70% {
+            box-shadow: 0 0 0 8px rgba(var(--vp-accent-rgb), 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0);
+          }
+        }
+        .vp-pulse-ring {
+          animation: vp-pulse-ring 1.8s ease-out infinite;
+        }
+        @keyframes vp-here-glow {
+          0%, 100% {
+            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.35);
+          }
+          50% {
+            box-shadow: 0 0 8px 2px rgba(var(--vp-accent-rgb), 0.45);
+          }
+        }
+        .vp-here-glow {
+          animation: vp-here-glow 1.8s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Title Section */}
       <div className="vp-card-in mb-6">
         <Title className="block">Learn</Title>
@@ -290,11 +344,10 @@ export default function LearnPage() {
         <AllLessonsSection onSelect={setSelectedLesson} />
       </div>
 
-      {/* Progress Summary Cards */}
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
+      {/* Progress Summary Row — styled like QuickActions' buttons */}
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
         <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
-          <GlassCard className="p-4">
-            <SectionLabel>Completed</SectionLabel>
+          <SummaryPill label="Completed">
             <p className="text-2xl font-black text-white">
               {MODULES.filter((m) => m.progress === 100).length}
               <span className="text-base font-normal text-white/40">
@@ -302,12 +355,11 @@ export default function LearnPage() {
                 / {MODULES.length}
               </span>
             </p>
-          </GlassCard>
+          </SummaryPill>
         </div>
 
         <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
-          <GlassCard className="p-4">
-            <SectionLabel>Total XP</SectionLabel>
+          <SummaryPill label="Total XP">
             <p className="text-2xl font-black text-white">
               {MODULE_EARNED_XP.toLocaleString()}
               <span className="text-base font-normal text-white/40">
@@ -315,19 +367,18 @@ export default function LearnPage() {
                 / {MODULE_TOTAL_XP.toLocaleString()}
               </span>
             </p>
-          </GlassCard>
+          </SummaryPill>
         </div>
 
         <div className="vp-card-in" style={{ animationDelay: "180ms" }}>
-          <GlassCard className="p-4">
-            <SectionLabel>Current Module</SectionLabel>
+          <SummaryPill label="Current Module">
             <p className="text-sm font-black text-white truncate">
               {CURRENT_MODULE.title}
             </p>
             <p className="text-xs text-white/40">
               {CURRENT_MODULE.progress}% complete
             </p>
-          </GlassCard>
+          </SummaryPill>
         </div>
       </div>
 

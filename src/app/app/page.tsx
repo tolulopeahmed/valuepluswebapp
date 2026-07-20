@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useState } from "react";
 import SectionLabel from "../../components/SectionLabel";
 import QuickActions from "../../components/QuickActions";
 import Title from "../../components/Title";
@@ -19,6 +20,9 @@ import {
   LearnerRoadmap,
 } from "./CurriculumModules";
 import { BOOKS, BooksSection, PublisherRoadmap } from "./PublisherBooks";
+import LessonDetailModal, {
+  type LessonDetail,
+} from "../../components/LessonDetailsModal";
 import Image from "next/image";
 
 function getGreeting() {
@@ -69,6 +73,9 @@ function ProfileAvatar({
 
 export default function HomeScreen() {
   const { mode, setSidebarOpen } = useAppShell();
+  const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
+    null,
+  );
 
   const currentModule = getCurrentModule(MODULES);
   const currentModuleXpEarned = getModuleXpEarned(currentModule);
@@ -132,7 +139,11 @@ export default function HomeScreen() {
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "80ms" }}>
-        {mode === "learner" ? <LearnerRoadmap /> : <PublisherRoadmap />}
+        {mode === "learner" ? (
+          <LearnerRoadmap onSelect={setSelectedLesson} />
+        ) : (
+          <PublisherRoadmap />
+        )}
       </div>
 
       {/*
@@ -161,6 +172,12 @@ export default function HomeScreen() {
       </div>
 
       {mode === "publisher" && <BooksSection />}
+
+      <LessonDetailModal
+        open={selectedLesson !== null}
+        onClose={() => setSelectedLesson(null)}
+        lesson={selectedLesson}
+      />
     </>
   );
 }
