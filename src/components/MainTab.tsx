@@ -94,9 +94,9 @@ export default function MainTab() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-white/6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{
-        background: "linear-gradient(180deg, #121a30 0%, #0a0e1b 100%)",
+        background: "black",
         boxShadow: "0 -12px 32px -12px rgba(0,0,0,0.55)",
       }}
     >

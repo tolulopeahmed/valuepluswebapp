@@ -251,7 +251,7 @@ function AllLessonsSection({
                 </div>
 
                 <p
-                  className={`mt-0.5 truncate text-[0.85rem] font-black ${
+                  className={`mt-0.5 truncate text-[1.25rem] font-black ${
                     status === "upcoming" ? "text-white/45" : "text-white"
                   }`}
                 >

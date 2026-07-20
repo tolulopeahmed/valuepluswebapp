@@ -123,7 +123,10 @@ function ModuleProgressCard({
 
           <p
             className="mt-1.5 truncate text-[0.9rem] font-black text-white/45"
-            style={{ fontFamily: "PP Telegraf", color: "#ffb546" }}
+            style={{
+              fontFamily: "PP Telegraf",
+              color: "rgb(var(--vp-accent-rgb))",
+            }}
           >
             {data.progress}% complete
           </p>
