@@ -145,7 +145,7 @@ export default function MainTab() {
                   {isActive && (
                     <motion.span
                       layoutId="tab-glow"
-                      className="absolute -inset-x-4 -top-12 bottom-0 -z-10 overflow-hidden rounded-[2.25rem]"
+                      className="absolute left-[calc(50%-2.5rem)] top-[-1.25rem] -z-10 h-20 w-20 overflow-hidden rounded-full"
                       style={{
                         background:
                           "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.09) 100%)",
@@ -153,13 +153,9 @@ export default function MainTab() {
                         backdropFilter: "blur(18px) saturate(1.6)",
                         WebkitBackdropFilter: "blur(18px) saturate(1.6)",
                         boxShadow:
-                          "0 10px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -10px 18px rgba(0,0,0,0.3)",
+                          "0 8px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -8px 14px rgba(0,0,0,0.28)",
                       }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 380,
-                        damping: 32,
-                      }}
+                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                     >
                       {/* Static diagonal sheen — a soft light streak across the glass */}
                       <span
@@ -179,7 +175,7 @@ export default function MainTab() {
                             initial={{ x: "-140%", opacity: 0 }}
                             animate={{ x: "220%", opacity: [0, 0.6, 0] }}
                             exit={{ opacity: 0 }}
-                            transition={{ duration: 0.65, ease: "easeOut" }}
+                            transition={{ duration: 0.35, ease: "easeOut" }}
                             style={{
                               background:
                                 "linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%)",
@@ -203,7 +199,7 @@ export default function MainTab() {
                         isActive && !shouldReduceMotion ? [0, -8, 6, 0] : 0,
                     }}
                     transition={{
-                      duration: shouldReduceMotion ? 0 : 0.45,
+                      duration: shouldReduceMotion ? 0 : 0.28,
                       ease: [0.34, 1.56, 0.64, 1],
                     }}
                     className="relative"
