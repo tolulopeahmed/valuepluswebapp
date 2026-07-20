@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import {
   motion,
   useReducedMotion,
@@ -92,12 +92,20 @@ export default function MainTab() {
 
   const currentActive = getActiveTabFromPath(pathname || "/app");
 
+  // Bumped whenever a tab is pressed so the glass pill can replay its
+  // shimmer sweep — keyed by tab id + a fresh timestamp per press.
+  const [pressSignal, setPressSignal] = useState<{
+    id: TabId;
+    token: number;
+  } | null>(null);
+
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-white/6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2rem] border-t border-white/10 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{
-        background: "black",
-        boxShadow: "0 -12px 32px -12px rgba(0,0,0,0.55)",
+        background: "rgba(6,8,16,0.6)",
+        boxShadow:
+          "0 -12px 32px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
       }}
     >
       <LayoutGroup id={layoutGroupId}>
@@ -121,6 +129,9 @@ export default function MainTab() {
                 <motion.button
                   type="button"
                   onClick={() => handleTabClick(tab)}
+                  onTapStart={() =>
+                    setPressSignal({ id: tab.id, token: Date.now() })
+                  }
                   whileTap={shouldReduceMotion ? undefined : { scale: 0.88 }}
                   transition={{
                     type: "spring",
@@ -134,17 +145,50 @@ export default function MainTab() {
                   {isActive && (
                     <motion.span
                       layoutId="tab-glow"
-                      className="absolute inset-0 -z-10 rounded-2xl"
+                      className="absolute -inset-x-4 -top-12 bottom-0 -z-10 overflow-hidden rounded-[2.25rem]"
                       style={{
                         background:
-                          "radial-gradient(circle at 50% 30%, rgba(239,199,0,0.18), transparent 70%)",
+                          "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.09) 100%)",
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        backdropFilter: "blur(18px) saturate(1.6)",
+                        WebkitBackdropFilter: "blur(18px) saturate(1.6)",
+                        boxShadow:
+                          "0 10px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -10px 18px rgba(0,0,0,0.3)",
                       }}
                       transition={{
                         type: "spring",
                         stiffness: 380,
                         damping: 32,
                       }}
-                    />
+                    >
+                      {/* Static diagonal sheen — a soft light streak across the glass */}
+                      <span
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                          background:
+                            "linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.16) 48%, transparent 65%)",
+                        }}
+                      />
+
+                      {/* Press shimmer — replays a brighter sweep on tap */}
+                      <AnimatePresence>
+                        {pressSignal?.id === tab.id && (
+                          <motion.span
+                            key={pressSignal.token}
+                            className="pointer-events-none absolute inset-y-0 w-1/2"
+                            initial={{ x: "-140%", opacity: 0 }}
+                            animate={{ x: "220%", opacity: [0, 0.6, 0] }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.65, ease: "easeOut" }}
+                            style={{
+                              background:
+                                "linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.55) 50%, transparent 80%)",
+                              filter: "blur(2px)",
+                            }}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </motion.span>
                   )}
 
                   <motion.span

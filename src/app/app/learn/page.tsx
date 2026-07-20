@@ -4,6 +4,7 @@ import { useState } from "react";
 import SectionLabel from "../../../components/SectionLabel";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
+import MarqueeName from "../../../components/MarqueeName";
 import LessonDetailModal, {
   type LessonDetail,
   type LessonStatus,
@@ -250,13 +251,14 @@ function AllLessonsSection({
                   )}
                 </div>
 
-                <p
-                  className={`mt-0.5 truncate text-[1.25rem] font-black ${
+                <MarqueeName
+                  text={m.title}
+                  className="mt-0.5"
+                  textClassName={`text-[1.1rem] font-black ${
                     status === "upcoming" ? "text-white/45" : "text-white"
                   }`}
-                >
-                  {m.title}
-                </p>
+                  fadeColor="#2D375A"
+                />
 
                 <p className="mt-0.5 text-[0.58rem] text-white/38">
                   {m.duration} · {m.xp} XP
