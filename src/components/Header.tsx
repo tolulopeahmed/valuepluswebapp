@@ -77,7 +77,7 @@ export default function Header({
 }) {
   return (
     <header
-      className="sticky top-0 z-30 px-4 pb-3 pt-4 md:px-8 md:pb-4 md:pt-6"
+      className="fixed left-0 right-0 top-0 z-40 px-4 pb-3 pt-4 md:left-64 md:px-8 md:pb-4 md:pt-6"
       style={{
         background: "black",
         backdropFilter: "blur(16px) saturate(1.4)",

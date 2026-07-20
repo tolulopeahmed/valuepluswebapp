@@ -59,7 +59,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           onBellPress={() => {}}
         />
 
-        <main className="px-4 pb-28 pt-4 md:px-8 md:pb-10 md:pt-6">
+        {/* Header is now `fixed`, so it no longer reserves space in
+            normal flow — pt here covers the header's own height (not
+            just the gap after it) so content doesn't start underneath it. */}
+        <main className="px-4 pb-28 pt-[5.25rem] md:px-8 md:pb-10 md:pt-[6.5rem]">
           <div className="mx-auto flex max-w-6xl flex-col gap-5 md:gap-6">
             {children}
           </div>
