@@ -11,7 +11,6 @@ import type { CSSProperties, ComponentType } from "react";
 import {
   HomeIcon,
   BookOpenIcon,
-  UserPlusIcon,
   EllipsisHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import { HomeIcon as HomeIconSolid } from "@heroicons/react/24/solid";
@@ -20,7 +19,7 @@ import { useRouter, usePathname } from "next/navigation";
 
 const GOLD = "rgb(239,199,0)";
 
-type TabId = "home" | "learn" | "earn" | "withdraw" | "more";
+type TabId = "home" | "learn" | "earn" | "more";
 
 // Compatible with Heroicons and lucide-react icons.
 type IconComponent = ComponentType<{
@@ -55,12 +54,6 @@ const TABS: Tab[] = [
     id: "earn",
     label: "Earn",
     path: "/app/earn",
-    Outline: UserPlusIcon,
-  },
-  {
-    id: "withdraw",
-    label: "Withdraw",
-    path: "/app/withdraw",
     Outline: DollarSign,
   },
   {
@@ -81,7 +74,6 @@ export default function MainTab() {
     if (path === "/app") return "home";
     if (path.startsWith("/app/learn")) return "learn";
     if (path.startsWith("/app/earn")) return "earn";
-    if (path.startsWith("/app/withdraw")) return "withdraw";
     if (path.startsWith("/app/more")) return "more";
     return "home";
   };
