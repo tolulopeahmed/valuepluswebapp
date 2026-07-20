@@ -1,0 +1,292 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import Switch from "@mui/material/Switch";
+import {
+  Moon,
+  Fingerprint,
+  Landmark,
+  UserPlus,
+  ShieldCheck,
+  KeyRound,
+  ArrowDownCircle,
+  HelpCircle,
+  MessageCircle,
+  LogOut,
+  ChevronRight,
+  type LucideIcon,
+} from "lucide-react";
+import SectionLabel from "../../../components/SectionLabel";
+
+const REFERRAL_COUNT = 3;
+
+// MUI's Switch, restyled to match the reference: a wide, chunky pill
+// track with a large white thumb that nearly fills the track's height.
+// On-state fills the track solidly with the brand accent.
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
+  return (
+    <Switch
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      aria-label={label}
+      disableRipple
+      sx={{
+        width: 58,
+        height: 34,
+        padding: 0,
+        "& .MuiSwitch-switchBase": {
+          padding: "3px",
+          color: "#fff",
+          transitionDuration: "220ms",
+          "&.Mui-checked": {
+            transform: "translateX(24px)",
+            color: "#fff",
+            "& + .MuiSwitch-track": {
+              backgroundColor: "rgb(var(--vp-accent-rgb))",
+              opacity: 1,
+              border: 0,
+            },
+          },
+        },
+        "& .MuiSwitch-thumb": {
+          width: 28,
+          height: 28,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+        },
+        "& .MuiSwitch-track": {
+          borderRadius: 17,
+          backgroundColor: "rgba(255,255,255,0.16)",
+          opacity: 1,
+          transition: "background-color 220ms ease",
+        },
+      }}
+    />
+  );
+}
+
+function ToggleRow({
+  Icon,
+  label,
+  checked,
+  onChange,
+}: {
+  Icon: LucideIcon;
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <div className="flex items-center gap-3.5">
+        <Icon size={22} strokeWidth={1.8} className="text-white/80" />
+        <span className="text-[1.05rem] font-bold text-white">{label}</span>
+      </div>
+      <ToggleSwitch checked={checked} onChange={onChange} label={label} />
+    </div>
+  );
+}
+
+function StatusChip({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "accent";
+}) {
+  return (
+    <span
+      className="inline-flex shrink-0 items-center whitespace-nowrap rounded-lg border px-2 py-1 text-[0.56rem] font-black uppercase tracking-wide"
+      style={
+        tone === "accent"
+          ? {
+              background: "rgba(52,211,153,0.14)",
+              borderColor: "rgba(52,211,153,0.35)",
+              color: "#34D399",
+            }
+          : {
+              background: "rgba(255,255,255,0.08)",
+              borderColor: "rgba(255,255,255,0.14)",
+              color: "rgba(255,255,255,0.65)",
+            }
+      }
+    >
+      {children}
+    </span>
+  );
+}
+
+interface SettingItem {
+  id: string;
+  label: string;
+  subtitle: string;
+  Icon: LucideIcon;
+  trailing?: ReactNode;
+  danger?: boolean;
+}
+
+const ITEMS: SettingItem[] = [
+  {
+    id: "bank",
+    label: "My Bank Accounts",
+    subtitle: "Set up accounts for faster withdrawals",
+    Icon: Landmark,
+    trailing: <StatusChip>GTBank</StatusChip>,
+  },
+  {
+    id: "referrals",
+    label: `My Referrals (${REFERRAL_COUNT})`,
+    subtitle: "Invite friends so you both earn",
+    Icon: UserPlus,
+    trailing: (
+      <div className="flex flex-col items-end gap-0.5">
+        <span
+          className="text-[0.85rem] font-black"
+          style={{ color: "#34D399" }}
+        >
+          ₦15,000
+        </span>
+        <span className="text-[0.55rem] text-white/35">₦5,000 pending</span>
+      </div>
+    ),
+  },
+  {
+    id: "kyc",
+    label: "Update KYC",
+    subtitle: "Verify your identity to unlock full features",
+    Icon: ShieldCheck,
+    trailing: <StatusChip>Not started</StatusChip>,
+  },
+  {
+    id: "pin",
+    label: "Transaction PIN",
+    subtitle: "Secure withdrawals with a 4-digit PIN",
+    Icon: KeyRound,
+    trailing: <StatusChip tone="accent">Set</StatusChip>,
+  },
+  {
+    id: "schedule-withdrawal",
+    label: "Schedule Withdrawal",
+    subtitle: "Withdraw without charges",
+    Icon: ArrowDownCircle,
+  },
+  {
+    id: "faq",
+    label: "FAQ",
+    subtitle: "Get answers to common questions",
+    Icon: HelpCircle,
+  },
+  {
+    id: "message-admin",
+    label: "Message Admin",
+    subtitle: "Get instant support via WhatsApp",
+    Icon: MessageCircle,
+  },
+  {
+    id: "logout",
+    label: "Log Out",
+    subtitle: "Sign out of your account",
+    Icon: LogOut,
+    danger: true,
+  },
+];
+
+function SettingRow({
+  item,
+  onSelect,
+}: {
+  item: SettingItem;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.id)}
+      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors active:bg-white/[0.06]"
+      style={{
+        background: item.danger
+          ? "rgba(248,113,113,0.06)"
+          : "rgba(var(--vp-accent-rgb),0.08)",
+        borderColor: item.danger
+          ? "rgba(248,113,113,0.22)"
+          : "rgba(var(--vp-accent-rgb),0.16)",
+      }}
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+        style={{
+          background: item.danger
+            ? "rgba(248,113,113,0.14)"
+            : "rgba(var(--vp-accent-rgb),0.16)",
+          color: item.danger ? "#f87171" : "rgb(var(--vp-accent-rgb))",
+        }}
+      >
+        <item.Icon size={17} strokeWidth={1.9} />
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p
+          className={`truncate text-[0.9rem] font-black ${
+            item.danger ? "text-red-300" : "text-white"
+          }`}
+        >
+          {item.label}
+        </p>
+        <p className="truncate text-[0.66rem] text-white/40">{item.subtitle}</p>
+      </div>
+
+      <div className="shrink-0">
+        {item.trailing ?? <ChevronRight size={16} className="text-white/25" />}
+      </div>
+    </button>
+  );
+}
+
+export default function Settings() {
+  const [darkMode, setDarkMode] = useState(true);
+  const [biometric, setBiometric] = useState(true);
+
+  return (
+    // Negative top margin pulls this panel up over the hero's bottom edge;
+    // the deeper -mt-8 + bigger 2.5rem top radius makes the layered
+    // "shelf" separation from the reference read clearly.
+    <div
+      className="relative -mt-8 rounded-t-[2.5rem] px-5 pb-5 pt-7"
+      style={{ background: "#0b0e1f" }}
+    >
+      <div className="flex flex-col gap-1">
+        <ToggleRow
+          Icon={Moon}
+          label="Dark Mode"
+          checked={darkMode}
+          onChange={setDarkMode}
+        />
+        <ToggleRow
+          Icon={Fingerprint}
+          label="Biometric Login"
+          checked={biometric}
+          onChange={setBiometric}
+        />
+      </div>
+
+      <SectionLabel className="mt-4">Settings</SectionLabel>
+
+      <div className="flex flex-col gap-2.5">
+        {ITEMS.map((item) => (
+          <SettingRow
+            key={item.id}
+            item={item}
+            onSelect={(id) => console.log("settings:", id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}

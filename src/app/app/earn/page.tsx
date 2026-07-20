@@ -106,9 +106,19 @@ const ALL_EARNINGS = EARNINGS.flatMap((g) => g.items);
 const TOTAL_EARNED = ALL_EARNINGS.filter(
   (e) => e.status === "confirmed",
 ).reduce((sum, e) => sum + e.amount, 0);
-const TOTAL_PENDING = ALL_EARNINGS.filter(
-  (e) => e.status === "pending",
-).reduce((sum, e) => sum + e.amount, 0);
+const TOTAL_PENDING = ALL_EARNINGS.filter((e) => e.status === "pending").reduce(
+  (sum, e) => sum + e.amount,
+  0,
+);
+
+// Bottom-row stats: counts derived from the same list the totals come
+// from, so they can never drift out of sync with the transactions.
+const REFERRAL_COUNT = ALL_EARNINGS.filter(
+  (e) => e.source === "referral",
+).length;
+const BOOK_SALE_COUNT = ALL_EARNINGS.filter(
+  (e) => e.source === "book-sale",
+).length;
 
 const STATUS_STYLES: Record<
   EarningStatus,
@@ -145,12 +155,12 @@ function NairaAmount({
   );
 }
 
-// ── Hero: total earned, with pending sitting quietly underneath, and a
-// Withdraw pill anchored to the bottom-right corner — this replaces the
-// old standalone Withdraw tab now that Earn and Withdraw are one page. ──
+// ── Hero: total earned up top; bottom row holds the referral/book counts
+// on the left and a raised QuickSave-style Withdraw pill pinned to the
+// bottom-right with proper inset padding, like the MyFund reference. ──
 function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   return (
-    <GlassCard accent className="p-5" style={{ paddingBottom: "3.75rem" }}>
+    <GlassCard accent className="flex flex-col p-5">
       <div className="flex items-center justify-between">
         <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
         <span
@@ -175,19 +185,33 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
         <NairaAmount value={TOTAL_PENDING} /> pending
       </p>
 
-      <button
-        type="button"
-        onClick={onWithdraw}
-        className="absolute bottom-4 right-4 flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2.5 text-[0.68rem] font-black uppercase tracking-wide"
-        style={{
-          background: "rgb(var(--vp-accent-rgb))",
-          color: "#171100",
-          boxShadow: "0 10px 24px rgba(var(--vp-accent-rgb),0.35)",
-        }}
-      >
-        <DollarSign size={14} strokeWidth={2.5} />
-        Withdraw
-      </button>
+      {/* Bottom row — stats left, Withdraw pill right, both sitting on
+          the card's own padding so the inset feels deliberate like the
+          reference's QuickSave corner. */}
+      <div className="mt-6 flex items-end justify-between gap-3">
+        <p className="pb-1 text-[0.8rem] font-bold tracking-wide text-white/60">
+          {REFERRAL_COUNT} referral{REFERRAL_COUNT === 1 ? "" : "s"}
+          <span className="mx-1.5 text-white/30">·</span>
+          {BOOK_SALE_COUNT} book{BOOK_SALE_COUNT === 1 ? "" : "s"}
+        </p>
+
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onWithdraw}
+          className="shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl px-5 py-2.5 text-[0.85rem] font-bold"
+          style={{
+            background: "rgba(var(--vp-accent-rgb),0.22)",
+            border: "1px solid rgba(var(--vp-accent-rgb),0.5)",
+            color: "#ffffff",
+            boxShadow:
+              "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
+          }}
+        >
+          <DollarSign size={15} strokeWidth={2.5} />
+          Withdraw
+        </Button>
+      </div>
     </GlassCard>
   );
 }
@@ -196,11 +220,7 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
 function ReferAndEarnButton() {
   return (
     <div className="flex justify-center">
-      <Button
-        variant="primary"
-        size="md"
-        className="items-center gap-2 rounded-full px-7 text-xs font-black uppercase tracking-wide"
-      >
+      <Button variant="primary" size="md">
         <Gift size={16} strokeWidth={2.25} />
         Refer &amp; Earn
       </Button>
@@ -315,7 +335,11 @@ function EarningDetailsModal({
           className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
           style={{ background: status.bg, borderColor: status.border }}
         >
-          <earning.Icon size={22} strokeWidth={1.8} style={{ color: status.text }} />
+          <earning.Icon
+            size={22}
+            strokeWidth={1.8}
+            style={{ color: status.text }}
+          />
         </div>
 
         <NairaAmount
@@ -369,11 +393,7 @@ function EarningDetailsModal({
 }
 
 // ── All earnings — every referral reward and book sale, grouped by month ─
-function AllEarningsSection({
-  onSelect,
-}: {
-  onSelect: (e: Earning) => void;
-}) {
+function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
   return (
     <div className="flex flex-col gap-2">
       <SectionLabel>All earnings</SectionLabel>
@@ -425,7 +445,10 @@ export default function EarnPage() {
         <AllEarningsSection onSelect={setSelected} />
       </div>
 
-      <EarningDetailsModal earning={selected} onClose={() => setSelected(null)} />
+      <EarningDetailsModal
+        earning={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }

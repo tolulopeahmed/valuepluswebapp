@@ -2,6 +2,7 @@
 
 export const USER = {
   firstName: "Adunni",
+  email: "adunni@valuepluspublishing.com",
   streak: 7,
   xp: 2340,
   level: 4,

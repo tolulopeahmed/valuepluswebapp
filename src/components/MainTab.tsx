@@ -93,7 +93,10 @@ export default function MainTab() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2.5rem] border-t border-white/10 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+      // Bar radius (2.25rem) = pill radius (1.75rem) + edge gap (0.5rem),
+      // so the bar's top corners run concentric with the end pills'
+      // corners when Home or More is active.
+      className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2.25rem] border-t border-white/10 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{
         // Solid black bar, like the reference — kept a hair of blue-black
         // warmth so it doesn't read flat against pure-black screens.
@@ -103,7 +106,15 @@ export default function MainTab() {
       }}
     >
       <LayoutGroup id={layoutGroupId}>
-        <ul className="flex items-stretch justify-around px-2">
+        {/*
+          With 4 tabs, each li takes a full quarter of the bar (flex-1)
+          and the button fills its li (w-full), so the glass pill —
+          absolutely inset to the button — stretches wide across the
+          tab's whole slot. px-2 (0.5rem) pins the end pills exactly
+          0.5rem from the bar's corners; gap-1 keeps neighboring pills
+          from touching.
+        */}
+        <ul className="flex items-stretch gap-1 px-2">
           {TABS.map((tab, i) => {
             const isActive = currentActive === tab.id;
             const Icon = isActive && tab.Solid ? tab.Solid : tab.Outline;
@@ -111,7 +122,7 @@ export default function MainTab() {
             return (
               <motion.li
                 key={tab.id}
-                className="relative flex list-none"
+                className="relative flex flex-1 list-none"
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
@@ -126,29 +137,27 @@ export default function MainTab() {
                   onTapStart={() =>
                     setPressSignal({ id: tab.id, token: Date.now() })
                   }
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.95 }}
                   transition={{
                     type: "spring",
                     stiffness: 500,
                     damping: 30,
                   }}
-                  // Extra bottom padding reserves room for the dot INSIDE
-                  // the pill, and the pill (absolute inset-0) wraps
-                  // icon + label + dot as one centered stack — matching
-                  // the reference where the glass encloses everything.
-                  className="relative flex flex-col items-center justify-center gap-1 px-3.5 pb-4 pt-2.5"
+                  // w-full lets the pill (absolute inset-0) span the whole
+                  // quarter-width slot; extra bottom padding reserves room
+                  // for the dot INSIDE the pill, with icon + label + dot
+                  // centered as one stack.
+                  className="relative flex w-full flex-col items-center justify-center gap-1 px-2 pb-4 pt-2.5"
                   aria-current={isActive ? "page" : undefined}
                   aria-label={tab.label}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="tab-glow"
-                      // The pill now hugs the button's own bounds, so it's
-                      // exactly big enough for icon + label + dot, with
-                      // everything centered inside it. Radius 1.5rem sits
-                      // just inside the bar's 2rem top curve so the two
-                      // arcs read as concentric, like the reference.
-                      className="absolute inset-0 -z-10 overflow-hidden rounded-[1.5rem]"
+                      // Wide glass sheet filling the tab's slot. 1.75rem
+                      // radius + the 0.5rem edge gap = the bar's 2.25rem
+                      // top radius, so the arcs nest at both ends.
+                      className="absolute inset-0 -z-10 overflow-hidden rounded-[1.75rem]"
                       style={{
                         background:
                           "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.09) 100%)",
@@ -234,8 +243,7 @@ export default function MainTab() {
                     {tab.label}
                   </motion.span>
 
-                  {/* Active dot — now INSIDE the pill, centered near its
-                      bottom edge, matching the reference layout */}
+                  {/* Active dot — inside the pill, centered near its bottom edge */}
                   <AnimatePresence>
                     {isActive && (
                       <motion.span
