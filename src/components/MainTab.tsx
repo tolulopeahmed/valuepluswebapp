@@ -101,15 +101,17 @@ export default function MainTab() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2rem] border-t border-white/10 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2.5rem] border-t border-white/10 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{
-        background: "rgba(6,8,16,0.6)",
+        // Solid black bar, like the reference — kept a hair of blue-black
+        // warmth so it doesn't read flat against pure-black screens.
+        background: "rgba(4,5,10,0.92)",
         boxShadow:
           "0 -12px 32px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
       }}
     >
       <LayoutGroup id={layoutGroupId}>
-        <ul className="flex items-stretch justify-around">
+        <ul className="flex items-stretch justify-around px-2">
           {TABS.map((tab, i) => {
             const isActive = currentActive === tab.id;
             const Icon = isActive && tab.Solid ? tab.Solid : tab.Outline;
@@ -132,20 +134,29 @@ export default function MainTab() {
                   onTapStart={() =>
                     setPressSignal({ id: tab.id, token: Date.now() })
                   }
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.88 }}
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
                   transition={{
                     type: "spring",
                     stiffness: 500,
                     damping: 30,
                   }}
-                  className="relative flex flex-col items-center gap-1 px-3 py-1.5"
+                  // Extra bottom padding reserves room for the dot INSIDE
+                  // the pill, and the pill (absolute inset-0) wraps
+                  // icon + label + dot as one centered stack — matching
+                  // the reference where the glass encloses everything.
+                  className="relative flex flex-col items-center justify-center gap-1 px-3.5 pb-4 pt-2.5"
                   aria-current={isActive ? "page" : undefined}
                   aria-label={tab.label}
                 >
                   {isActive && (
                     <motion.span
                       layoutId="tab-glow"
-                      className="absolute left-[calc(50%-2.5rem)] top-[-1.25rem] -z-10 h-20 w-20 overflow-hidden rounded-full"
+                      // The pill now hugs the button's own bounds, so it's
+                      // exactly big enough for icon + label + dot, with
+                      // everything centered inside it. Radius 1.5rem sits
+                      // just inside the bar's 2rem top curve so the two
+                      // arcs read as concentric, like the reference.
+                      className="absolute inset-0 -z-10 overflow-hidden rounded-[1.5rem]"
                       style={{
                         background:
                           "linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0.09) 100%)",
@@ -155,7 +166,11 @@ export default function MainTab() {
                         boxShadow:
                           "0 8px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -8px 14px rgba(0,0,0,0.28)",
                       }}
-                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 34,
+                      }}
                     >
                       {/* Static diagonal sheen — a soft light streak across the glass */}
                       <span
@@ -227,6 +242,8 @@ export default function MainTab() {
                     {tab.label}
                   </motion.span>
 
+                  {/* Active dot — now INSIDE the pill, centered near its
+                      bottom edge, matching the reference layout */}
                   <AnimatePresence>
                     {isActive && (
                       <motion.span
@@ -234,7 +251,7 @@ export default function MainTab() {
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0, opacity: 0 }}
-                        className="absolute -bottom-0.5 h-1 w-1 rounded-full"
+                        className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                         style={{
                           background: GOLD,
                           boxShadow: "0 0 6px rgba(239,199,0,0.7)",
