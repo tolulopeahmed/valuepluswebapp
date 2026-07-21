@@ -97,7 +97,7 @@ export default function BookDetailsModal({
         <Button
           variant="secondary"
           size="md"
-          className="flex-1 rounded-full"
+          className="flex-1"
           onClick={() => onChangePrice?.(book)}
         >
           Change Price
@@ -106,7 +106,7 @@ export default function BookDetailsModal({
         <Button
           variant="primary"
           size="md"
-          className="flex-1 rounded-full"
+          className="flex-1"
           onClick={() => {
             onOrderReprint?.(book);
             onClose();

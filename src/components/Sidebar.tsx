@@ -395,7 +395,7 @@ export default function Sidebar({
         </nav>
 
         <div className="px-5 pb-7">
-          <button className="group flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]">
+          <button className="group flex w-full items-center justify-center gap-3 rounded-[0.95rem] border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]">
             <span className="transition-transform duration-300 group-hover:rotate-45">
               <Icon path={ICONS.settings} size={19} />
             </span>

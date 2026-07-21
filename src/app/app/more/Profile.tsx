@@ -70,10 +70,12 @@ export default function Profile() {
           "radial-gradient(120% 70% at 15% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 55%), radial-gradient(90% 60% at 100% 0%, rgba(var(--vp-accent-rgb),0.14), transparent 60%), linear-gradient(180deg, #232a4d 0%, #171d38 60%, #12172c 100%)",
       }}
     >
-      {/* Edit Profile pill — top right, opposite the avatar */}
+      {/* Edit Profile — top right, opposite the avatar. Same radius as
+          every other primary/secondary button in the app (var(--r-md)),
+          not a pill. */}
       <button
         type="button"
-        className="absolute right-5 top-5 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[0.66rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
+        className="absolute right-5 top-5 flex items-center gap-1.5 rounded-[0.95rem] border px-3.5 py-2 text-[0.66rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
         style={{
           borderColor: "rgba(255,255,255,0.16)",
           background: "rgba(255,255,255,0.08)",

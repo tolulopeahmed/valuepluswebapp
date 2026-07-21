@@ -4,10 +4,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus, LayoutGrid, List } from "lucide-react";
+import { Plus, LayoutGrid, List, Trash2 } from "lucide-react";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
+import MarqueeName from "../../../components/MarqueeName";
 import Button from "../../../components/buttons/buttons";
 import { BOOKS, STATUS_LABEL, type Book } from "../PublisherBooks";
 
@@ -43,6 +44,32 @@ function StatusBadge({ status }: { status: Book["status"] }) {
     >
       {STATUS_LABEL[status]}
     </span>
+  );
+}
+
+// Only drafts get a delete affordance — published/in-progress titles
+// shouldn't be a one-tap remove away.
+function DeleteDraftButton({
+  book,
+  className,
+}: {
+  book: Book;
+  className: string;
+}) {
+  if (book.status !== "draft") return null;
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        console.log("publish: delete draft", book.id);
+      }}
+      aria-label={`Delete draft "${book.title}"`}
+      className={`grid place-items-center rounded-full bg-black/60 text-red-300 backdrop-blur-sm transition-colors hover:bg-red-500/80 hover:text-white ${className}`}
+    >
+      <Trash2 size={12} strokeWidth={2.4} />
+    </button>
   );
 }
 
@@ -97,31 +124,67 @@ function ViewToggle({
 // grid, not the shelf's fixed-width scroll track) — .vp-book-cover-hover
 // is a layout-free marker class so both sizings can opt into the same
 // hover-reveal behavior without one clobbering the other's width.
+//
+// The delete button has to be a sibling of the cover button, not a
+// child — nesting a button inside a button is invalid HTML and breaks
+// click handling — so the outer element carries the tile's size/position
+// and the cover button fills it via inset-0.
 function BookGridTile({ book, index }: { book: Book; index: number }) {
   const borderColor = BORDER_COLORS[index % BORDER_COLORS.length];
 
   return (
+    <div className="relative aspect-[3/4.4] w-full">
+      <button
+        type="button"
+        onClick={() => console.log("publish: open book", book.id)}
+        className="vp-book-cover-hover absolute inset-0 overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
+        style={{ borderColor }}
+      >
+        <Image
+          src={book.cover}
+          alt={book.title}
+          fill
+          sizes="(min-width: 768px) 18vw, 32vw"
+          className="object-cover"
+        />
+        <span className="absolute right-1.5 top-1.5">
+          <StatusBadge status={book.status} />
+        </span>
+
+        <div className="vp-shelf-book-details">
+          <p className="vp-shelf-book-title">{book.title}</p>
+          <p className="vp-shelf-book-price">{naira(book.price)}</p>
+        </div>
+      </button>
+
+      <DeleteDraftButton book={book} className="absolute bottom-1.5 right-1.5 z-10 h-6 w-6" />
+    </div>
+  );
+}
+
+function AddNewTitleGridTile({ onClick }: { onClick: () => void }) {
+  return (
     <button
       type="button"
-      onClick={() => console.log("publish: open book", book.id)}
-      className="vp-book-cover-hover relative aspect-[3/4.4] w-full overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
-      style={{ borderColor }}
+      onClick={onClick}
+      className="flex aspect-[3/4.4] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors"
+      style={{
+        borderColor: "rgba(var(--vp-accent-rgb),0.4)",
+        background: "rgba(var(--vp-accent-rgb),0.07)",
+      }}
     >
-      <Image
-        src={book.cover}
-        alt={book.title}
-        fill
-        sizes="(min-width: 768px) 22vw, 45vw"
-        className="object-cover"
-      />
-      <span className="absolute right-1.5 top-1.5">
-        <StatusBadge status={book.status} />
+      <span
+        className="grid h-9 w-9 place-items-center rounded-full"
+        style={{
+          background: "rgba(var(--vp-accent-rgb),0.18)",
+          color: "rgb(var(--vp-accent-rgb))",
+        }}
+      >
+        <Plus size={19} strokeWidth={2.5} />
       </span>
-
-      <div className="vp-shelf-book-details">
-        <p className="vp-shelf-book-title">{book.title}</p>
-        <p className="vp-shelf-book-price">{naira(book.price)}</p>
-      </div>
+      <span className="px-1 text-center text-[0.52rem] font-black uppercase leading-tight tracking-wide text-white/70">
+        Add New Title
+      </span>
     </button>
   );
 }
@@ -177,7 +240,36 @@ function BookListRow({ book, index }: { book: Book; index: number }) {
           <p className="text-[0.55rem] text-white/35">{book.sales} sales</p>
         )}
       </div>
+
+      <DeleteDraftButton book={book} className="h-7 w-7 shrink-0" />
     </div>
+  );
+}
+
+function AddNewTitleListRow({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-3 transition-colors"
+      style={{
+        borderColor: "rgba(var(--vp-accent-rgb),0.4)",
+        background: "rgba(var(--vp-accent-rgb),0.07)",
+      }}
+    >
+      <span
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
+        style={{
+          background: "rgba(var(--vp-accent-rgb),0.18)",
+          color: "rgb(var(--vp-accent-rgb))",
+        }}
+      >
+        <Plus size={15} strokeWidth={2.5} />
+      </span>
+      <span className="text-[0.72rem] font-black uppercase tracking-wide text-white/70">
+        Add New Title
+      </span>
+    </button>
   );
 }
 
@@ -186,16 +278,25 @@ export default function PublishPage() {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <div className="vp-card-in mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Title className="block">Publish</Title>
-          <Subtitle>Manage your books and publish new titles</Subtitle>
+      {/* items-center + no flex-wrap: the button always stays to the
+          right, never drops to its own line. The title/subtitle column
+          gets min-w-0 so it can shrink instead of forcing a wrap, and
+          the subtitle marquees instead of wrapping if it doesn't fit. */}
+      <div className="vp-card-in mb-4 flex items-center justify-between gap-3 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <Title className="block truncate">Publish</Title>
+          <Subtitle className="block max-w-full">
+            <MarqueeName
+              text="Manage your books and publish new titles"
+              fadeColor="rgba(10,14,27,0.96)"
+            />
+          </Subtitle>
         </div>
 
         <Button
           variant="primary"
           size="sm"
-          className="w-auto items-center gap-1.5"
+          className="w-auto shrink-0 items-center gap-1.5 whitespace-nowrap"
           onClick={() => console.log("publish: add-new-title")}
         >
           <Plus size={15} strokeWidth={2.75} />
@@ -215,12 +316,15 @@ export default function PublishPage() {
 
       {view === "grid" ? (
         <div
-          className="vp-card-in grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4"
+          className="vp-card-in grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5"
           style={{ animationDelay: "80ms" }}
         >
           {BOOKS.map((book, i) => (
             <BookGridTile key={book.id} book={book} index={i} />
           ))}
+          <AddNewTitleGridTile
+            onClick={() => console.log("publish: add-new-title")}
+          />
         </div>
       ) : (
         <div
@@ -230,6 +334,9 @@ export default function PublishPage() {
           {BOOKS.map((book, i) => (
             <BookListRow key={book.id} book={book} index={i} />
           ))}
+          <AddNewTitleListRow
+            onClick={() => console.log("publish: add-new-title")}
+          />
         </div>
       )}
     </div>

@@ -158,7 +158,7 @@ function NairaAmount({
 // container end to end. ──
 function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   return (
-    <GlassCard accent className="flex flex-col p-4">
+    <GlassCard accent className="flex flex-col p-3.5">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
@@ -173,7 +173,7 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
       </div>
 
       <p
-        className="mt-2 text-6xl font-normal leading-none text-white md:text-5xl"
+        className="mt-1 text-5xl font-normal leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
         <NairaAmount value={TOTAL_EARNED} bold={false} />
@@ -182,7 +182,7 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
       {/* Bottom row — stats left, Withdraw pill right, both sitting on
           the card's own padding so the inset feels deliberate like the
           reference's QuickSave corner. */}
-      <div className="mt-3 flex items-end justify-between gap-3">
+      <div className="mt-2 flex items-end justify-between gap-3">
         <SectionLabel style={{ marginBottom: 0 }}>
           {BOOKS.length} {BOOKS.length === 1 ? "Title" : "Titles"}
         </SectionLabel>
@@ -193,12 +193,19 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
           onClick={onWithdraw}
           className="shrink-0 items-center gap-1.5 whitespace-nowrap px-5 py-2.5 text-[0.85rem] font-bold"
           style={{
-            background: "rgba(var(--vp-accent-rgb),0.22)",
-            border: "1px solid rgba(var(--vp-accent-rgb),0.5)",
+            // Bumped opacity so the accent reads more clearly instead of
+            // washing out against the card (matches the homepage's
+            // EarningsCard Withdraw button). This button is short
+            // (2.1rem), so var(--r-md) — sized for the taller default
+            // .btn-sm — would sit near half its height and still read as
+            // a pill; var(--r-sm) keeps the same proportional look at
+            // this smaller scale.
+            background: "rgba(var(--vp-accent-rgb),0.34)",
+            border: "1px solid rgba(var(--vp-accent-rgb),0.7)",
             color: "#ffffff",
-            borderRadius: "1rem",
             minHeight: "2.1rem",
             padding: "0.5rem 1rem",
+            borderRadius: "var(--r-sm)",
             boxShadow:
               "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
           }}

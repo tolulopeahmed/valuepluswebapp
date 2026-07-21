@@ -89,13 +89,28 @@ function SlideCta({
         size="sm"
         variant={variant}
         onClick={onClick}
-        className="w-auto items-center gap-1.5 whitespace-nowrap rounded-full text-xs font-black uppercase tracking-wide"
+        // No rounded-* override — falls back to .btn-base's own
+        // var(--r-md), the same radius every other primary/secondary
+        // button in the app uses, instead of a one-off pill shape.
+        className="w-auto items-center gap-1.5 whitespace-nowrap text-xs font-black uppercase tracking-wide"
         style={{
           // .btn-sm's own padding/min-height live in globals.css outside
           // any @layer, so they beat Tailwind's layered px/py utilities
           // regardless of specificity — inline style is the only thing
-          // that reliably overrides it for the compact variant.
-          ...(compact ? { minHeight: "2.1rem", padding: "0.5rem 1rem" } : {}),
+          // that reliably overrides it for the compact variant. Radius
+          // also needs its own override here: var(--r-md) (0.95rem) was
+          // sized for the taller default .btn-sm (2.75rem) — on this
+          // much shorter 2.1rem button the same radius is close to half
+          // the height, so it still reads as a pill. var(--r-sm)
+          // (0.65rem) keeps the same proportional "rounded corner, not
+          // pill" look at this smaller scale.
+          ...(compact
+            ? {
+                minHeight: "2.1rem",
+                padding: "0.5rem 1rem",
+                borderRadius: "var(--r-sm)",
+              }
+            : {}),
           ...(variant === "primary"
             ? {
                 backgroundColor: "rgb(var(--vp-accent-rgb))",
@@ -121,7 +136,7 @@ function ModuleProgressCard({
   onResume?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className="flex h-full flex-col p-3.5">
       <SectionLabel>{data.module}</SectionLabel>
 
       <MarqueeName
@@ -136,7 +151,7 @@ function ModuleProgressCard({
         +{data.xpEarned} XP earned · {data.duration}
       </p>
 
-      <div className="mt-4 flex items-end gap-3">
+      <div className="mt-2.5 flex items-end gap-3">
         <div className="min-w-0 flex-1">
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/15">
             <div
@@ -156,7 +171,7 @@ function ModuleProgressCard({
           </p>
         </div>
 
-        <SlideCta label="Resume" onClick={onResume} />
+        <SlideCta label="Resume" onClick={onResume} compact />
       </div>
     </GlassCard>
   );
@@ -175,7 +190,7 @@ function ReferralRewardsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className="flex h-full flex-col p-3.5">
       <div className="flex items-center justify-between">
         <SectionLabel>Referral rewards</SectionLabel>
         <span
@@ -190,13 +205,13 @@ function ReferralRewardsCard({
       </div>
 
       <p
-        className="mt-1 leading-none text-white"
-        style={{ fontFamily: "Proxima Nova", fontSize: 55 }}
+        className="mt-1 font-normal leading-none text-white"
+        style={{ fontFamily: "Proxima Nova", fontSize: 44 }}
       >
-        <NairaAmount value={data.totalEarned} />
+        <NairaAmount value={data.totalEarned} bold={false} />
       </p>
 
-      <div className="mt-4 flex flex-1 items-end justify-between gap-3">
+      <div className="mt-2.5 flex flex-1 items-end justify-between gap-3">
         <div className="flex -space-x-2">
           {/* {Array.from({ length: avatarCount }).map((_, i) => (
             <span
@@ -218,7 +233,7 @@ function ReferralRewardsCard({
           </p>
         </div>
 
-        <SlideCta label="Withdraw" onClick={onWithdraw} />
+        <SlideCta label="Withdraw" onClick={onWithdraw} compact />
       </div>
     </GlassCard>
   );
@@ -239,7 +254,7 @@ function EarningsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-4">
+    <GlassCard accent className="flex h-full flex-col p-3.5">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
@@ -254,13 +269,13 @@ function EarningsCard({
       </div>
 
       <p
-        className="mt-2 text-6xl font-normal leading-none text-white md:text-5xl"
+        className="mt-1 text-5xl font-normal leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
         <NairaAmount value={data.totalEarned} bold={false} />
       </p>
 
-      <div className="mt-3 flex items-end justify-between">
+      <div className="mt-2 flex items-end justify-between">
         <SectionLabel style={{ marginBottom: 0 }}>
           {data.titleCount} {data.titleCount === 1 ? "Title" : "Titles"}
         </SectionLabel>
@@ -272,13 +287,14 @@ function EarningsCard({
           compact
           style={{
             // Same look as the Withdraw button on the Earn page's
-            // earnings hero (EarningsHero in app/earn/page.tsx) — including
-            // the less-rounded corner (rounded-2xl there, not the
-            // SlideCta default rounded-full).
-            background: "rgba(var(--vp-accent-rgb),0.22)",
-            border: "1px solid rgba(var(--vp-accent-rgb),0.5)",
+            // earnings hero (EarningsHero in app/earn/page.tsx). Bumped
+            // opacity so the accent reads more clearly instead of washing
+            // out against the card. Radius comes from .btn-base's
+            // var(--r-md) now (SlideCta no longer forces rounded-full),
+            // so no override needed here.
+            background: "rgba(var(--vp-accent-rgb),0.34)",
+            border: "1px solid rgba(var(--vp-accent-rgb),0.7)",
             color: "#ffffff",
-            borderRadius: "1rem",
             boxShadow:
               "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
           }}

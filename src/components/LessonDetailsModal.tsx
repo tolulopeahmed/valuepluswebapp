@@ -154,7 +154,7 @@ export default function LessonDetailModal({
       <Button
         variant="primary"
         size="md"
-        className="mt-6 w-full rounded-full"
+        className="mt-6 w-full"
         style={{
           background: buttonStyle.background,
           color: buttonStyle.color,
