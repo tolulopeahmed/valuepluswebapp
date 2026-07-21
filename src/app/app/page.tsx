@@ -88,7 +88,7 @@ export default function HomeScreen() {
 
   const publisherStats = {
     totalEarned: BOOKS.reduce((s, b) => s + b.earned, 0),
-    weeklyDelta: 4500,
+    titleCount: BOOKS.length,
   };
 
   return (

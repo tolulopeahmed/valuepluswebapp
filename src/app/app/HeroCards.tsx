@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { Users, Wallet, TrendingUp } from "lucide-react";
+import { Users, Wallet } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
 import MarqueeName from "../../components/MarqueeName";
@@ -26,11 +26,9 @@ export interface ReferralStatsData {
 
 export interface PublisherStatsData {
   totalEarned: number;
-  weeklyDelta: number;
-}
-
-function naira(n: number) {
-  return `₦${n.toLocaleString()}`;
+  // Total title count, including drafts — same count as the Publish
+  // page's "N Titles" label (BOOKS.length there).
+  titleCount: number;
 }
 
 // Renders a naira amount the way MyFund does: small ₦ symbol, small
@@ -201,8 +199,11 @@ function ReferralRewardsCard({
 }
 
 // ── Publisher slide 1: total earnings ────────────────────────────
-// Kept from the previous pass — publisher slides get their own design
-// review later, but the container is already built to take more of them.
+// Layout modeled on a MyFund "My Accounts" savings card: icon+label
+// cluster top-left, a growth-percent pill top-right, a big amount, then
+// a supporting line bottom-left with the CTA bottom-right — same brand
+// colors/components as every other card here (GlassCard, SlideCta,
+// NairaAmount), just this specific arrangement.
 function EarningsCard({
   data,
   onWithdraw,
@@ -211,22 +212,36 @@ function EarningsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-5">
+    <GlassCard accent className="flex h-full min-h-54 flex-col p-5">
       <div className="flex items-center justify-between">
-        <SectionLabel>Total earned</SectionLabel>
-        <span className="text-[rgb(var(--vp-accent-rgb))]">
-          <Wallet size={16} strokeWidth={2} />
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+            style={{
+              background: "rgba(var(--vp-accent-rgb),0.14)",
+              color: "rgb(var(--vp-accent-rgb))",
+            }}
+          >
+            <Wallet size={14} strokeWidth={2} />
+          </span>
+          <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
+        </div>
+
+        <span className="rounded-full bg-[#4ade80] px-2.5 py-1 text-xs font-black text-[#0b1a0f]">
+          15%
         </span>
       </div>
 
-      <p className="mt-2 text-4xl font-black leading-none text-white md:text-3xl">
+      <p className="mt-3 flex-1 text-4xl font-black leading-none text-white md:text-3xl">
         <NairaAmount value={data.totalEarned} />
       </p>
 
-      <div className="mt-4 flex flex-1 items-end justify-between">
-        <p className="flex items-center gap-1 text-[0.68rem] text-[#4ade80]">
-          <TrendingUp size={11} strokeWidth={2} />+{naira(data.weeklyDelta)}{" "}
-          this week
+      <div className="mt-4 flex items-end justify-between">
+        <p
+          className="tracking-wide text-[0.9rem] text-white/90"
+          style={{ fontFamily: "PP Telegraf" }}
+        >
+          {data.titleCount} {data.titleCount === 1 ? "TITLE" : "TITLES"}
         </p>
 
         <SlideCta label="Withdraw" onClick={onWithdraw} />

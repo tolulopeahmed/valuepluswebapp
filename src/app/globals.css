@@ -1989,13 +1989,16 @@ header {
   transform: translateY(0);
 }
 
+/* Same two-tier sizing as .vp-portfolio-book-details p/h4 — small label
+   on top (there: category; here: title), bigger line below (there:
+   title; here: price) — just with title kept in the accent color. */
 .vp-shelf-book-title {
   overflow: hidden;
   color: rgb(var(--vp-accent-rgb));
-  font-family: "PP Telegraf", Georgia, serif;
-  font-size: 0.74rem;
-  font-weight: 900;
-  line-height: 1.15;
+  font-size: 0.46rem;
+  font-weight: 850;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2003,8 +2006,10 @@ header {
 .vp-shelf-book-price {
   margin-top: 0.22rem;
   color: white;
-  font-size: 0.66rem;
-  font-weight: 800;
+  font-family: "PP Telegraf", Georgia, serif;
+  font-size: 0.98rem;
+  font-weight: 900;
+  line-height: 1.05;
 }
 
 .portfolio-mini-stat {

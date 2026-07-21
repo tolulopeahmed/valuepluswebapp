@@ -11,11 +11,13 @@
 export interface Book {
   id: number;
   title: string;
+  subtitle: string;
   category: string;
   // Real cover art (same assets as the public portfolio page), not a
   // gradient placeholder — an image path, rendered via next/image.
   cover: string;
   status: "published" | "in_progress" | "draft";
+  pages: number;
   sales: number;
   earned: number;
   datePublished: string | null;
@@ -29,9 +31,11 @@ export const BOOKS: Book[] = [
   {
     id: 1,
     title: "A 10-Day Hack for Busy Moms",
+    subtitle: "A Faith-Rooted Plan to Reclaim Your Time and Peace",
     category: "Faith / Inspiration",
     cover: "/images/covers/10-day-hack.jpg",
     status: "published",
+    pages: 86,
     sales: 124,
     earned: 186000,
     datePublished: "Jan 15, 2026",
@@ -42,9 +46,11 @@ export const BOOKS: Book[] = [
   {
     id: 2,
     title: "Letters to My Child",
+    subtitle: "A Father's Wisdom on Character, Faith, Work and Life",
     category: "Leadership",
     cover: "/images/covers/letters-to-my-child.png",
     status: "published",
+    pages: 142,
     sales: 87,
     earned: 130500,
     datePublished: "Mar 3, 2026",
@@ -55,9 +61,11 @@ export const BOOKS: Book[] = [
   {
     id: 3,
     title: "Beyond The Struggle",
+    subtitle: "Finding Purpose on the Other Side of Hardship",
     category: "Personal Growth",
     cover: "/images/covers/beyond-the-struggle.png",
     status: "in_progress",
+    pages: 118,
     sales: 0,
     earned: 0,
     datePublished: null,
@@ -68,9 +76,11 @@ export const BOOKS: Book[] = [
   {
     id: 4,
     title: "Woman of Vision",
+    subtitle: "Building Business and Legacy Without Losing Yourself",
     category: "Business",
     cover: "/images/covers/woman-of-vision.jpg",
     status: "draft",
+    pages: 164,
     sales: 0,
     earned: 0,
     datePublished: null,

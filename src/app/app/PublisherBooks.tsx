@@ -3,12 +3,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Check, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionLabel from "../../components/SectionLabel";
 import GlassCard from "./GlassCard";
 import Button from "../../components/buttons/buttons";
+import BookDetailsModal from "../../components/BookDetailsModal";
 import { BOOKS, slugifyTitle, STATUS_LABEL, type Book } from "../../data/books";
 
 // Book/BOOKS/slugifyTitle/STATUS_LABEL live in src/data/books.ts (not
@@ -171,9 +172,19 @@ function ShelfStatusBadge({ status }: { status: Book["status"] }) {
   );
 }
 
-function ShelfBookTile({ book, index }: { book: Book; index: number }) {
+function ShelfBookTile({
+  book,
+  index,
+  onSelect,
+}: {
+  book: Book;
+  index: number;
+  onSelect: (book: Book) => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={() => onSelect(book)}
       className="vp-shelf-book-item"
       style={{ borderColor: BORDER_COLORS[index % BORDER_COLORS.length] }}
     >
@@ -193,7 +204,7 @@ function ShelfBookTile({ book, index }: { book: Book; index: number }) {
         <p className="vp-shelf-book-title">{book.title}</p>
         <p className="vp-shelf-book-price">{naira(book.price)}</p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -226,6 +237,7 @@ export function PublisherBookShelf() {
   const goToPublish = () => router.push("/app/publish");
   const viewportRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
 
   // Auto-advances scrollLeft a little every frame, once — unlike the
   // portfolio marquee (a duplicated CSS animation that loops forever),
@@ -285,12 +297,25 @@ export function PublisherBookShelf() {
         >
           <div className="vp-shelf-marquee-track">
             {BOOKS.map((book, i) => (
-              <ShelfBookTile key={book.id} book={book} index={i} />
+              <ShelfBookTile
+                key={book.id}
+                book={book}
+                index={i}
+                onSelect={setSelectedBook}
+              />
             ))}
             <ShelfAddTile onClick={goToPublish} />
           </div>
         </div>
       </div>
+
+      <BookDetailsModal
+        open={selectedBook !== null}
+        onClose={() => setSelectedBook(null)}
+        book={selectedBook}
+        onOrderReprint={(book) => console.log("publish: order reprint", book.id)}
+        onChangePrice={(book) => console.log("publish: change price", book.id)}
+      />
     </div>
   );
 }
