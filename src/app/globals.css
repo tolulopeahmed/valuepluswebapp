@@ -1847,16 +1847,22 @@ header {
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-   PUBLISHER HOME BOOK SHELF — same auto-scrolling marquee mechanism as
-   the portfolio shelf above (duplicated track, translate3d 0 → -50%,
-   linear infinite), just scaled down for a homepage-widget footprint.
+   PUBLISHER HOME BOOK SHELF — a real overflow-x scroll container,
+   auto-advanced by JS (see PublisherBookShelf in PublisherBooks.tsx)
+   rather than a CSS keyframe. Unlike the portfolio marquee above, this
+   is a single (non-duplicated) strip: when it reaches the Add New Title
+   tile at the end, the JS driver resets scrollLeft to 0 and it starts
+   over — a restart, not a seamless loop.
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .vp-shelf-marquee-shell {
   position: relative;
-  height: 10.75rem;
   width: 100%;
-  overflow: hidden;
+  /* Lets item widths below use cqw (% of this shell), not vw (% of the
+     viewport) — otherwise "2 + a sliver" only holds on a full-width
+     mobile viewport and breaks inside the narrower max-w-4xl desktop
+     column. */
+  container-type: inline-size;
   border-radius: 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.16);
@@ -1870,10 +1876,10 @@ header {
   background: linear-gradient(
     90deg,
     #0a0e1b 0%,
-    rgba(10, 14, 27, 0.72) 5%,
-    transparent 14%,
-    transparent 86%,
-    rgba(10, 14, 27, 0.72) 95%,
+    rgba(10, 14, 27, 0.72) 4%,
+    transparent 10%,
+    transparent 90%,
+    rgba(10, 14, 27, 0.72) 96%,
     #0a0e1b 100%
   );
   pointer-events: none;
@@ -1882,7 +1888,6 @@ header {
 .vp-shelf-marquee-viewport {
   position: relative;
   z-index: 2;
-  height: 100%;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1899,31 +1904,22 @@ header {
   display: flex;
   width: max-content;
   min-width: max-content;
-  height: 100%;
   align-items: center;
   gap: 0.85rem;
   padding: 1rem;
-  animation: vpShelfMarquee 26s linear infinite;
-  will-change: transform;
-  backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
 }
 
-/* :active is the "tap and hold" pause — same trigger the portfolio shelf
-   uses, since a plain click can't be distinguished from a hold in CSS. */
-.vp-shelf-marquee-viewport:hover .vp-shelf-marquee-track,
-.vp-shelf-marquee-viewport:active .vp-shelf-marquee-track {
-  animation-play-state: paused;
-}
-
+/* Sized so ~2 tiles plus a sliver of a 3rd sit in view at once (per-item
+   width, not a shell-height-driven aspect box like the old marquee). */
 .vp-shelf-book-item {
   position: relative;
-  height: 100%;
+  width: 42cqw;
+  max-width: 11.5rem;
   aspect-ratio: 3 / 4.4;
   flex: 0 0 auto;
   overflow: hidden;
-  border-radius: 0.75rem;
-  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.85rem;
+  border: 2px solid rgba(255, 255, 255, 0.14);
   background: #111827;
   box-shadow:
     0 14px 30px rgba(0, 0, 0, 0.38),
@@ -1932,14 +1928,15 @@ header {
 
 .vp-shelf-add-tile {
   display: flex;
-  height: 100%;
+  width: 42cqw;
+  max-width: 11.5rem;
   aspect-ratio: 3 / 4.4;
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  border-radius: 0.75rem;
+  gap: 0.5rem;
+  border-radius: 0.85rem;
   border: 2px dashed rgba(var(--vp-accent-rgb), 0.4);
   background: rgba(var(--vp-accent-rgb), 0.07);
   transition:
@@ -1952,19 +1949,62 @@ header {
   border-color: rgba(var(--vp-accent-rgb), 0.6);
 }
 
-@keyframes vpShelfMarquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
+.vp-shelf-status-badge {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 1;
+  display: grid;
+  height: 1.6rem;
+  width: 1.6rem;
+  place-items: center;
+  border-radius: var(--r-pill);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .vp-shelf-marquee-track {
-    animation: none;
-  }
+/* Same reveal-on-hover/press mechanism as .vp-portfolio-book-details —
+   title (accent color) on top, price below, instead of category/title. */
+.vp-shelf-book-details {
+  position: absolute;
+  inset-inline: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.115);
+  background: rgba(5, 8, 16, 0.78);
+  padding: 0.55rem 0.65rem;
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+  backdrop-filter: var(--glass-blur-light);
+  -webkit-backdrop-filter: var(--glass-blur-light);
+  transition:
+    opacity var(--t-base),
+    transform var(--t-base);
+}
+
+.vp-shelf-book-item:hover .vp-shelf-book-details,
+.vp-shelf-book-item:active .vp-shelf-book-details {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vp-shelf-book-title {
+  overflow: hidden;
+  color: rgb(var(--vp-accent-rgb));
+  font-family: "PP Telegraf", Georgia, serif;
+  font-size: 0.74rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vp-shelf-book-price {
+  margin-top: 0.22rem;
+  color: white;
+  font-size: 0.66rem;
+  font-weight: 800;
 }
 
 .portfolio-mini-stat {

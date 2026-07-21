@@ -54,7 +54,10 @@ function WhatsAppIcon({ size = 18 }: { size?: number }) {
 
 const ICONS = {
   home: "M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10",
-  learn: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  // Same glyph as MainTab's heroicons BookOpenIcon (24/outline), so the
+  // Learn tab renders identically in both places.
+  learn:
+    "M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25",
   // Same glyph as MainTab's heroicons ArrowUpTrayIcon (24/outline), so the
   // Publish tab renders identically in both places.
   publish:

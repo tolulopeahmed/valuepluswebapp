@@ -3,7 +3,8 @@
 "use client";
 
 import Image from "next/image";
-import { Plus } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Plus, Check, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionLabel from "../../components/SectionLabel";
 import GlassCard from "./GlassCard";
@@ -144,72 +145,149 @@ const BORDER_COLORS = [
   "rgba(227,179,109,0.5)",
 ];
 
-// One lap of the shelf: every book, then the Add New Title tile at the
-// end. Rendered twice back-to-back in the marquee track below so the
-// CSS animation (translate 0 → -50%, linear infinite) loops seamlessly —
-// it reads as restarting from the beginning rather than reversing or
-// jump-cutting.
-function ShelfLap({
-  keyPrefix,
-  onAddNewTitle,
-}: {
-  keyPrefix: string;
-  onAddNewTitle: () => void;
-}) {
-  return (
-    <>
-      {BOOKS.map((book, i) => (
-        <div
-          key={`${keyPrefix}-${book.id}`}
-          className="vp-shelf-book-item"
-          style={{ borderColor: BORDER_COLORS[i % BORDER_COLORS.length] }}
-        >
-          <Image
-            src={book.cover}
-            alt={book.title}
-            fill
-            sizes="120px"
-            className="object-cover"
-          />
-        </div>
-      ))}
+// Green check = published, orange ellipsis = still in progress or a
+// draft — one badge covers both non-published states, since the shelf
+// only needs to distinguish "live" from "not live yet".
+function ShelfStatusBadge({ status }: { status: Book["status"] }) {
+  const isPublished = status === "published";
 
-      <button
-        type="button"
-        onClick={onAddNewTitle}
-        className="vp-shelf-add-tile"
-        aria-label="Add new title"
+  return (
+    <span
+      className="vp-shelf-status-badge"
+      style={
+        isPublished
+          ? { background: "#4ade80", color: "#0b1a0f" }
+          : { background: "#fb923c", color: "#2a1503" }
+      }
+      aria-label={isPublished ? "Published" : "Pending"}
+      title={isPublished ? "Published" : "Pending"}
+    >
+      {isPublished ? (
+        <Check size={13} strokeWidth={3.25} />
+      ) : (
+        <MoreHorizontal size={14} strokeWidth={3.25} />
+      )}
+    </span>
+  );
+}
+
+function ShelfBookTile({ book, index }: { book: Book; index: number }) {
+  return (
+    <div
+      className="vp-shelf-book-item"
+      style={{ borderColor: BORDER_COLORS[index % BORDER_COLORS.length] }}
+    >
+      <Image
+        src={book.cover}
+        alt={book.title}
+        fill
+        sizes="45vw"
+        className="object-cover"
+      />
+      <ShelfStatusBadge status={book.status} />
+
+      {/* Same hover/press reveal as the public portfolio's book cards
+          (.vp-portfolio-book-details) — title (accent color) on top,
+          price below, instead of category/title. */}
+      <div className="vp-shelf-book-details">
+        <p className="vp-shelf-book-title">{book.title}</p>
+        <p className="vp-shelf-book-price">{naira(book.price)}</p>
+      </div>
+    </div>
+  );
+}
+
+function ShelfAddTile({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="vp-shelf-add-tile"
+      aria-label="Add new title"
+    >
+      <span
+        className="grid h-9 w-9 place-items-center rounded-full"
+        style={{
+          background: "rgba(var(--vp-accent-rgb),0.18)",
+          color: "rgb(var(--vp-accent-rgb))",
+        }}
       >
-        <span
-          className="grid h-8 w-8 place-items-center rounded-full"
-          style={{
-            background: "rgba(var(--vp-accent-rgb),0.18)",
-            color: "rgb(var(--vp-accent-rgb))",
-          }}
-        >
-          <Plus size={18} strokeWidth={2.5} />
-        </span>
-        <span className="px-1 text-center text-[0.48rem] font-black uppercase leading-tight tracking-wide text-white/70">
-          Add New Title
-        </span>
-      </button>
-    </>
+        <Plus size={19} strokeWidth={2.5} />
+      </span>
+      <span className="px-1 text-center text-[0.52rem] font-black uppercase leading-tight tracking-wide text-white/70">
+        Add New Title
+      </span>
+    </button>
   );
 }
 
 export function PublisherBookShelf() {
   const router = useRouter();
   const goToPublish = () => router.push("/app/publish");
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+
+  // Auto-advances scrollLeft a little every frame, once — unlike the
+  // portfolio marquee (a duplicated CSS animation that loops forever),
+  // this makes a single pass and stops for good once it reaches the
+  // end (the Add New Title tile), rather than resetting and repeating.
+  // Pausing on hover/press still lets the user scroll or swipe it
+  // manually via the element's native overflow-x, both during the pass
+  // and after it's finished.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const PIXELS_PER_FRAME = 0.4;
+    let frame: number;
+
+    const step = () => {
+      if (!pausedRef.current) {
+        const max = el.scrollWidth - el.clientWidth;
+        if (max > 0) {
+          if (el.scrollLeft >= max - 1) {
+            el.scrollLeft = max;
+            return; // reached the end — stop, don't loop
+          }
+          el.scrollLeft += PIXELS_PER_FRAME;
+        }
+      }
+      frame = requestAnimationFrame(step);
+    };
+
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const pause = () => {
+    pausedRef.current = true;
+  };
+  const resume = () => {
+    pausedRef.current = false;
+  };
 
   return (
     <div>
       <SectionLabel>My Books</SectionLabel>
 
       <div className="vp-shelf-marquee-shell">
-        <div className="vp-shelf-marquee-viewport">
+        <div
+          ref={viewportRef}
+          className="vp-shelf-marquee-viewport"
+          onMouseEnter={pause}
+          onMouseLeave={resume}
+          onPointerDown={pause}
+          onPointerUp={resume}
+          onPointerCancel={resume}
+          onTouchStart={pause}
+          onTouchEnd={resume}
+        >
           <div className="vp-shelf-marquee-track">
-            <ShelfLap keyPrefix="a" onAddNewTitle={goToPublish} />
-            <ShelfLap keyPrefix="b" onAddNewTitle={goToPublish} />
+            {BOOKS.map((book, i) => (
+              <ShelfBookTile key={book.id} book={book} index={i} />
+            ))}
+            <ShelfAddTile onClick={goToPublish} />
           </div>
         </div>
       </div>
