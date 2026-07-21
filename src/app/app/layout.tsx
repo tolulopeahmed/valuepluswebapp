@@ -12,9 +12,12 @@ import { VP_PAGE_BG } from "./GlassCard";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
 
+// The brighter publisher tone that used to be button-only now backs the
+// whole app's publisher accent — kept as the single source of truth here;
+// Sidebar.tsx and MainTab.tsx mirror this exact value.
 const ACCENT_RGB: Record<Mode, string> = {
   learner: "245,197,24",
-  publisher: "224,106,86",
+  publisher: "255,145,64",
 };
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -32,6 +35,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     background: `radial-gradient(circle at 50% -10%, rgba(var(--vp-accent-rgb),0.05), transparent 40%), linear-gradient(180deg, #12163a 0%, ${VP_PAGE_BG} 45%, #090b22 100%)`,
     fontFamily: "'Product Sans', 'Proxima Nova', sans-serif",
     "--vp-accent-rgb": ACCENT_RGB[mode],
+    // --vp-accent backs .btn-primary/.btn-accent's solid fill (globals.css)
+    // — it used to be a single global gold, so buttons never actually
+    // changed color in Publisher mode. Scoping it here, inside the app
+    // shell only, fixes that without touching the public site's buttons.
+    "--vp-accent": `rgb(${ACCENT_RGB[mode]})`,
   };
 
   return (
@@ -91,10 +99,10 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         @keyframes vpPulseRing {
           0%,
           100% {
-            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.5);
+            box-shadow: 0 0 0 0 rgba(var(--vp-accent-rgb), 0.55);
           }
           50% {
-            box-shadow: 0 0 0 7px rgba(var(--vp-accent-rgb), 0);
+            box-shadow: 0 0 0 13px rgba(var(--vp-accent-rgb), 0);
           }
         }
 
@@ -102,9 +110,29 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           animation: vpPulseRing 1.8s ease-in-out infinite;
         }
 
+        @keyframes vpRoadmapShimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+
+        .vp-roadmap-shimmer {
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.85),
+            transparent
+          );
+          animation: vpRoadmapShimmer 1.6s ease-in-out infinite;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .vp-card-in,
-          .vp-pulse-ring {
+          .vp-pulse-ring,
+          .vp-roadmap-shimmer {
             animation: none;
           }
         }

@@ -2,6 +2,7 @@
 
 import Profile from "./Profile";
 import Settings from "./Settings";
+import ChatAdminFab from "./ChatAdminFab";
 
 export default function MorePage() {
   return (
@@ -20,6 +21,12 @@ export default function MorePage() {
         <Profile />
         <Settings />
       </div>
+
+      {/* Rendered as a sibling of the card above, not a descendant —
+          .vp-card-in animates `transform`, and any transformed ancestor
+          would turn into the containing block for this fixed-position
+          FAB, breaking its viewport-relative positioning. */}
+      <ChatAdminFab />
     </div>
   );
 }

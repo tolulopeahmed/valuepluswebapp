@@ -5,6 +5,7 @@ import {
   Users,
   BookOpen,
   Gift,
+  Share2,
   Wallet,
   DollarSign,
   type LucideIcon,
@@ -15,6 +16,7 @@ import SectionLabel from "../../../components/SectionLabel";
 import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
 import GlassCard from "../GlassCard";
+import { useAppShell } from "../AppShellContext";
 
 type EarningStatus = "confirmed" | "pending";
 type EarningSource = "referral" | "book-sale";
@@ -216,13 +218,22 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   );
 }
 
-// ── Refer & Earn CTA — sits between the hero and the transactions list ──
+// ── Refer & Earn CTA — sits between the hero and the transactions list.
+// In Publisher mode it becomes a "Share Page Link" CTA (sharing their
+// bookshelf/product links matters more than referrals there). ──
 function ReferAndEarnButton() {
+  const { mode } = useAppShell();
+  const isPublisher = mode === "publisher";
+
   return (
     <div className="flex justify-center">
       <Button variant="primary" size="md">
-        <Gift size={16} strokeWidth={2.25} />
-        Refer &amp; Earn
+        {isPublisher ? (
+          <Share2 size={16} strokeWidth={2.25} />
+        ) : (
+          <Gift size={16} strokeWidth={2.25} />
+        )}
+        {isPublisher ? "Share Page Link" : <>Refer &amp; Earn</>}
       </Button>
     </div>
   );

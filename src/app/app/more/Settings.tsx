@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import Switch from "@mui/material/Switch";
 import {
   Moon,
-  Fingerprint,
+  ArrowLeftRight,
   Landmark,
   UserPlus,
   ShieldCheck,
@@ -17,6 +18,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
+import { useAppShell } from "../AppShellContext";
 
 const REFERRAL_COUNT = 3;
 
@@ -251,7 +253,11 @@ function SettingRow({
 
 export default function Settings() {
   const [darkMode, setDarkMode] = useState(true);
-  const [biometric, setBiometric] = useState(true);
+  // No native device to authenticate against in a webapp, so biometric
+  // login is swapped for the Learner/Publisher switch — same state
+  // AppShellContext already uses to drive the accent color and the
+  // homepage's Learner/Publisher view, so this stays in sync everywhere.
+  const { mode, setMode } = useAppShell();
 
   return (
     // Negative top margin pulls this panel up over the hero's bottom edge;
@@ -269,10 +275,10 @@ export default function Settings() {
           onChange={setDarkMode}
         />
         <ToggleRow
-          Icon={Fingerprint}
-          label="Biometric Login"
-          checked={biometric}
-          onChange={setBiometric}
+          Icon={ArrowLeftRight}
+          label={mode === "publisher" ? "Publisher Mode" : "Learner Mode"}
+          checked={mode === "publisher"}
+          onChange={(v) => setMode(v ? "publisher" : "learner")}
         />
       </div>
 
@@ -286,6 +292,25 @@ export default function Settings() {
             onSelect={(id) => console.log("settings:", id)}
           />
         ))}
+      </div>
+
+      {/* Same credit line as the public site's footer (Footer.tsx) —
+          logo, version, and copyright, centered under the settings list. */}
+      <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/8 pt-7 text-center">
+        <Image
+          src="/images/logos/valueplus-logo-white2.png"
+          alt="ValuePlus Publishing"
+          width={130}
+          height={38}
+          className="h-8 w-auto object-contain opacity-80"
+        />
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white/35">
+          Version 1.0
+        </p>
+        <p className="text-[0.66rem] text-white/25">
+          © {new Date().getFullYear()} ValuePlus Media Limited. All Rights
+          Reserved.
+        </p>
       </div>
     </div>
   );

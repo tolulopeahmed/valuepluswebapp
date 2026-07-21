@@ -1846,6 +1846,127 @@ header {
   line-height: 1.05;
 }
 
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   PUBLISHER HOME BOOK SHELF — same auto-scrolling marquee mechanism as
+   the portfolio shelf above (duplicated track, translate3d 0 → -50%,
+   linear infinite), just scaled down for a homepage-widget footprint.
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+.vp-shelf-marquee-shell {
+  position: relative;
+  height: 10.75rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.vp-shelf-marquee-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: linear-gradient(
+    90deg,
+    #0a0e1b 0%,
+    rgba(10, 14, 27, 0.72) 5%,
+    transparent 14%,
+    transparent 86%,
+    rgba(10, 14, 27, 0.72) 95%,
+    #0a0e1b 100%
+  );
+  pointer-events: none;
+}
+
+.vp-shelf-marquee-viewport {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.vp-shelf-marquee-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.vp-shelf-marquee-track {
+  display: flex;
+  width: max-content;
+  min-width: max-content;
+  height: 100%;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  animation: vpShelfMarquee 26s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
+}
+
+/* :active is the "tap and hold" pause — same trigger the portfolio shelf
+   uses, since a plain click can't be distinguished from a hold in CSS. */
+.vp-shelf-marquee-viewport:hover .vp-shelf-marquee-track,
+.vp-shelf-marquee-viewport:active .vp-shelf-marquee-track {
+  animation-play-state: paused;
+}
+
+.vp-shelf-book-item {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 3 / 4.4;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  background: #111827;
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.38),
+    0 4px 12px rgba(0, 0, 0, 0.22);
+}
+
+.vp-shelf-add-tile {
+  display: flex;
+  height: 100%;
+  aspect-ratio: 3 / 4.4;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  border: 2px dashed rgba(var(--vp-accent-rgb), 0.4);
+  background: rgba(var(--vp-accent-rgb), 0.07);
+  transition:
+    background var(--t-base),
+    border-color var(--t-base);
+}
+
+.vp-shelf-add-tile:hover {
+  background: rgba(var(--vp-accent-rgb), 0.12);
+  border-color: rgba(var(--vp-accent-rgb), 0.6);
+}
+
+@keyframes vpShelfMarquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-shelf-marquee-track {
+    animation: none;
+  }
+}
+
 .portfolio-mini-stat {
   border-radius: 1rem;
   border: var(--glass-border);

@@ -19,7 +19,7 @@ import {
   getModuleXpEarned,
   LearnerRoadmap,
 } from "./CurriculumModules";
-import { BOOKS, BooksSection, PublisherRoadmap } from "./PublisherBooks";
+import { BOOKS, BooksSection, PublisherBookShelf } from "./PublisherBooks";
 import LessonDetailModal, {
   type LessonDetail,
 } from "../../components/LessonDetailsModal";
@@ -146,7 +146,7 @@ export default function HomeScreen() {
         {mode === "learner" ? (
           <LearnerRoadmap onSelect={setSelectedLesson} />
         ) : (
-          <PublisherRoadmap />
+          <PublisherBookShelf />
         )}
       </div>
 

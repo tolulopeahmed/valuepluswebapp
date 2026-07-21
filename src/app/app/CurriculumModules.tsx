@@ -119,6 +119,7 @@ export function LearnerRoadmap({
     id: m.id,
     label: m.title,
     status: moduleStatus(m, current.id),
+    progress: m.progress,
   }));
 
   const handleSelect = (id: string | number) => {
