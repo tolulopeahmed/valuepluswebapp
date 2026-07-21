@@ -143,54 +143,60 @@ const STATUS_STYLES: Record<
 function NairaAmount({
   value,
   className = "",
+  bold = true,
 }: {
   value: number;
   className?: string;
+  bold?: boolean;
 }) {
   const [whole, decimal] = value.toFixed(2).split(".");
+  const symbolWeight = bold ? "font-black" : "font-normal";
   return (
     <span className={`inline-flex items-baseline ${className}`}>
-      <span className="mr-0.5 text-[0.5em] font-black">₦</span>
+      <span className={`mr-0.5 text-[0.5em] ${symbolWeight}`}>₦</span>
       <span>{Number(whole).toLocaleString()}</span>
-      <span className="text-[0.5em] font-black">.{decimal}</span>
+      <span className={`text-[0.5em] ${symbolWeight}`}>.{decimal}</span>
     </span>
   );
 }
 
 // ── Hero: total earned up top; bottom row holds the referral/book counts
 // on the left and a raised QuickSave-style Withdraw pill pinned to the
-// bottom-right with proper inset padding, like the MyFund reference. ──
+// bottom-right with proper inset padding, like the MyFund reference.
+// Same look and feel as the homepage's publisher EarningsCard
+// (HeroCards.tsx) — icon+label cluster top-left, big regular-weight
+// Proxima Nova amount, tightened spacing, same button color/radius. ──
 function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   return (
-    <GlassCard accent className="flex flex-col p-5">
-      <div className="flex items-center justify-between">
-        <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
+    <GlassCard accent className="flex flex-col p-4">
+      <div className="flex items-center gap-2">
         <span
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
           style={{
             background: "rgba(var(--vp-accent-rgb),0.14)",
             color: "rgb(var(--vp-accent-rgb))",
           }}
         >
-          <Wallet size={16} strokeWidth={2} />
+          <Wallet size={14} strokeWidth={2} />
         </span>
+        <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
       </div>
 
       <p
-        className="mt-2 leading-none text-white"
-        style={{ fontFamily: "Proxima Nova", fontSize: 48 }}
+        className="mt-2 text-6xl font-normal leading-none text-white md:text-5xl"
+        style={{ fontFamily: "Proxima Nova" }}
       >
-        <NairaAmount value={TOTAL_EARNED} />
+        <NairaAmount value={TOTAL_EARNED} bold={false} />
       </p>
 
       <p className="mt-2 text-[0.8rem] font-semibold text-white/35">
-        <NairaAmount value={TOTAL_PENDING} /> pending
+        <NairaAmount value={TOTAL_PENDING} bold={false} /> pending
       </p>
 
       {/* Bottom row — stats left, Withdraw pill right, both sitting on
           the card's own padding so the inset feels deliberate like the
           reference's QuickSave corner. */}
-      <div className="mt-6 flex items-end justify-between gap-3">
+      <div className="mt-3 flex items-end justify-between gap-3">
         <p className="pb-1 text-[0.8rem] font-bold tracking-wide text-white/60">
           {REFERRAL_COUNT} referral{REFERRAL_COUNT === 1 ? "" : "s"}
           <span className="mx-1.5 text-white/30">·</span>
@@ -201,11 +207,14 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
           variant="primary"
           size="sm"
           onClick={onWithdraw}
-          className="shrink-0 items-center gap-1.5 whitespace-nowrap rounded-2xl px-5 py-2.5 text-[0.85rem] font-bold"
+          className="shrink-0 items-center gap-1.5 whitespace-nowrap px-5 py-2.5 text-[0.85rem] font-bold"
           style={{
             background: "rgba(var(--vp-accent-rgb),0.22)",
             border: "1px solid rgba(var(--vp-accent-rgb),0.5)",
             color: "#ffffff",
+            borderRadius: "1rem",
+            minHeight: "2.1rem",
+            padding: "0.5rem 1rem",
             boxShadow:
               "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
           }}

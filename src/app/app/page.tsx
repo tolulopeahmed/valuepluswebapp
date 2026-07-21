@@ -120,10 +120,6 @@ export default function HomeScreen() {
         </div>
       </div>
 
-      <SectionLabel style={{ marginBottom: -15, fontFamily: "PP Telegraf" }}>
-        MY PROGRESS
-      </SectionLabel>
-
       <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
         <HeroCards
           mode={mode}

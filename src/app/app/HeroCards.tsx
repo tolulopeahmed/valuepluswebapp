@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Users, Wallet } from "lucide-react";
 import GlassCard from "./GlassCard";
@@ -39,28 +40,43 @@ export interface PublisherStatsData {
 function NairaAmount({
   value,
   className = "",
+  bold = true,
 }: {
   value: number;
   className?: string;
+  bold?: boolean;
 }) {
   const formatted = value.toLocaleString(undefined, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
   const [whole, decimal] = formatted.split(".");
+  const symbolWeight = bold ? "font-black" : "font-normal";
 
   return (
     <span className={`inline-flex items-baseline ${className}`}>
-      <span className="mr-1 text-[0.4em] font-black">₦</span>
+      <span className={`mr-1 text-[0.4em] ${symbolWeight}`}>₦</span>
       <span>{whole}</span>
-      <span className="text-[0.4em] font-black">.{decimal}</span>
+      <span className={`text-[0.4em] ${symbolWeight}`}>.{decimal}</span>
     </span>
   );
 }
 
 // Shared pill-button styling so every slide's CTA (Resume / Withdraw)
 // looks and behaves identically — same gold fill, same tap spring.
-function SlideCta({ label, onClick }: { label: string; onClick?: () => void }) {
+function SlideCta({
+  label,
+  onClick,
+  variant = "primary",
+  compact = false,
+  style,
+}: {
+  label: string;
+  onClick?: () => void;
+  variant?: "primary" | "secondary";
+  compact?: boolean;
+  style?: CSSProperties;
+}) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -71,13 +87,23 @@ function SlideCta({ label, onClick }: { label: string; onClick?: () => void }) {
     >
       <Button
         size="sm"
-        variant="primary"
+        variant={variant}
         onClick={onClick}
-        className="w-auto items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-xs font-black uppercase tracking-wide"
+        className="w-auto items-center gap-1.5 whitespace-nowrap rounded-full text-xs font-black uppercase tracking-wide"
         style={{
-          backgroundColor: "rgb(var(--vp-accent-rgb))",
-          color: "#171100",
-          boxShadow: "0 10px 24px rgba(var(--vp-accent-rgb),0.35)",
+          // .btn-sm's own padding/min-height live in globals.css outside
+          // any @layer, so they beat Tailwind's layered px/py utilities
+          // regardless of specificity — inline style is the only thing
+          // that reliably overrides it for the compact variant.
+          ...(compact ? { minHeight: "2.1rem", padding: "0.5rem 1rem" } : {}),
+          ...(variant === "primary"
+            ? {
+                backgroundColor: "rgb(var(--vp-accent-rgb))",
+                color: "#171100",
+                boxShadow: "0 10px 24px rgba(var(--vp-accent-rgb),0.35)",
+              }
+            : {}),
+          ...style,
         }}
       >
         {label}
@@ -200,10 +226,11 @@ function ReferralRewardsCard({
 
 // ── Publisher slide 1: total earnings ────────────────────────────
 // Layout modeled on a MyFund "My Accounts" savings card: icon+label
-// cluster top-left, a growth-percent pill top-right, a big amount, then
-// a supporting line bottom-left with the CTA bottom-right — same brand
-// colors/components as every other card here (GlassCard, SlideCta,
-// NairaAmount), just this specific arrangement.
+// cluster top-left, a big amount dominating the card, then a supporting
+// line bottom-left with a compact secondary CTA bottom-right — same
+// brand colors/components as every other card here (GlassCard,
+// SlideCta, NairaAmount), just this specific arrangement. Wider than
+// tall, so no percentage pill and no extra min-height forcing it down.
 function EarningsCard({
   data,
   onWithdraw,
@@ -212,39 +239,50 @@ function EarningsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full min-h-54 flex-col p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-            style={{
-              background: "rgba(var(--vp-accent-rgb),0.14)",
-              color: "rgb(var(--vp-accent-rgb))",
-            }}
-          >
-            <Wallet size={14} strokeWidth={2} />
-          </span>
-          <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
-        </div>
-
-        <span className="rounded-full bg-[#4ade80] px-2.5 py-1 text-xs font-black text-[#0b1a0f]">
-          15%
+    <GlassCard accent className="flex h-full flex-col p-4">
+      <div className="flex items-center gap-2">
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{
+            background: "rgba(var(--vp-accent-rgb),0.14)",
+            color: "rgb(var(--vp-accent-rgb))",
+          }}
+        >
+          <Wallet size={14} strokeWidth={2} />
         </span>
+        <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
       </div>
 
-      <p className="mt-3 flex-1 text-4xl font-black leading-none text-white md:text-3xl">
-        <NairaAmount value={data.totalEarned} />
+      <p
+        className="mt-2 text-6xl font-normal leading-none text-white md:text-5xl"
+        style={{ fontFamily: "Proxima Nova" }}
+      >
+        <NairaAmount value={data.totalEarned} bold={false} />
       </p>
 
-      <div className="mt-4 flex items-end justify-between">
-        <p
-          className="tracking-wide text-[0.9rem] text-white/90"
-          style={{ fontFamily: "PP Telegraf" }}
-        >
-          {data.titleCount} {data.titleCount === 1 ? "TITLE" : "TITLES"}
-        </p>
+      <div className="mt-3 flex items-end justify-between">
+        <SectionLabel style={{ marginBottom: 0 }}>
+          {data.titleCount} {data.titleCount === 1 ? "Title" : "Titles"}
+        </SectionLabel>
 
-        <SlideCta label="Withdraw" onClick={onWithdraw} />
+        <SlideCta
+          label="Withdraw"
+          onClick={onWithdraw}
+          variant="secondary"
+          compact
+          style={{
+            // Same look as the Withdraw button on the Earn page's
+            // earnings hero (EarningsHero in app/earn/page.tsx) — including
+            // the less-rounded corner (rounded-2xl there, not the
+            // SlideCta default rounded-full).
+            background: "rgba(var(--vp-accent-rgb),0.22)",
+            border: "1px solid rgba(var(--vp-accent-rgb),0.5)",
+            color: "#ffffff",
+            borderRadius: "1rem",
+            boxShadow:
+              "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
+          }}
+        />
       </div>
     </GlassCard>
   );
