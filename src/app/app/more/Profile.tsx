@@ -123,7 +123,7 @@ export default function Profile() {
             the name lines up with the avatar's visual center, as in the
             reference */}
         <div className="mt-8 min-w-0">
-          <p className="truncate text-[2rem] font-black leading-tight text-white md:text-4xl">
+          <p className="truncate font-telegraf text-[2rem] font-black leading-tight text-white md:text-4xl">
             {USER.firstName}
           </p>
           <p className="mt-0.5 truncate text-[0.78rem] text-white/50">

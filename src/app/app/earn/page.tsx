@@ -17,6 +17,7 @@ import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
 import GlassCard from "../GlassCard";
 import { useAppShell } from "../AppShellContext";
+import { BOOKS } from "../PublisherBooks";
 
 type EarningStatus = "confirmed" | "pending";
 type EarningSource = "referral" | "book-sale";
@@ -108,19 +109,6 @@ const ALL_EARNINGS = EARNINGS.flatMap((g) => g.items);
 const TOTAL_EARNED = ALL_EARNINGS.filter(
   (e) => e.status === "confirmed",
 ).reduce((sum, e) => sum + e.amount, 0);
-const TOTAL_PENDING = ALL_EARNINGS.filter((e) => e.status === "pending").reduce(
-  (sum, e) => sum + e.amount,
-  0,
-);
-
-// Bottom-row stats: counts derived from the same list the totals come
-// from, so they can never drift out of sync with the transactions.
-const REFERRAL_COUNT = ALL_EARNINGS.filter(
-  (e) => e.source === "referral",
-).length;
-const BOOK_SALE_COUNT = ALL_EARNINGS.filter(
-  (e) => e.source === "book-sale",
-).length;
 
 const STATUS_STYLES: Record<
   EarningStatus,
@@ -163,9 +151,11 @@ function NairaAmount({
 // ── Hero: total earned up top; bottom row holds the referral/book counts
 // on the left and a raised QuickSave-style Withdraw pill pinned to the
 // bottom-right with proper inset padding, like the MyFund reference.
-// Same look and feel as the homepage's publisher EarningsCard
-// (HeroCards.tsx) — icon+label cluster top-left, big regular-weight
-// Proxima Nova amount, tightened spacing, same button color/radius. ──
+// Same content as the homepage's publisher EarningsCard (HeroCards.tsx)
+// — icon+label cluster top-left, big regular-weight Proxima Nova amount,
+// a "N Titles" line bottom-left (BOOKS.length, same count as the Publish
+// page), same button color/radius — not just the same look, the same
+// container end to end. ──
 function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   return (
     <GlassCard accent className="flex flex-col p-4">
@@ -189,19 +179,13 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
         <NairaAmount value={TOTAL_EARNED} bold={false} />
       </p>
 
-      <p className="mt-2 text-[0.8rem] font-semibold text-white/35">
-        <NairaAmount value={TOTAL_PENDING} bold={false} /> pending
-      </p>
-
       {/* Bottom row — stats left, Withdraw pill right, both sitting on
           the card's own padding so the inset feels deliberate like the
           reference's QuickSave corner. */}
       <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="pb-1 text-[0.8rem] font-bold tracking-wide text-white/60">
-          {REFERRAL_COUNT} referral{REFERRAL_COUNT === 1 ? "" : "s"}
-          <span className="mx-1.5 text-white/30">·</span>
-          {BOOK_SALE_COUNT} book{BOOK_SALE_COUNT === 1 ? "" : "s"}
-        </p>
+        <SectionLabel style={{ marginBottom: 0 }}>
+          {BOOKS.length} {BOOKS.length === 1 ? "Title" : "Titles"}
+        </SectionLabel>
 
         <Button
           variant="primary"

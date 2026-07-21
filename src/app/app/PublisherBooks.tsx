@@ -185,7 +185,7 @@ function ShelfBookTile({
     <button
       type="button"
       onClick={() => onSelect(book)}
-      className="vp-shelf-book-item"
+      className="vp-shelf-book-item vp-book-cover-hover"
       style={{ borderColor: BORDER_COLORS[index % BORDER_COLORS.length] }}
     >
       <Image

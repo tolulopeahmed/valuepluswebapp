@@ -4,12 +4,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus, LayoutGrid, List, RefreshCw, ShoppingBag } from "lucide-react";
+import { Plus, LayoutGrid, List } from "lucide-react";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
 import Button from "../../../components/buttons/buttons";
-import { BOOKS, STATUS_LABEL, slugifyTitle, type Book } from "../PublisherBooks";
+import { BOOKS, STATUS_LABEL, type Book } from "../PublisherBooks";
 
 type View = "grid" | "list";
 
@@ -43,37 +43,6 @@ function StatusBadge({ status }: { status: Book["status"] }) {
     >
       {STATUS_LABEL[status]}
     </span>
-  );
-}
-
-// Reprint has no flow yet, so it's stubbed like other not-yet-built
-// actions in this app (e.g. Settings' onSelect). Buy opens the book's
-// public ValuePlus page — the link a publisher hands to real buyers,
-// same idea as a Selar product page.
-function BookActions({ book }: { book: Book }) {
-  return (
-    <div className="flex gap-1.5">
-      <button
-        type="button"
-        onClick={() => console.log("publish: reprint", book.id)}
-        className="flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[0.55rem] font-black uppercase tracking-wide text-white/70 transition-colors hover:text-white"
-        style={{ borderColor: "rgba(255,255,255,0.18)" }}
-      >
-        <RefreshCw size={11} strokeWidth={2.4} />
-        Reprint
-      </button>
-
-      <a
-        href={`/book/${slugifyTitle(book.title)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[0.55rem] font-black uppercase tracking-wide"
-        style={{ background: "rgb(var(--vp-accent-rgb))", color: "#171100" }}
-      >
-        <ShoppingBag size={11} strokeWidth={2.4} />
-        Buy
-      </a>
-    </div>
   );
 }
 
@@ -119,51 +88,41 @@ function ViewToggle({
   );
 }
 
-// The cover is its own <button> (opens the book), so Reprint/Buy sit
-// outside it as siblings — nesting a link/button inside a <button> is
-// invalid HTML and breaks click handling.
+// Same look as the homepage's publisher book shelf (PublisherBooks.tsx) —
+// title (small, accent) and price (big, white) reveal on hover/press
+// inside the cover itself via the shared .vp-shelf-book-details overlay,
+// instead of sitting in a separate block below the image. Reuses that
+// exact CSS (globals.css) rather than duplicating it; only the outer
+// sizing differs (w-full/aspect-* here, since this tile lives in a CSS
+// grid, not the shelf's fixed-width scroll track) — .vp-book-cover-hover
+// is a layout-free marker class so both sizings can opt into the same
+// hover-reveal behavior without one clobbering the other's width.
 function BookGridTile({ book, index }: { book: Book; index: number }) {
   const borderColor = BORDER_COLORS[index % BORDER_COLORS.length];
 
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={() => console.log("publish: open book", book.id)}
-        className="group relative aspect-[3/4.4] w-full overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
-        style={{ borderColor }}
-      >
-        <Image
-          src={book.cover}
-          alt={book.title}
-          fill
-          sizes="(min-width: 768px) 22vw, 45vw"
-          className="object-cover"
-        />
-        <span className="absolute right-1.5 top-1.5">
-          <StatusBadge status={book.status} />
-        </span>
-      </button>
+    <button
+      type="button"
+      onClick={() => console.log("publish: open book", book.id)}
+      className="vp-book-cover-hover relative aspect-[3/4.4] w-full overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
+      style={{ borderColor }}
+    >
+      <Image
+        src={book.cover}
+        alt={book.title}
+        fill
+        sizes="(min-width: 768px) 22vw, 45vw"
+        className="object-cover"
+      />
+      <span className="absolute right-1.5 top-1.5">
+        <StatusBadge status={book.status} />
+      </span>
 
-      <div className="min-w-0 text-left">
-        <p className="truncate text-[0.76rem] font-black text-white">
-          {book.title}
-        </p>
-        <p className="truncate text-[0.58rem] text-white/40">
-          {book.category}
-        </p>
-        <p className="truncate text-[0.6rem] text-white/50">
-          {book.datePublished ?? "Not yet published"}
-        </p>
-        {book.earned > 0 && (
-          <p className="truncate text-[0.62rem] font-black text-[rgb(var(--vp-accent-rgb))]">
-            {naira(book.earned)}
-          </p>
-        )}
+      <div className="vp-shelf-book-details">
+        <p className="vp-shelf-book-title">{book.title}</p>
+        <p className="vp-shelf-book-price">{naira(book.price)}</p>
       </div>
-
-      {book.status === "published" && <BookActions book={book} />}
-    </div>
+    </button>
   );
 }
 
@@ -172,60 +131,52 @@ function BookListRow({ book, index }: { book: Book; index: number }) {
 
   return (
     <div
-      className="flex w-full flex-col gap-3 rounded-2xl border p-3"
+      className="flex w-full items-center gap-3 rounded-2xl border p-3"
       style={{ background: "rgba(255,255,255,0.03)", borderColor }}
     >
-      <div className="flex w-full items-center gap-3">
-        <button
-          type="button"
-          onClick={() => console.log("publish: open book", book.id)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-        >
-          <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-white/15">
-            <Image
-              src={book.cover}
-              alt={book.title}
-              fill
-              sizes="44px"
-              className="object-cover"
-            />
-          </div>
+      <button
+        type="button"
+        onClick={() => console.log("publish: open book", book.id)}
+        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+      >
+        <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-white/15">
+          <Image
+            src={book.cover}
+            alt={book.title}
+            fill
+            sizes="44px"
+            className="object-cover"
+          />
+        </div>
 
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[0.85rem] font-black text-white">
-              {book.title}
-            </p>
-            <p className="truncate text-[0.62rem] text-white/40">
-              {book.category}
-            </p>
-
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <StatusBadge status={book.status} />
-              <span className="text-[0.56rem] text-white/35">
-                {book.datePublished ?? "Not yet published"}
-              </span>
-            </div>
-          </div>
-        </button>
-
-        <div className="shrink-0 text-right">
-          <p
-            className="text-[0.85rem] font-black"
-            style={{ color: "rgb(var(--vp-accent-rgb))" }}
-          >
-            {naira(book.earned)}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[0.85rem] font-black text-white">
+            {book.title}
           </p>
-          {book.sales > 0 && (
-            <p className="text-[0.55rem] text-white/35">{book.sales} sales</p>
-          )}
-        </div>
-      </div>
+          <p className="truncate text-[0.62rem] text-white/40">
+            {book.category}
+          </p>
 
-      {book.status === "published" && (
-        <div className="w-full sm:w-56 sm:self-end">
-          <BookActions book={book} />
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <StatusBadge status={book.status} />
+            <span className="text-[0.56rem] text-white/35">
+              {book.datePublished ?? "Not yet published"}
+            </span>
+          </div>
         </div>
-      )}
+      </button>
+
+      <div className="shrink-0 text-right">
+        <p
+          className="text-[0.85rem] font-black"
+          style={{ color: "rgb(var(--vp-accent-rgb))" }}
+        >
+          {naira(book.earned)}
+        </p>
+        {book.sales > 0 && (
+          <p className="text-[0.55rem] text-white/35">{book.sales} sales</p>
+        )}
+      </div>
     </div>
   );
 }

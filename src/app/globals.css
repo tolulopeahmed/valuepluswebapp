@@ -1983,8 +1983,12 @@ header {
     transform var(--t-base);
 }
 
-.vp-shelf-book-item:hover .vp-shelf-book-details,
-.vp-shelf-book-item:active .vp-shelf-book-details {
+/* Purely a hover/press trigger — no box-model properties — so it's safe
+   to add alongside *either* .vp-shelf-book-item (home shelf, fixed cqw
+   width) or the Publish page's own grid-sized tile (w-full/aspect-*)
+   without one clobbering the other's sizing. */
+.vp-book-cover-hover:hover .vp-shelf-book-details,
+.vp-book-cover-hover:active .vp-shelf-book-details {
   opacity: 1;
   transform: translateY(0);
 }
