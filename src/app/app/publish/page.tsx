@@ -30,17 +30,24 @@ const BORDER_COLORS = [
   "rgba(227,179,109,0.5)",
 ];
 
+// Solid (not translucent) backgrounds so the labels read clearly against
+// the cover. Draft in particular used to be white text on translucent
+// white — same color family diluted against the dark cover, so it never
+// had real contrast no matter how opaque; a solid dark neutral behind
+// solid white text actually pops. in_progress goes fully solid accent
+// with dark text, matching how .btn-primary already treats "text on
+// solid accent" elsewhere in the app.
 const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
-  published: "bg-[rgba(74,222,128,0.16)] text-[#4ade80]",
+  published: "bg-[#123524] text-[#4ade80] border border-[rgba(74,222,128,0.6)]",
   in_progress:
-    "bg-[rgba(var(--vp-accent-rgb),0.2)] text-[rgb(var(--vp-accent-rgb))]",
-  draft: "bg-white/12 text-white/55",
+    "bg-[rgb(var(--vp-accent-rgb))] text-[#171100] border border-[rgba(255,255,255,0.35)]",
+  draft: "bg-[#3a3f52] text-white border border-white/25",
 };
 
 function StatusBadge({ status }: { status: Book["status"] }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-2px text-[0.42rem] font-black uppercase tracking-wide ${STATUS_BADGE_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-1.5 py-2px text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
     >
       {STATUS_LABEL[status]}
     </span>
@@ -147,7 +154,10 @@ function BookGridTile({ book, index }: { book: Book; index: number }) {
           sizes="(min-width: 768px) 18vw, 32vw"
           className="object-cover"
         />
-        <span className="absolute right-1.5 top-1.5">
+        {/* A bit more inset than before — tiles are smaller now (5-col
+            grid), so the badge needs more clearance from the rounded
+            corner curve to sit cleanly rather than crowd it. */}
+        <span className="absolute right-2 top-2">
           <StatusBadge status={book.status} />
         </span>
 
@@ -279,10 +289,11 @@ export default function PublishPage() {
   return (
     <div className="mx-auto w-full max-w-4xl">
       {/* items-center + no flex-wrap: the button always stays to the
-          right, never drops to its own line. The title/subtitle column
-          gets min-w-0 so it can shrink instead of forcing a wrap, and
-          the subtitle marquees instead of wrapping if it doesn't fit. */}
-      <div className="vp-card-in mb-4 flex items-center justify-between gap-3 overflow-hidden">
+          right, never drops to its own line. overflow-hidden lives only
+          on the title/subtitle column below (for the marquee/truncate) —
+          putting it here on the row too clipped the button's own glow
+          into a hard-edged box instead of a soft natural fade. */}
+      <div className="vp-card-in mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 overflow-hidden">
           <Title className="block truncate">Publish</Title>
           <Subtitle className="block max-w-full">

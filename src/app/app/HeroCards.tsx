@@ -136,7 +136,7 @@ function ModuleProgressCard({
   onResume?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-3.5">
+    <GlassCard accent className="flex h-full min-h-[9.5rem] flex-col p-3.5">
       <SectionLabel>{data.module}</SectionLabel>
 
       <MarqueeName
@@ -146,10 +146,6 @@ function ModuleProgressCard({
         fadeColor="#2D375A"
         style={{ fontSize: 35, fontFamily: "PP Telegraf" }}
       />
-
-      <p className="mt-1 text-[0.68rem] text-white/60">
-        +{data.xpEarned} XP earned · {data.duration}
-      </p>
 
       <div className="mt-2.5 flex items-end gap-3">
         <div className="min-w-0 flex-1">
@@ -190,7 +186,7 @@ function ReferralRewardsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-3.5">
+    <GlassCard accent className="flex h-full min-h-[9.5rem] flex-col p-3.5">
       <div className="flex items-center justify-between">
         <SectionLabel>Referral rewards</SectionLabel>
         <span
@@ -254,7 +250,7 @@ function EarningsCard({
   onWithdraw?: () => void;
 }) {
   return (
-    <GlassCard accent className="flex h-full flex-col p-3.5">
+    <GlassCard accent className="flex h-full min-h-[9.5rem] flex-col p-3.5">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"

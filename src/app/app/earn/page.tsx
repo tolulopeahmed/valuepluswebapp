@@ -158,7 +158,7 @@ function NairaAmount({
 // container end to end. ──
 function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
   return (
-    <GlassCard accent className="flex flex-col p-3.5">
+    <GlassCard accent className="flex min-h-[9.5rem] flex-col p-3.5">
       <div className="flex items-center gap-2">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
