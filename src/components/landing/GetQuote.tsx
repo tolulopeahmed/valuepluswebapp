@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ChevronDown } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -435,7 +436,19 @@ function getServiceCost({
   return 0;
 }
 
-export default function GetQuote() {
+// showExtras/onToggleExtras are optional so the public /getQuote page's
+// <GetQuote /> (no props) renders byte-identical to before — the Print
+// Quantity Guide + POD Plans section always shows there. The app's
+// "Add New Title" page passes both, to tuck that section behind a
+// "View more" toggle that sits right after the request button instead
+// of an arbitrary height-based cutoff partway through the form.
+export default function GetQuote({
+  showExtras = true,
+  onToggleExtras,
+}: {
+  showExtras?: boolean;
+  onToggleExtras?: () => void;
+} = {}) {
   const estimateCardRef = useRef<HTMLDivElement | null>(null);
   const pagesInputRef = useRef<HTMLInputElement | null>(null);
   const wordsInputRef = useRef<HTMLInputElement | null>(null);
@@ -1068,25 +1081,10 @@ export default function GetQuote() {
               line-height: .95;
             }
 
-            .vpgq-details-panel,
-            .vpgq-services-panel {
-              border-radius: 1.25rem;
-              padding: 1rem;
-            }
-
-            .vpgq-details-panel {
-              border: 1px solid rgba(var(--vp-blue-rgb), .24);
-              background:
-                radial-gradient(circle at 8% 0%, rgba(var(--vp-blue-rgb), .18), transparent 34%),
-                linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.028)),
-                rgba(255,255,255,.04);
-              box-shadow:
-                inset 0 1px 0 rgba(255,255,255,.08),
-                0 18px 45px rgba(0,0,0,.18);
-            }
-
             .vpgq-services-panel {
               margin-top: 1rem;
+              border-radius: 1.25rem;
+              padding: 1rem;
               border: 1px solid rgba(var(--vp-accent-rgb), .28);
               background:
                 radial-gradient(circle at 10% 0%, rgba(var(--vp-accent-rgb), .18), transparent 34%),
@@ -1148,16 +1146,16 @@ export default function GetQuote() {
 
             .vpgq-field-complete input,
             .vpgq-field-complete select {
-              background-color: #090f1b !important;
-              border-color: rgba(var(--vp-accent-rgb), .26) !important;
-              color: white !important;
+              background-color: #fdf6e7 !important;
+              border-color: rgba(var(--vp-accent-rgb), .45) !important;
+              color: #14181f !important;
               box-shadow:
-                inset 0 1px 0 rgba(255,255,255,.055),
+                inset 0 1px 0 rgba(255,255,255,.6),
                 0 8px 24px rgba(0,0,0,.14);
             }
 
             .vpgq-field-complete input::placeholder {
-              color: rgba(255,255,255,.22);
+              color: rgba(20,24,31,.4);
             }
 
             .vpgq-field-tag {
@@ -1169,8 +1167,8 @@ export default function GetQuote() {
               align-items: center;
               justify-content: center;
               border-radius: 999px;
-              border: 1px solid rgba(var(--vp-accent-rgb), .28);
-              background: rgba(var(--vp-accent-rgb), .12);
+              border: 1px solid rgba(var(--vp-accent-rgb), .35);
+              background: rgba(20,20,30,.88);
               padding: .18rem .42rem;
               color: var(--vp-accent);
               font-size: .48rem;
@@ -1185,30 +1183,33 @@ export default function GetQuote() {
               right: 2.75rem;
             }
 
+            /* Main fields (text/select inputs) are light with dark text —
+               selection fields (.vpgq-chip, further down) stay as they
+               were, untouched. */
             .vpgq-card input,
             .vpgq-card select {
               width: 100%;
               min-height: 2.85rem;
-              border: 1px solid rgba(255,255,255,.1);
+              border: 1px solid rgba(15,20,32,.14);
               border-radius: .8rem;
-              background-color: rgba(255,255,255,.055);
+              background-color: #f4f5f7;
               padding: .75rem .9rem;
-              color: white;
+              color: #14181f;
               font-size: .86rem;
               outline: none;
               touch-action: manipulation;
             }
 
             .vpgq-card input::placeholder {
-              color: rgba(255,255,255,.28);
+              color: rgba(20,24,31,.42);
             }
 
             .vpgq-card select {
               appearance: none;
               -webkit-appearance: none;
-              color: rgba(255,255,255,.76);
-              background-color: #090f1b;
-              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='white' stroke-opacity='0.72' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+              color: #14181f;
+              background-color: #f4f5f7;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%2314181f' stroke-opacity='0.6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
               background-repeat: no-repeat;
               background-size: 1rem 1rem;
               background-position: right 1.05rem center;
@@ -1216,14 +1217,14 @@ export default function GetQuote() {
             }
 
             .vpgq-card select option {
-              background: #0d1420;
-              color: white;
+              background: #f4f5f7;
+              color: #14181f;
             }
 
             .vpgq-card input:focus,
             .vpgq-card select:focus {
-              border-color: rgba(var(--vp-accent-rgb), .5);
-              box-shadow: 0 0 0 3px rgba(var(--vp-accent-rgb), .08);
+              border-color: rgba(var(--vp-accent-rgb), .55);
+              box-shadow: 0 0 0 3px rgba(var(--vp-accent-rgb), .16);
             }
 
             .vpgq-head {
@@ -1558,7 +1559,6 @@ export default function GetQuote() {
                 font-size: clamp(1.8rem, 9.4vw, 2.4rem);
               }
 
-              .vpgq-details-panel,
               .vpgq-services-panel {
                 padding: .78rem;
                 border-radius: 1.05rem;
@@ -1653,11 +1653,10 @@ export default function GetQuote() {
               </div>
             </div>
 
-            <div className="vpgq-details-panel">
-              <div className="vpgq-sub-panel">
-                <span className="vpgq-label" style={{ color: "#60c8ff" }}>
-                  Manuscript details
-                </span>
+            <div className="vpgq-sub-panel">
+              <span className="vpgq-label" style={{ color: "#60c8ff" }}>
+                Manuscript details
+              </span>
 
                 <div className="vpgq-grid">
                   <div
@@ -1820,7 +1819,6 @@ export default function GetQuote() {
                   </div>
                 </div>
               </div>
-            </div>
 
             <div className="vpgq-services-panel">
               <p className="vpgq-head">Other Services for Your Book</p>
@@ -1886,9 +1884,38 @@ export default function GetQuote() {
                 <span> →</span>
               </span>
             </button>
+
+            {onToggleExtras && (
+              <button
+                type="button"
+                onClick={onToggleExtras}
+                className="mt-3 flex w-full flex-col items-center gap-1.5 py-2 text-white/40 transition-colors hover:text-white/60"
+              >
+                <div className="flex w-full items-center gap-3">
+                  <span className="h-px flex-1 bg-white/12" />
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      transition: "transform 0.25s ease",
+                      transform: showExtras
+                        ? "rotate(180deg)"
+                        : "rotate(0deg)",
+                    }}
+                  >
+                    <ChevronDown size={16} strokeWidth={2} />
+                  </span>
+                  <span className="h-px flex-1 bg-white/12" />
+                </div>
+
+                <span className="text-[0.72rem] font-semibold">
+                  {showExtras ? "Show less" : "View more"}
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
+        {showExtras && (
         <div className="mx-auto max-w-7xl">
           <div className="vpgq-volume-card">
             <div>
@@ -1976,6 +2003,7 @@ export default function GetQuote() {
             </div>
           </div>
         </div>
+        )}
       </section>
     </>
   );

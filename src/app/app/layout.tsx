@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, type CSSProperties } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import MainTab from "../../components/MainTab";
@@ -22,6 +23,25 @@ const ACCENT_RGB: Record<Mode, string> = {
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { mode, setMode, sidebarOpen, setSidebarOpen } = useAppShell();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Switching mode from the sidebar/header toggle used to only re-theme
+  // the accent color — if you were sitting on /app/learn and flipped to
+  // Publisher, the page itself stayed put showing learner content while
+  // the nav around it now said "Publish". /app/learn and /app/publish
+  // are each other's mode-specific counterpart, so a switch while on
+  // either one now also navigates to its counterpart. Mode-agnostic
+  // pages (/app, /app/earn, /app/more) just re-theme as before.
+  const handleModeChange = (next: Mode) => {
+    setMode(next);
+
+    if (next === "publisher" && pathname === "/app/learn") {
+      router.push("/app/publish");
+    } else if (next === "learner" && pathname === "/app/publish") {
+      router.push("/app/learn");
+    }
+  };
 
   useEffect(() => {
     const prevBg = document.body.style.background;
@@ -51,7 +71,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={handleModeChange}
         firstName={USER.firstName}
         xp={USER.xp}
         level={USER.level}
@@ -62,7 +82,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
           streak={USER.streak}
           notificationCount={2}
           mode={mode}
-          onModeChange={setMode}
+          onModeChange={handleModeChange}
           onMenuPress={() => setSidebarOpen(true)}
           onBellPress={() => {}}
         />
