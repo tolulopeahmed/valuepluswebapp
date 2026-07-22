@@ -70,68 +70,68 @@ const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
   draft: "bg-white/10 text-white/50",
 };
 
-export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
-  return (
-    <div>
-      <SectionLabel>Manage books</SectionLabel>
+// export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
+//   return (
+//     <div>
+//       <SectionLabel>Manage books</SectionLabel>
 
-      <div className="grid gap-2.5 md:grid-cols-2">
-        {books.map((book, i) => (
-          <GlassCard
-            key={book.id}
-            className="vp-card-in p-4"
-            style={{ animationDelay: `${i * 50}ms` }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/15">
-                <Image
-                  src={book.cover}
-                  alt={book.title}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                />
-              </div>
+//       <div className="grid gap-2.5 md:grid-cols-2">
+//         {books.map((book, i) => (
+//           <GlassCard
+//             key={book.id}
+//             className="vp-card-in p-4"
+//             style={{ animationDelay: `${i * 50}ms` }}
+//           >
+//             <div className="flex items-center gap-3">
+//               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/15">
+//                 <Image
+//                   src={book.cover}
+//                   alt={book.title}
+//                   fill
+//                   sizes="40px"
+//                   className="object-cover"
+//                 />
+//               </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.82rem] font-black text-white">
-                  {book.title}
-                </p>
-                <p className="truncate text-[0.58rem] text-white/35">
-                  {book.category}
-                </p>
+//               <div className="min-w-0 flex-1">
+//                 <p className="truncate text-[0.82rem] font-black text-white">
+//                   {book.title}
+//                 </p>
+//                 <p className="truncate text-[0.58rem] text-white/35">
+//                   {book.category}
+//                 </p>
 
-                <div className="mt-0.5 flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center rounded-full px-1.5 py-2px text-[0.44rem] font-black uppercase tracking-wider ${STATUS_BADGE_CLASS[book.status]}`}
-                  >
-                    {STATUS_LABEL[book.status]}
-                  </span>
+//                 <div className="mt-0.5 flex items-center gap-2">
+//                   <span
+//                     className={`inline-flex items-center rounded-full px-1.5 py-2px text-[0.44rem] font-black uppercase tracking-wider ${STATUS_BADGE_CLASS[book.status]}`}
+//                   >
+//                     {STATUS_LABEL[book.status]}
+//                   </span>
 
-                  {book.sales > 0 && (
-                    <span className="text-[0.55rem] text-white/35">
-                      {book.sales} sales
-                    </span>
-                  )}
-                </div>
+//                   {book.sales > 0 && (
+//                     <span className="text-[0.55rem] text-white/35">
+//                       {book.sales} sales
+//                     </span>
+//                   )}
+//                 </div>
 
-                {book.earned > 0 && (
-                  <p className="mt-0.5 text-[0.68rem] font-black text-[rgb(var(--vp-accent-rgb))]">
-                    {naira(book.earned)} earned
-                  </p>
-                )}
-              </div>
+//                 {book.earned > 0 && (
+//                   <p className="mt-0.5 text-[0.68rem] font-black text-[rgb(var(--vp-accent-rgb))]">
+//                     {naira(book.earned)} earned
+//                   </p>
+//                 )}
+//               </div>
 
-              <Button variant="secondary" size="sm" className="shrink-0">
-                Manage
-              </Button>
-            </div>
-          </GlassCard>
-        ))}
-      </div>
-    </div>
-  );
-}
+//               <Button variant="secondary" size="sm" className="shrink-0">
+//                 Manage
+//               </Button>
+//             </div>
+//           </GlassCard>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// }
 
 // Same border-color system as the Publish page's shelf and the public
 // portfolio's book cards (.vp-portfolio-book-card-1..6 in globals.css) —
@@ -234,7 +234,9 @@ function ShelfAddTile({ onClick }: { onClick: () => void }) {
 
 export function PublisherBookShelf() {
   const router = useRouter();
-  const goToPublish = () => router.push("/app/publish");
+  // Straight to the creation flow, not just the listing — this tile is
+  // literally labeled "Add New Title".
+  const goToAddNewTitle = () => router.push("/app/publish/new");
   const viewportRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
@@ -304,7 +306,7 @@ export function PublisherBookShelf() {
                 onSelect={setSelectedBook}
               />
             ))}
-            <ShelfAddTile onClick={goToPublish} />
+            <ShelfAddTile onClick={goToAddNewTitle} />
           </div>
         </div>
       </div>
@@ -313,7 +315,9 @@ export function PublisherBookShelf() {
         open={selectedBook !== null}
         onClose={() => setSelectedBook(null)}
         book={selectedBook}
-        onOrderReprint={(book) => console.log("publish: order reprint", book.id)}
+        onOrderReprint={(book) =>
+          console.log("publish: order reprint", book.id)
+        }
         onChangePrice={(book) => console.log("publish: change price", book.id)}
       />
     </div>

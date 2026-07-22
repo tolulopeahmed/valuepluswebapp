@@ -63,7 +63,7 @@ export default function BookDetailsModal({
           {book.category}
         </p>
 
-        <h3 className="mt-1 text-2xl font-black leading-tight text-white">
+        <h3 className="mt-1 text-2xl font-black leading-tight text-white">f
           {book.title}
         </h3>
         <p className="mt-1 text-[0.85rem] text-white/55">{book.subtitle}</p>

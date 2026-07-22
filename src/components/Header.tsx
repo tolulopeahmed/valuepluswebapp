@@ -1,8 +1,75 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type Mode = "learner" | "publisher";
+
+// The four top-level tab destinations (matches MainTab.tsx / Sidebar.tsx)
+// — anything else (like /app/publish/new, a sub-flow you only reach via
+// a specific action) gets a back arrow instead of the hamburger, since
+// the main nav menu isn't really what you want mid-flow.
+const MAIN_ROUTES = ["/app", "/app/learn", "/app/publish", "/app/earn", "/app/more"];
+
+// Same event GetQuote (components/landing/GetQuote.tsx) already
+// broadcasts on the public site, and the public Navbar already listens
+// for — the Add New Title page (app/publish/new) reuses GetQuote as-is,
+// so this header can show the exact same "estimated total" pill once
+// the user scrolls its running-total card out of view.
+type QuoteEstimateDetail = {
+  formattedTotal: string;
+  hasSelection: boolean;
+  estimateInView: boolean;
+};
+
+type QuoteWindow = Window & {
+  __valuePlusQuoteEstimate?: QuoteEstimateDetail;
+};
+
+const defaultQuoteEstimate: QuoteEstimateDetail = {
+  formattedTotal: "₦0",
+  hasSelection: false,
+  estimateInView: true,
+};
+
+function useQuoteEstimate() {
+  const [estimate, setEstimate] =
+    useState<QuoteEstimateDetail>(defaultQuoteEstimate);
+
+  useEffect(() => {
+    let rafId: number | null = null;
+
+    const apply = (next: QuoteEstimateDetail) => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setEstimate(next));
+    };
+
+    const onQuoteEstimate = (event: Event) => {
+      const detail = (event as CustomEvent<QuoteEstimateDetail>).detail;
+      apply({
+        formattedTotal: detail?.formattedTotal || "₦0",
+        hasSelection: Boolean(detail?.hasSelection),
+        estimateInView:
+          typeof detail?.estimateInView === "boolean"
+            ? detail.estimateInView
+            : true,
+      });
+    };
+
+    window.addEventListener("valueplus:quote-estimate", onQuoteEstimate);
+
+    const existing = (window as QuoteWindow).__valuePlusQuoteEstimate;
+    if (existing) apply(existing);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("valueplus:quote-estimate", onQuoteEstimate);
+    };
+  }, []);
+
+  return estimate;
+}
 
 function Icon({ path, size = 22 }: { path: string; size?: number }) {
   return (
@@ -23,6 +90,7 @@ function Icon({ path, size = 22 }: { path: string; size?: number }) {
 
 const ICONS = {
   menu: "M3 12h18M3 6h18M3 18h18",
+  back: "M19 12H5 M12 19l-7-7 7-7",
   bell: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
 };
 
@@ -75,6 +143,17 @@ export default function Header({
   onMenuPress: () => void;
   onBellPress: () => void;
 }) {
+  const quoteEstimate = useQuoteEstimate();
+  const router = useRouter();
+  const pathname = usePathname();
+  const isSubPage = !MAIN_ROUTES.includes(pathname || "/app");
+
+  // Same condition the public Navbar uses: only swap in the total once
+  // there's an actual selection and its own estimate card has scrolled
+  // out of view — otherwise this just stays "ValuePlus" as always.
+  const showQuoteEstimate =
+    quoteEstimate.hasSelection && !quoteEstimate.estimateInView;
+
   return (
     <header
       className="fixed left-0 right-0 top-0 z-40 px-4 pb-3 pt-4 md:left-64 md:px-8 md:pb-4 md:pt-6"
@@ -87,17 +166,35 @@ export default function Header({
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
-            onClick={onMenuPress}
+            onClick={isSubPage ? () => router.back() : onMenuPress}
+            aria-label={isSubPage ? "Go back" : "Open menu"}
             className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-xl border border-white/[0.1] bg-white/[0.05] text-white/60 transition-colors hover:text-white active:scale-95 md:hidden"
           >
-            <Icon path={ICONS.menu} size={15} />
+            <Icon path={isSubPage ? ICONS.back : ICONS.menu} size={15} />
           </button>
-          <Link
-            href="/"
-            className="truncate text-[0.68rem] font-black uppercase tracking-[0.16em] text-white/40 md:hidden"
-          >
-            ValuePlus
-          </Link>
+
+          {showQuoteEstimate ? (
+            <div className="flex min-w-0 items-center gap-2 md:hidden">
+              <span
+                className="text-[0.48rem] font-black uppercase leading-tight tracking-[0.16em] text-white/45"
+                style={{ textAlign: "right" }}
+              >
+                Estimated
+                <br />
+                total
+              </span>
+              <span className="rounded-full bg-[#16a34a] px-3 py-1.5 text-[0.85rem] font-black leading-none tracking-[-0.03em] text-white shadow-[0_10px_26px_rgba(22,163,74,0.34)]">
+                {quoteEstimate.formattedTotal}
+              </span>
+            </div>
+          ) : (
+            <Link
+              href="/"
+              className="truncate text-[0.68rem] font-black uppercase tracking-[0.16em] text-white/40 md:hidden"
+            >
+              ValuePlus
+            </Link>
+          )}
         </div>
 
         <button

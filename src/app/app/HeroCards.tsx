@@ -201,10 +201,10 @@ function ReferralRewardsCard({
       </div>
 
       <p
-        className="mt-1 font-normal leading-none text-white"
+        className="mt-1 font-bold leading-none text-white"
         style={{ fontFamily: "Proxima Nova", fontSize: 44 }}
       >
-        <NairaAmount value={data.totalEarned} bold={false} />
+        <NairaAmount value={data.totalEarned} />
       </p>
 
       <div className="mt-2.5 flex flex-1 items-end justify-between gap-3">
@@ -265,10 +265,10 @@ function EarningsCard({
       </div>
 
       <p
-        className="mt-1 text-5xl font-normal leading-none text-white md:text-4xl"
+        className="mt-1 text-5xl font-bold leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
-        <NairaAmount value={data.totalEarned} bold={false} />
+        <NairaAmount value={data.totalEarned} />
       </p>
 
       <div className="mt-2 flex items-end justify-between">

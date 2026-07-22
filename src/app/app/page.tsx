@@ -19,7 +19,7 @@ import {
   getModuleXpEarned,
   LearnerRoadmap,
 } from "./CurriculumModules";
-import { BOOKS, BooksSection, PublisherBookShelf } from "./PublisherBooks";
+import { BOOKS, PublisherBookShelf } from "./PublisherBooks";
 import LessonDetailModal, {
   type LessonDetail,
 } from "../../components/LessonDetailsModal";
@@ -170,8 +170,6 @@ export default function HomeScreen() {
           <Transactions />
         </div>
       </div>
-
-      {mode === "publisher" && <BooksSection />}
 
       <LessonDetailModal
         open={selectedLesson !== null}

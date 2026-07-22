@@ -173,10 +173,10 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
       </div>
 
       <p
-        className="mt-1 text-5xl font-normal leading-none text-white md:text-4xl"
+        className="mt-1 text-5xl font-bold leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
-        <NairaAmount value={TOTAL_EARNED} bold={false} />
+        <NairaAmount value={TOTAL_EARNED} />
       </p>
 
       {/* Bottom row — stats left, Withdraw pill right, both sitting on

@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Plus, LayoutGrid, List, Trash2 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -46,8 +47,12 @@ const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
 
 function StatusBadge({ status }: { status: Book["status"] }) {
   return (
+    // px-1.5 py-1.5 — was px-1.5 py-2px, and "py-2px" isn't valid
+    // Tailwind syntax without brackets (same bug as an earlier h-2px
+    // issue): it generated no CSS at all, so vertical padding was
+    // actually 0 while horizontal was 6px. Genuinely equal padding now.
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-1.5 py-2px text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-1.5 py-1.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
     >
       {STATUS_LABEL[status]}
     </span>
@@ -285,6 +290,8 @@ function AddNewTitleListRow({ onClick }: { onClick: () => void }) {
 
 export default function PublishPage() {
   const [view, setView] = useState<View>("grid");
+  const router = useRouter();
+  const goToAddNewTitle = () => router.push("/app/publish/new");
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -308,7 +315,7 @@ export default function PublishPage() {
           variant="primary"
           size="sm"
           className="w-auto shrink-0 items-center gap-1.5 whitespace-nowrap"
-          onClick={() => console.log("publish: add-new-title")}
+          onClick={goToAddNewTitle}
         >
           <Plus size={15} strokeWidth={2.75} />
           Add New Title
@@ -334,7 +341,7 @@ export default function PublishPage() {
             <BookGridTile key={book.id} book={book} index={i} />
           ))}
           <AddNewTitleGridTile
-            onClick={() => console.log("publish: add-new-title")}
+            onClick={goToAddNewTitle}
           />
         </div>
       ) : (
@@ -346,7 +353,7 @@ export default function PublishPage() {
             <BookListRow key={book.id} book={book} index={i} />
           ))}
           <AddNewTitleListRow
-            onClick={() => console.log("publish: add-new-title")}
+            onClick={goToAddNewTitle}
           />
         </div>
       )}
