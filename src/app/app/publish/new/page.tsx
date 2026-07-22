@@ -18,11 +18,12 @@ export default function AddNewTitlePage() {
         </Subtitle>
       </div> */}
 
-      <GetQuote
-        showExtras={showExtras}
-        onToggleExtras={() => setShowExtras((v) => !v)}
-        style={{ marginTop: -15 }}
-      />
+      <div style={{ marginTop: -15 }}>
+        <GetQuote
+          showExtras={showExtras}
+          onToggleExtras={() => setShowExtras((v) => !v)}
+        />
+      </div>
     </div>
   );
 }
