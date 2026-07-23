@@ -2,9 +2,14 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
+import { Camera, Eye, EyeOff, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { USER } from "../MockUser";
 import MarqueeName from "../../../components/MarqueeName";
+
+// Bullet count is fixed (not tied to the real value's length) — the point
+// is to signal "hidden", not to leak the digit count of the amount
+// underneath.
+const MASKED_AMOUNT = "••••••";
 
 function StatTile({
   icon,
@@ -12,12 +17,18 @@ function StatTile({
   value,
   valueColor = "#ffffff",
   badge,
+  maskable = false,
+  hidden = false,
+  onToggleHidden,
 }: {
   icon: ReactNode;
   label: string;
   value: ReactNode;
   valueColor?: string;
   badge?: string;
+  maskable?: boolean;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
 }) {
   return (
     // min-w so the tile never gets squeezed narrower than "Get NUBAN" +
@@ -35,9 +46,25 @@ function StatTile({
     >
       <span className="shrink-0 text-white/55">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
-          {label}
-        </p>
+        <div className="flex items-center justify-between gap-1.5">
+          <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
+            {label}
+          </p>
+          {maskable && (
+            <button
+              type="button"
+              onClick={onToggleHidden}
+              aria-label={hidden ? "Show amount" : "Hide amount"}
+              className="shrink-0 text-white/40 transition-colors hover:text-white/70 active:scale-90"
+            >
+              {hidden ? (
+                <EyeOff size={12} strokeWidth={2.1} />
+              ) : (
+                <Eye size={12} strokeWidth={2.1} />
+              )}
+            </button>
+          )}
+        </div>
         {/* flex-wrap (not truncate) — "Get NUBAN" + its badge is wider
             than a 2-column tile on most phones, and truncating it made the
             label unreadable ("Get NU..."). Letting the badge drop to its
@@ -47,7 +74,7 @@ function StatTile({
             className="text-[1.05rem] font-black leading-none"
             style={{ color: valueColor }}
           >
-            {value}
+            {hidden ? MASKED_AMOUNT : value}
           </p>
           {badge && (
             <span
@@ -71,6 +98,7 @@ function StatTile({
 // more/page.tsx. Settings' rounded "shelf" overlaps this section's bottom.
 export default function Profile() {
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [amountHidden, setAmountHidden] = useState(false);
   const initial = USER.firstName.trim().charAt(0).toUpperCase() || "V";
 
   return (
@@ -166,6 +194,9 @@ export default function Profile() {
           label="Total earnings"
           value="₦170,600"
           valueColor="#4ade80"
+          maskable
+          hidden={amountHidden}
+          onToggleHidden={() => setAmountHidden((v) => !v)}
         />
         <StatTile
           icon={<Landmark size={17} strokeWidth={1.8} />}
