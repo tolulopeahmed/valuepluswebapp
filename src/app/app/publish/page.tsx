@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Plus, LayoutGrid, List, Trash2 } from "lucide-react";
+import { Plus, LayoutGrid, List, Trash2, Check } from "lucide-react";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
@@ -47,13 +47,13 @@ const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
 
 function StatusBadge({ status }: { status: Book["status"] }) {
   return (
-    // px-1.5 py-1.5 — was px-1.5 py-2px, and "py-2px" isn't valid
-    // Tailwind syntax without brackets (same bug as an earlier h-2px
-    // issue): it generated no CSS at all, so vertical padding was
-    // actually 0 while horizontal was 6px. Genuinely equal padding now.
+    // py-1.5 (equal to px-1.5) made this a tall pill, not a compact
+    // badge — a flatter vertical padding with a small (not full) radius
+    // reads as a proper corner tag instead.
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-1.5 py-1.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
     >
+      {status === "published" && <Check size={8} strokeWidth={3.5} />}
       {STATUS_LABEL[status]}
     </span>
   );
@@ -159,10 +159,7 @@ function BookGridTile({ book, index }: { book: Book; index: number }) {
           sizes="(min-width: 768px) 18vw, 32vw"
           className="object-cover"
         />
-        {/* A bit more inset than before — tiles are smaller now (5-col
-            grid), so the badge needs more clearance from the rounded
-            corner curve to sit cleanly rather than crowd it. */}
-        <span className="absolute right-2 top-2">
+        <span className="absolute right-1 top-1">
           <StatusBadge status={book.status} />
         </span>
 
@@ -172,7 +169,10 @@ function BookGridTile({ book, index }: { book: Book; index: number }) {
         </div>
       </button>
 
-      <DeleteDraftButton book={book} className="absolute bottom-1.5 right-1.5 z-10 h-6 w-6" />
+      <DeleteDraftButton
+        book={book}
+        className="absolute bottom-1.5 right-1.5 z-10 h-6 w-6"
+      />
     </div>
   );
 }
@@ -340,9 +340,7 @@ export default function PublishPage() {
           {BOOKS.map((book, i) => (
             <BookGridTile key={book.id} book={book} index={i} />
           ))}
-          <AddNewTitleGridTile
-            onClick={goToAddNewTitle}
-          />
+          <AddNewTitleGridTile onClick={goToAddNewTitle} />
         </div>
       ) : (
         <div
@@ -352,9 +350,7 @@ export default function PublishPage() {
           {BOOKS.map((book, i) => (
             <BookListRow key={book.id} book={book} index={i} />
           ))}
-          <AddNewTitleListRow
-            onClick={goToAddNewTitle}
-          />
+          <AddNewTitleListRow onClick={goToAddNewTitle} />
         </div>
       )}
     </div>

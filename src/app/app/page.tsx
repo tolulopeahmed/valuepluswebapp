@@ -93,7 +93,7 @@ export default function HomeScreen() {
 
   return (
     <>
-      <div className="vp-card-in flex items-start gap-3 overflow-hidden">
+      <div className="vp-card-in flex items-center gap-3 overflow-hidden">
         <div className="min-w-0 flex-1 overflow-hidden pr-2">
           <Title className="block max-w-full overflow-hidden">
             <span className="flex min-w-0 max-w-full items-center overflow-hidden">

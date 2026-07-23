@@ -17,6 +17,7 @@ export interface Book {
   // gradient placeholder — an image path, rendered via next/image.
   cover: string;
   status: "published" | "in_progress" | "draft";
+  format: "Paperback" | "Ebook" | "Hardback";
   pages: number;
   sales: number;
   earned: number;
@@ -35,6 +36,7 @@ export const BOOKS: Book[] = [
     category: "Faith / Inspiration",
     cover: "/images/covers/10-day-hack.jpg",
     status: "published",
+    format: "Paperback",
     pages: 86,
     sales: 124,
     earned: 186000,
@@ -50,6 +52,7 @@ export const BOOKS: Book[] = [
     category: "Leadership",
     cover: "/images/covers/letters-to-my-child.png",
     status: "published",
+    format: "Hardback",
     pages: 142,
     sales: 87,
     earned: 130500,
@@ -65,6 +68,7 @@ export const BOOKS: Book[] = [
     category: "Personal Growth",
     cover: "/images/covers/beyond-the-struggle.png",
     status: "in_progress",
+    format: "Ebook",
     pages: 118,
     sales: 0,
     earned: 0,
@@ -80,6 +84,7 @@ export const BOOKS: Book[] = [
     category: "Business",
     cover: "/images/covers/woman-of-vision.jpg",
     status: "draft",
+    format: "Paperback",
     pages: 164,
     sales: 0,
     earned: 0,

@@ -211,7 +211,7 @@ function SettingRow({
     <button
       type="button"
       onClick={() => onSelect(item.id)}
-      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors active:bg-white/[0.06]"
+      className="flex w-full items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-left transition-colors active:bg-white/[0.06]"
       style={{
         background: item.danger
           ? "rgba(248,113,113,0.06)"
@@ -222,7 +222,7 @@ function SettingRow({
       }}
     >
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
         style={{
           background: item.danger
             ? "rgba(248,113,113,0.14)"
@@ -230,7 +230,7 @@ function SettingRow({
           color: item.danger ? "#f87171" : "rgb(var(--vp-accent-rgb))",
         }}
       >
-        <item.Icon size={17} strokeWidth={1.9} />
+        <item.Icon size={16} strokeWidth={1.9} />
       </span>
 
       <div className="min-w-0 flex-1">

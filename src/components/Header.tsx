@@ -156,7 +156,7 @@ export default function Header({
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-40 px-4 pb-3 pt-4 md:left-64 md:px-8 md:pb-4 md:pt-6"
+      className="fixed left-0 right-0 top-0 z-40 px-4 pb-2 pt-3 md:left-64 md:px-8 md:pb-3 md:pt-4"
       style={{
         background: "black",
         backdropFilter: "blur(16px) saturate(1.4)",
@@ -199,10 +199,10 @@ export default function Header({
 
         <button
           onClick={onBellPress}
-          className="relative grid h-10 w-10 flex-shrink-0 place-items-center rounded-full border border-white/[0.1] bg-white/[0.05] text-white/60 transition-colors hover:text-white active:scale-95"
+          className="relative grid h-8 w-8 flex-shrink-0 place-items-center rounded-full border border-white/[0.1] bg-white/[0.05] text-white/60 transition-colors hover:text-white active:scale-95"
           aria-label="Notifications"
         >
-          <Icon path={ICONS.bell} size={17} />
+          <Icon path={ICONS.bell} size={15} />
           {notificationCount > 0 && (
             <span className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[0.5rem] font-black text-white">
               {notificationCount}

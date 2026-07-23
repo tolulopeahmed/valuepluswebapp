@@ -276,25 +276,10 @@ function EarningsCard({
           {data.titleCount} {data.titleCount === 1 ? "Title" : "Titles"}
         </SectionLabel>
 
-        <SlideCta
-          label="Withdraw"
-          onClick={onWithdraw}
-          variant="secondary"
-          compact
-          style={{
-            // Same look as the Withdraw button on the Earn page's
-            // earnings hero (EarningsHero in app/earn/page.tsx). Bumped
-            // opacity so the accent reads more clearly instead of washing
-            // out against the card. Radius comes from .btn-base's
-            // var(--r-md) now (SlideCta no longer forces rounded-full),
-            // so no override needed here.
-            background: "rgba(var(--vp-accent-rgb),0.34)",
-            border: "1px solid rgba(var(--vp-accent-rgb),0.7)",
-            color: "#ffffff",
-            boxShadow:
-              "0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25)",
-          }}
-        />
+        {/* Solid accent fill, same as Resume/Withdraw on the learner
+            cards above — no variant/style override, just the SlideCta
+            default (compact only, for the height match). */}
+        <SlideCta label="Withdraw" onClick={onWithdraw} compact />
       </div>
     </GlassCard>
   );

@@ -42,44 +42,50 @@ export default function BookDetailsModal({
 
   return (
     <Modal open={open} onClose={onClose}>
-      {/* Large hero cover — this modal is for viewing the book's details,
-          so the image leads rather than sitting as a small side thumbnail. */}
-      <div className="relative mx-auto aspect-[3/4.4] w-56 max-w-full overflow-hidden rounded-2xl border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-        <Image
-          src={book.cover}
-          alt={book.title}
-          fill
-          sizes="224px"
-          className="object-cover"
-          priority
-        />
-      </div>
+      {/* Cover on the left, details on the right — pricing/buttons stay
+          full-width at the bottom regardless. */}
+      <div className="flex gap-4">
+        <div className="relative aspect-[3/4.4] w-40 shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
+          <Image
+            src={book.cover}
+            alt={book.title}
+            fill
+            sizes="160px"
+            className="object-cover"
+            priority
+          />
+        </div>
 
-      <div className="mt-5">
-        <p
-          className="text-[0.6rem] font-black uppercase tracking-[0.14em]"
-          style={{ color: "rgb(var(--vp-accent-rgb))" }}
-        >
-          {book.category}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-[0.6rem] font-black uppercase tracking-[0.14em]"
+            style={{ color: "rgb(var(--vp-accent-rgb))" }}
+          >
+            {book.category}
+          </p>
 
-        <h3 className="mt-1 text-2xl font-black leading-tight text-white">f
-          {book.title}
-        </h3>
-        <p className="mt-1 text-[0.85rem] text-white/55">{book.subtitle}</p>
-      </div>
+          <h3 className="mt-1 text-xl font-black leading-tight text-white">
+            {book.title}
+          </h3>
+          <p className="mt-1 text-[0.78rem] text-white/55">{book.subtitle}</p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span
-          className="inline-flex items-center rounded-full px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em]"
-          style={statusStyle}
-        >
-          {STATUS_LABEL[book.status]}
-        </span>
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-[0.54rem] font-black uppercase tracking-[0.1em]"
+              style={statusStyle}
+            >
+              {STATUS_LABEL[book.status]}
+            </span>
 
-        <span className="text-[0.58rem] font-black uppercase tracking-[0.1em] text-white/35">
-          {book.pages} pages
-        </span>
+            <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/60">
+              {book.format}
+            </span>
+
+            <span className="text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/35">
+              {book.pages} pages
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="my-5 h-px bg-white/10" />

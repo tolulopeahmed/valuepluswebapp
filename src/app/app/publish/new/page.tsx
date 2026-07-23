@@ -3,8 +3,6 @@
 
 import { useState } from "react";
 import GetQuote from "../../../../components/landing/GetQuote";
-import Title from "../../../../components/Title";
-import Subtitle from "../../../../components/Subtitle";
 
 export default function AddNewTitlePage() {
   const [showExtras, setShowExtras] = useState(false);
@@ -18,7 +16,7 @@ export default function AddNewTitlePage() {
         </Subtitle>
       </div> */}
 
-      <div style={{ marginTop: -15 }}>
+      <div style={{ marginTop: -25 }}>
         <GetQuote
           showExtras={showExtras}
           onToggleExtras={() => setShowExtras((v) => !v)}
