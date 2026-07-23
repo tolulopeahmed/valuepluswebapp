@@ -31,9 +31,13 @@ function StatTile({
         <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
           {label}
         </p>
-        <div className="mt-1 flex items-center gap-1.5">
+        {/* flex-wrap (not truncate) — "Get NUBAN" + its badge is wider
+            than a 2-column tile on most phones, and truncating it made the
+            label unreadable ("Get NU..."). Letting the badge drop to its
+            own line keeps both fully legible at any width instead. */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
           <p
-            className="truncate text-[1.05rem] font-black leading-none"
+            className="text-[1.05rem] font-black leading-none"
             style={{ color: valueColor }}
           >
             {value}
@@ -75,13 +79,13 @@ export default function Profile() {
           not a pill. */}
       <button
         type="button"
-        className="absolute right-5 top-5 flex items-center gap-1.5 rounded-[0.95rem] border px-3.5 py-2 text-[0.66rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
+        className="absolute right-5 top-5 flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[0.6rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
         style={{
           borderColor: "rgba(255,255,255,0.16)",
           background: "rgba(255,255,255,0.08)",
         }}
       >
-        <Pencil size={12} strokeWidth={2.25} />
+        <Pencil size={11} strokeWidth={2.25} />
         Edit Profile
       </button>
 
@@ -125,7 +129,10 @@ export default function Profile() {
             the name lines up with the avatar's visual center, as in the
             reference */}
         <div className="mt-8 min-w-0">
-          <p className="truncate font-telegraf text-[2rem] font-black leading-tight text-white md:text-4xl">
+          {/* leading-none, not -tight — at 2rem font-telegraf still reserves
+              a chunk of space below the glyphs with -tight, which read as
+              too much of a gap to the email line (same fix as Title.tsx). */}
+          <p className="truncate font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl">
             {USER.firstName}
           </p>
           <p className="mt-0.5 truncate text-[0.78rem] text-white/50">

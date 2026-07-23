@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Button from "../buttons/buttons";
+import MarqueeName from "../MarqueeName";
 
 // ─────────────────────────────────────────────
 // Data
@@ -162,9 +163,16 @@ export default function Hero() {
 
           <h1 className="display-heading reveal-up max-w-xl text-[clamp(2.75rem,8vw,4.5rem)] font-black leading-[0.9] tracking-[-0.04em] text-white">
             Learn Publishing;
-            <span className="mt-2 block text-vp-accent text-[clamp(2.75rem,8vw,4rem)] tracking-[-0.05em]">
-              Publish Your Book.
-            </span>
+            {/* On narrow screens this line is often wider than the viewport
+                at its min font size — left to wrap naturally it breaks onto
+                a 3rd line. MarqueeName measures itself and only kicks in
+                when the text actually overflows its container, so it's a
+                no-op wherever the line already fits (e.g. desktop). */}
+            <MarqueeName
+              text="Publish Your Book."
+              className="mt-2"
+              textClassName="text-vp-accent text-[clamp(2.75rem,8vw,4rem)] tracking-[-0.05em]"
+            />
           </h1>
 
           <div className="reveal-up mt-5 space-y-2.5">

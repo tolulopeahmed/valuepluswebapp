@@ -22,77 +22,78 @@ import { useAppShell } from "../AppShellContext";
 
 const REFERRAL_COUNT = 3;
 
-// MUI's Switch, restyled to match the reference: a wide, chunky pill
+// MUI's Switch sx, restyled to match the reference: a wide, chunky pill
 // track with a large white thumb that nearly fills the track's height.
-// On-state fills the track solidly with the brand accent.
-function ToggleSwitch({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <Switch
-      checked={checked}
-      onChange={(e) => onChange(e.target.checked)}
-      aria-label={label}
-      disableRipple
-      sx={{
-        width: 58,
-        height: 34,
-        padding: 0,
-        "& .MuiSwitch-switchBase": {
-          padding: "3px",
-          color: "#fff",
-          transitionDuration: "220ms",
-          "&.Mui-checked": {
-            transform: "translateX(24px)",
-            color: "#fff",
-            "& + .MuiSwitch-track": {
-              backgroundColor: "rgb(var(--vp-accent-rgb))",
-              opacity: 1,
-              border: 0,
-            },
-          },
-        },
-        "& .MuiSwitch-thumb": {
-          width: 28,
-          height: 28,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-        },
-        "& .MuiSwitch-track": {
-          borderRadius: 17,
-          backgroundColor: "rgba(255,255,255,0.16)",
-          opacity: 1,
-          transition: "background-color 220ms ease",
-        },
-      }}
-    />
-  );
-}
+// On-state fills the track solidly with the brand accent. Shared between
+// ToggleRow's (now purely visual, pointerEvents:none) Switch instances.
+const SWITCH_SX = {
+  width: 58,
+  height: 34,
+  padding: 0,
+  "& .MuiSwitch-switchBase": {
+    padding: "3px",
+    color: "#fff",
+    transitionDuration: "220ms",
+    "&.Mui-checked": {
+      transform: "translateX(24px)",
+      color: "#fff",
+      "& + .MuiSwitch-track": {
+        backgroundColor: "rgb(var(--vp-accent-rgb))",
+        opacity: 1,
+        border: 0,
+      },
+    },
+  },
+  "& .MuiSwitch-thumb": {
+    width: 28,
+    height: 28,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+  },
+  "& .MuiSwitch-track": {
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    opacity: 1,
+    transition: "background-color 220ms ease",
+  },
+} as const;
 
 function ToggleRow({
   Icon,
   label,
   checked,
   onChange,
+  disabled = false,
 }: {
   Icon: LucideIcon;
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
+  // The whole row toggles now, not just the switch — pointerEvents: "none"
+  // on the Switch keeps it purely visual so its own click doesn't also
+  // bubble into this button's onClick and fire onChange twice.
   return (
-    <div className="flex items-center justify-between py-3">
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className="flex w-full items-center justify-between rounded-xl py-2 text-left transition-opacity active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+    >
       <div className="flex items-center gap-3.5">
         <Icon size={22} strokeWidth={1.8} className="text-white/80" />
         <span className="text-[1.05rem] font-bold text-white">{label}</span>
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} label={label} />
-    </div>
+      <Switch
+        checked={checked}
+        onChange={() => {}}
+        disabled={disabled}
+        aria-hidden="true"
+        tabIndex={-1}
+        disableRipple
+        sx={{ ...SWITCH_SX, pointerEvents: "none" }}
+      />
+    </button>
   );
 }
 
@@ -211,7 +212,7 @@ function SettingRow({
     <button
       type="button"
       onClick={() => onSelect(item.id)}
-      className="flex w-full items-center gap-2.5 rounded-2xl border px-3.5 py-2.5 text-left transition-colors active:bg-white/[0.06]"
+      className="flex w-full items-center gap-2.5 rounded-2xl border px-3.5 py-2 text-left transition-colors active:bg-white/[0.06]"
       style={{
         background: item.danger
           ? "rgba(248,113,113,0.06)"
@@ -222,7 +223,7 @@ function SettingRow({
       }}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
         style={{
           background: item.danger
             ? "rgba(248,113,113,0.14)"
@@ -230,7 +231,7 @@ function SettingRow({
           color: item.danger ? "#f87171" : "rgb(var(--vp-accent-rgb))",
         }}
       >
-        <item.Icon size={16} strokeWidth={1.9} />
+        <item.Icon size={15} strokeWidth={1.9} />
       </span>
 
       <div className="min-w-0 flex-1">
@@ -267,12 +268,16 @@ export default function Settings() {
       className="relative -mt-8 rounded-t-[2.5rem] px-5 pb-5 pt-7"
       style={{ background: "#0b0e1f" }}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col">
+        {/* Disabled — there's no light theme built yet, so this switch
+            has nothing to actually do. Left visible (rather than removed)
+            so the setting isn't a surprise once dark mode ships. */}
         <ToggleRow
           Icon={Moon}
           label="Dark Mode"
           checked={darkMode}
           onChange={setDarkMode}
+          disabled
         />
         <ToggleRow
           Icon={ArrowLeftRight}
