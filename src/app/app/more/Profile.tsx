@@ -111,19 +111,25 @@ export default function Profile() {
       }}
     >
       {/* Edit Profile — sits in the top-right corner with a small inset
-          (not flush against the edge), and its radius matches the
-          combined card's own outer rounding (more/page.tsx's
-          rounded-[1.75rem]) rather than a generic button radius. */}
+          (not flush against the edge), radius matches the combined
+          card's own outer rounding (more/page.tsx's rounded-[1.75rem])
+          rather than a generic button radius, and the same solid accent
+          fill as the learner home's Resume/Withdraw pill (SlideCta in
+          HeroCards.tsx) instead of a translucent glass tint. gap-1.5 +
+          real px/py (not the cramped px-1.5/py-0.5 it had before) gives
+          the icon and label actual breathing room instead of reading as
+          one squeezed-together block. */}
       <button
         type="button"
-        className="absolute right-3 top-3 flex items-center gap-0.5 border px-1.5 py-0.5 text-[0.5rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
+        className="absolute right-3 top-3 flex items-center gap-1.5 px-3 py-1.5 text-[0.62rem] font-black tracking-wide transition-transform active:scale-95"
         style={{
-          borderColor: "rgba(255,255,255,0.16)",
-          background: "rgba(255,255,255,0.08)",
+          background: "rgb(var(--vp-accent-rgb))",
+          color: "#171100",
+          boxShadow: "0 8px 20px rgba(var(--vp-accent-rgb),0.35)",
           borderRadius: "1.75rem",
         }}
       >
-        <Pencil size={9} strokeWidth={2.25} />
+        <Pencil size={11} strokeWidth={2.25} />
         Edit Profile
       </button>
 
