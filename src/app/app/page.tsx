@@ -19,7 +19,7 @@ import {
   getModuleXpEarned,
   LearnerRoadmap,
 } from "./CurriculumModules";
-import { BOOKS, PublisherBookShelf } from "./PublisherBooks";
+import { PublisherBookShelf } from "./PublisherBooks";
 import LessonDetailModal, {
   type LessonDetail,
 } from "../../components/LessonDetailsModal";
@@ -86,11 +86,6 @@ export default function HomeScreen() {
     perReferral: 5000,
   };
 
-  const publisherStats = {
-    totalEarned: BOOKS.reduce((s, b) => s + b.earned, 0),
-    titleCount: BOOKS.length,
-  };
-
   return (
     <>
       <div className="vp-card-in flex items-center gap-3 overflow-hidden">
@@ -107,7 +102,7 @@ export default function HomeScreen() {
           <Subtitle className="text-sm font-medium text-white/70">
             {mode === "learner"
               ? `${getGreeting()}. Continue your lessons.`
-              : "Track your books earnings"}
+              : "Manage your books and publish new titles"}
           </Subtitle>
         </div>
 
@@ -120,25 +115,32 @@ export default function HomeScreen() {
         </div>
       </div>
 
-      <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
-        <HeroCards
-          mode={mode}
-          currentModule={{
-            module: currentModule.module,
-            title: currentModule.title,
-            progress: currentModule.progress,
-            duration: currentModule.duration,
-            xpEarned: currentModuleXpEarned,
-          }}
-          referralStats={referralStats}
-          publisherStats={publisherStats}
-          onResume={() => console.log("Resume clicked")}
-          onWithdrawReferral={() => console.log("Withdraw referral clicked")}
-          onWithdrawEarnings={() => console.log("Withdraw earnings clicked")}
-        />
-      </div>
+      {/* Publisher mode has no equivalent hero-card slide anymore — the
+          book shelf below is the first thing they see, same role
+          progress/roadmap plays for learners. Total earned + Withdraw
+          already live on the Earn tab; showing them here too was pure
+          duplication. */}
+      {mode === "learner" && (
+        <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
+          <HeroCards
+            currentModule={{
+              module: currentModule.module,
+              title: currentModule.title,
+              progress: currentModule.progress,
+              duration: currentModule.duration,
+              xpEarned: currentModuleXpEarned,
+            }}
+            referralStats={referralStats}
+            onResume={() => console.log("Resume clicked")}
+            onWithdrawReferral={() => console.log("Withdraw referral clicked")}
+          />
+        </div>
+      )}
 
-      <div className="vp-card-in" style={{ animationDelay: "80ms" }}>
+      <div
+        className="vp-card-in"
+        style={{ animationDelay: mode === "learner" ? "80ms" : "60ms" }}
+      >
         {mode === "learner" ? (
           <LearnerRoadmap onSelect={setSelectedLesson} />
         ) : (

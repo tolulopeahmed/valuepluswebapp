@@ -2,14 +2,12 @@
 
 import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Users, Wallet } from "lucide-react";
+import { Users } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
 import MarqueeName from "../../components/MarqueeName";
 import HeroSlider, { type HeroSlide } from "./HeroSlider";
 import Button from "../../components/buttons/buttons";
-
-type Mode = "learner" | "publisher";
 
 export interface CurrentModuleData {
   module: string;
@@ -23,13 +21,6 @@ export interface ReferralStatsData {
   totalEarned: number;
   referralCount: number;
   perReferral: number;
-}
-
-export interface PublisherStatsData {
-  totalEarned: number;
-  // Total title count, including drafts — same count as the Publish
-  // page's "N Titles" label (BOOKS.length there).
-  titleCount: number;
 }
 
 // Renders a naira amount the way MyFund does: small ₦ symbol, small
@@ -235,76 +226,23 @@ function ReferralRewardsCard({
   );
 }
 
-// ── Publisher slide 1: total earnings ────────────────────────────
-// Layout modeled on a MyFund "My Accounts" savings card: icon+label
-// cluster top-left, a big amount dominating the card, then a supporting
-// line bottom-left with a compact secondary CTA bottom-right — same
-// brand colors/components as every other card here (GlassCard,
-// SlideCta, NairaAmount), just this specific arrangement. Wider than
-// tall, so no percentage pill and no extra min-height forcing it down.
-function EarningsCard({
-  data,
-  onWithdraw,
-}: {
-  data: PublisherStatsData;
-  onWithdraw?: () => void;
-}) {
-  return (
-    <GlassCard accent className="flex h-full min-h-[9.5rem] flex-col p-3.5">
-      <div className="flex items-center gap-2">
-        <span
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-          style={{
-            background: "rgba(var(--vp-accent-rgb),0.14)",
-            color: "rgb(var(--vp-accent-rgb))",
-          }}
-        >
-          <Wallet size={14} strokeWidth={2} />
-        </span>
-        <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
-      </div>
-
-      <p
-        className="mt-1 text-5xl font-bold leading-none text-white md:text-4xl"
-        style={{ fontFamily: "Proxima Nova" }}
-      >
-        <NairaAmount value={data.totalEarned} />
-      </p>
-
-      <div className="mt-2 flex items-end justify-between">
-        <SectionLabel style={{ marginBottom: 0 }}>
-          {data.titleCount} {data.titleCount === 1 ? "Title" : "Titles"}
-        </SectionLabel>
-
-        {/* Solid accent fill, same as Resume/Withdraw on the learner
-            cards above — no variant/style override, just the SlideCta
-            default (compact only, for the height match). */}
-        <SlideCta label="Withdraw" onClick={onWithdraw} compact />
-      </div>
-    </GlassCard>
-  );
-}
-
 // ── Container ─────────────────────────────────────────────────────
-// The single thing HomeScreen renders. Swap `mode` and the whole deck
-// swaps with it — add a new learner or publisher slide by pushing one
-// more entry into the relevant array below, nothing else changes.
+// The single thing HomeScreen renders — learner-only now. Publisher
+// mode's home used to show an EarningsCard slide here (total earned +
+// Withdraw), but that duplicated the Earn tab's whole reason for
+// existing, so the homepage now leads with the book shelf instead
+// (see PublisherBookShelf in PublisherBooks.tsx) and this component is
+// only ever called for mode === "learner".
 export default function HeroCards({
-  mode,
   currentModule,
   referralStats,
-  publisherStats,
   onResume,
   onWithdrawReferral,
-  onWithdrawEarnings,
 }: {
-  mode: Mode;
   currentModule: CurrentModuleData;
   referralStats: ReferralStatsData;
-  publisherStats: PublisherStatsData;
   onResume?: () => void;
   onWithdrawReferral?: () => void;
-  onWithdrawEarnings?: () => void;
 }) {
   const learnerSlides: HeroSlide[] = [
     {
@@ -322,16 +260,5 @@ export default function HeroCards({
     },
   ];
 
-  const publisherSlides: HeroSlide[] = [
-    {
-      key: "earnings",
-      content: (
-        <EarningsCard data={publisherStats} onWithdraw={onWithdrawEarnings} />
-      ),
-    },
-  ];
-
-  return (
-    <HeroSlider slides={mode === "learner" ? learnerSlides : publisherSlides} />
-  );
+  return <HeroSlider slides={learnerSlides} />;
 }
