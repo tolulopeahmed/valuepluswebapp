@@ -46,7 +46,7 @@ function StatTile({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1.5">
           <AutoFitText className="min-w-0 flex-1">
-            <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
+            <p className="text-[0.56rem] font-black uppercase leading-none tracking-[0.14em] text-white/45">
               {label}
             </p>
           </AutoFitText>
@@ -70,7 +70,7 @@ function StatTile({
             whole value+badge group down as one unit keeps both fully
             legible on one line at any width, instead of wrapping the
             badge onto its own line or clipping the label. */}
-        <AutoFitText className="mt-1">
+        <AutoFitText className="mt-0">
           <p
             className="text-[1.05rem] font-black leading-none"
             style={{ color: valueColor }}
