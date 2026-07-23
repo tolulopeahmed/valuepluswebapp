@@ -20,8 +20,14 @@ function StatTile({
   badge?: string;
 }) {
   return (
+    // min-w so the tile never gets squeezed narrower than "Get NUBAN" +
+    // its badge need to sit on one line — flex-1 lets it share the row
+    // evenly with its sibling whenever there's room for both, and the
+    // parent's flex-wrap (not grid's fixed 50/50) drops it to its own
+    // full-width row instead of compressing it on the few devices where
+    // there isn't.
     <div
-      className="flex items-center gap-2.5 rounded-2xl border px-3.5 py-3.5"
+      className="flex min-w-[11.5rem] flex-1 items-center gap-2.5 rounded-2xl border px-3.5 py-3.5"
       style={{
         background: "rgba(255,255,255,0.06)",
         borderColor: "rgba(255,255,255,0.1)",
@@ -154,7 +160,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2.5">
+      <div className="mt-6 flex flex-wrap gap-2.5">
         <StatTile
           icon={<TrendingUp size={17} strokeWidth={1.8} />}
           label="Total earnings"

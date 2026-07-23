@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Switch from "@mui/material/Switch";
 import {
   Moon,
@@ -10,9 +11,7 @@ import {
   UserPlus,
   ShieldCheck,
   KeyRound,
-  ArrowDownCircle,
   HelpCircle,
-  MessageCircle,
   LogOut,
   ChevronRight,
   type LucideIcon,
@@ -21,6 +20,23 @@ import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
 
 const REFERRAL_COUNT = 3;
+
+// Same admin line used by Sidebar's "Chat Admin" row and the public
+// site's footer FAB: 09024312689 in wa.me international format.
+const ADMIN_WHATSAPP_URL = "https://wa.me/2349024312689";
+
+// lucide's MessageCircle is a generic chat bubble — swapped for the real
+// WhatsApp mark since this row links straight out to WhatsApp now. Same
+// glyph as ChatAdminFab.tsx/Sidebar.tsx's own local copy (fill-based, so
+// it needs its own renderer rather than lucide's stroke icons).
+function WhatsAppIcon({ size = 15 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
+      <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
 
 // MUI's Switch sx, restyled to match the reference: a wide, chunky pill
 // track with a large white thumb that nearly fills the track's height.
@@ -130,9 +146,13 @@ interface SettingItem {
   id: string;
   label: string;
   subtitle: string;
-  Icon: LucideIcon;
+  Icon: LucideIcon | typeof WhatsAppIcon;
   trailing?: ReactNode;
   danger?: boolean;
+  /** Renders the row as a link instead of a button when set. */
+  href?: string;
+  /** Opens href in a new tab (wa.me, etc.) instead of navigating in-app. */
+  external?: boolean;
 }
 
 const ITEMS: SettingItem[] = [
@@ -175,12 +195,6 @@ const ITEMS: SettingItem[] = [
     trailing: <StatusChip tone="accent">Set</StatusChip>,
   },
   {
-    id: "schedule-withdrawal",
-    label: "Schedule Withdrawal",
-    subtitle: "Withdraw without charges",
-    Icon: ArrowDownCircle,
-  },
-  {
     id: "faq",
     label: "FAQ",
     subtitle: "Get answers to common questions",
@@ -190,7 +204,9 @@ const ITEMS: SettingItem[] = [
     id: "message-admin",
     label: "Message Admin",
     subtitle: "Get instant support via WhatsApp",
-    Icon: MessageCircle,
+    Icon: WhatsAppIcon,
+    href: ADMIN_WHATSAPP_URL,
+    external: true,
   },
   {
     id: "logout",
@@ -198,6 +214,7 @@ const ITEMS: SettingItem[] = [
     subtitle: "Sign out of your account",
     Icon: LogOut,
     danger: true,
+    href: "/login",
   },
 ];
 
@@ -208,20 +225,19 @@ function SettingRow({
   item: SettingItem;
   onSelect: (id: string) => void;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      className="flex w-full items-center gap-2.5 rounded-2xl border px-3.5 py-2 text-left transition-colors active:bg-white/[0.06]"
-      style={{
-        background: item.danger
-          ? "rgba(248,113,113,0.06)"
-          : "rgba(var(--vp-accent-rgb),0.08)",
-        borderColor: item.danger
-          ? "rgba(248,113,113,0.22)"
-          : "rgba(var(--vp-accent-rgb),0.16)",
-      }}
-    >
+  const className =
+    "flex w-full items-center gap-2.5 rounded-2xl border px-3.5 py-2 text-left transition-colors active:bg-white/[0.06]";
+  const style = {
+    background: item.danger
+      ? "rgba(248,113,113,0.06)"
+      : "rgba(var(--vp-accent-rgb),0.08)",
+    borderColor: item.danger
+      ? "rgba(248,113,113,0.22)"
+      : "rgba(var(--vp-accent-rgb),0.16)",
+  };
+
+  const content = (
+    <>
       <span
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
         style={{
@@ -248,6 +264,42 @@ function SettingRow({
       <div className="shrink-0">
         {item.trailing ?? <ChevronRight size={16} className="text-white/25" />}
       </div>
+    </>
+  );
+
+  // message-admin (wa.me) and logout (/login) render as links instead of
+  // buttons that fire onSelect — everything else still just logs its id
+  // until those flows exist.
+  if (item.href && item.external) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        style={style}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  if (item.href) {
+    return (
+      <Link href={item.href} className={className} style={style}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(item.id)}
+      className={className}
+      style={style}
+    >
+      {content}
     </button>
   );
 }
