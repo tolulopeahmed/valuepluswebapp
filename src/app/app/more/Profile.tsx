@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { USER } from "../MockUser";
+import MarqueeName from "../../../components/MarqueeName";
 
 function StatTile({
   icon,
@@ -74,18 +75,20 @@ export default function Profile() {
           "radial-gradient(120% 70% at 15% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 55%), radial-gradient(90% 60% at 100% 0%, rgba(var(--vp-accent-rgb),0.14), transparent 60%), linear-gradient(180deg, #232a4d 0%, #171d38 60%, #12172c 100%)",
       }}
     >
-      {/* Edit Profile — top right, opposite the avatar. Same radius as
-          every other primary/secondary button in the app (var(--r-md)),
-          not a pill. */}
+      {/* Edit Profile — sits in the top-right corner with a small inset
+          (not flush against the edge), and its radius matches the
+          combined card's own outer rounding (more/page.tsx's
+          rounded-[1.75rem]) rather than a generic button radius. */}
       <button
         type="button"
-        className="absolute right-5 top-5 flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-[0.6rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
+        className="absolute right-3 top-3 flex items-center gap-1 border px-2 py-1 text-[0.56rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
         style={{
           borderColor: "rgba(255,255,255,0.16)",
           background: "rgba(255,255,255,0.08)",
+          borderRadius: "1.75rem",
         }}
       >
-        <Pencil size={11} strokeWidth={2.25} />
+        <Pencil size={10} strokeWidth={2.25} />
         Edit Profile
       </button>
 
@@ -128,16 +131,26 @@ export default function Profile() {
         {/* mt-8 nudges the text block below the Edit Profile pill's row so
             the name lines up with the avatar's visual center, as in the
             reference */}
-        <div className="mt-8 min-w-0">
-          {/* leading-none, not -tight — at 2rem font-telegraf still reserves
-              a chunk of space below the glyphs with -tight, which read as
-              too much of a gap to the email line (same fix as Title.tsx). */}
-          <p className="truncate font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl">
-            {USER.firstName}
-          </p>
-          <p className="mt-0.5 truncate text-[0.78rem] text-white/50">
-            {USER.email}
-          </p>
+        <div className="mt-8 min-w-0 flex-1">
+          {/* MarqueeName instead of truncate — a long name shouldn't just
+              get clipped with an ellipsis; it scrolls into view instead,
+              same treatment as the email line right below it. Only
+              actually animates when the text doesn't fit — a short name
+              renders completely statically. */}
+          <MarqueeName
+            text={USER.firstName}
+            fadeColor="#232a4d"
+            textClassName="font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl"
+          />
+          {/* Smaller + tighter mt so the email sits right under the name —
+              reduced size is also what lets a full email fit on one line
+              more often, before marquee ever needs to kick in. */}
+          <MarqueeName
+            text={USER.email}
+            className="mt-0"
+            fadeColor="#232a4d"
+            textClassName="text-[0.68rem] text-white/50"
+          />
         </div>
       </div>
 
