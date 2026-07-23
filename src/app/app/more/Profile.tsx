@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
-import { Camera, Eye, EyeOff, Landmark, Pencil, TrendingUp } from "lucide-react";
+import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { USER } from "../MockUser";
 import MarqueeName from "../../../components/MarqueeName";
 import AutoFitText from "../../../components/AutoFitText";
@@ -31,40 +31,22 @@ function StatTile({
   hidden?: boolean;
   onToggleHidden?: () => void;
 }) {
-  return (
-    // min-w-0 (not a fixed min-w) + flex-1 — these sit side by side no
-    // matter how narrow the screen gets; AutoFitText below handles fit by
-    // shrinking instead of the tile itself needing room to wrap to.
-    <div
-      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-2"
-      style={{
-        background: "rgba(255,255,255,0.06)",
-        borderColor: "rgba(255,255,255,0.1)",
-      }}
-    >
+  const className =
+    "flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-2 text-left";
+  const style = {
+    background: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.1)",
+  };
+
+  const content = (
+    <>
       <span className="shrink-0 text-white/55">{icon}</span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-1.5">
-          <AutoFitText className="min-w-0 flex-1">
-            <p className="text-[0.56rem] font-black uppercase leading-none tracking-[0.14em] text-white/45">
-              {label}
-            </p>
-          </AutoFitText>
-          {maskable && (
-            <button
-              type="button"
-              onClick={onToggleHidden}
-              aria-label={hidden ? "Show amount" : "Hide amount"}
-              className="shrink-0 text-white/40 transition-colors hover:text-white/70 active:scale-90"
-            >
-              {hidden ? (
-                <EyeOff size={12} strokeWidth={2.1} />
-              ) : (
-                <Eye size={12} strokeWidth={2.1} />
-              )}
-            </button>
-          )}
-        </div>
+        <AutoFitText>
+          <p className="text-[0.56rem] font-black uppercase leading-none tracking-[0.14em] text-white/45">
+            {label}
+          </p>
+        </AutoFitText>
         {/* AutoFitText (not flex-wrap/truncate) — "Get NUBAN" + its badge
             is wider than a side-by-side tile on most phones. Scaling the
             whole value+badge group down as one unit keeps both fully
@@ -90,13 +72,35 @@ function StatTile({
           )}
         </AutoFitText>
       </div>
+    </>
+  );
+
+  // No eye icon anymore — the whole tile itself is the toggle now, tap
+  // anywhere on it (not just a small icon target) to hide/reveal.
+  if (maskable) {
+    return (
+      <button
+        type="button"
+        onClick={onToggleHidden}
+        aria-label={hidden ? "Show total earnings" : "Hide total earnings"}
+        className={`${className} transition-transform active:scale-[0.97]`}
+        style={style}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className} style={style}>
+      {content}
     </div>
   );
 }
 
-// No rounded corners/border of its own — this is the top section of one
-// combined card whose overall shape (and clip) is owned by the wrapper in
-// more/page.tsx. Settings' rounded "shelf" overlaps this section's bottom.
+// No rounded corners/border of its own — renders full-bleed directly on
+// the page (more/page.tsx no longer wraps this in its own bordered card).
+// Settings' own rounded "shelf" overlaps this section's bottom edge.
 export default function Profile() {
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [amountHidden, setAmountHidden] = useState(false);
@@ -110,26 +114,20 @@ export default function Profile() {
           "radial-gradient(120% 70% at 15% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 55%), radial-gradient(90% 60% at 100% 0%, rgba(var(--vp-accent-rgb),0.14), transparent 60%), linear-gradient(180deg, #232a4d 0%, #171d38 60%, #12172c 100%)",
       }}
     >
-      {/* Edit Profile — sits in the top-right corner with a small inset
-          (not flush against the edge), radius matches the combined
-          card's own outer rounding (more/page.tsx's rounded-[1.75rem])
-          rather than a generic button radius, and the same solid accent
-          fill as the learner home's Resume/Withdraw pill (SlideCta in
-          HeroCards.tsx) instead of a translucent glass tint. gap-1.5 +
-          real px/py (not the cramped px-1.5/py-0.5 it had before) gives
-          the icon and label actual breathing room instead of reading as
-          one squeezed-together block. */}
+      {/* Edit Profile — small inset from the corner (not flush), same
+          solid accent fill as the learner home's Resume/Withdraw pill
+          (SlideCta in HeroCards.tsx) instead of a translucent glass tint. */}
       <button
         type="button"
-        className="absolute right-3 top-3 flex items-center gap-1.5 px-3 py-1.5 text-[0.62rem] font-black tracking-wide transition-transform active:scale-95"
+        className="absolute right-3 top-3 flex items-center gap-1 px-2 py-1 text-[0.52rem] font-black tracking-wide transition-transform active:scale-95"
         style={{
           background: "rgb(var(--vp-accent-rgb))",
           color: "#171100",
-          boxShadow: "0 8px 20px rgba(var(--vp-accent-rgb),0.35)",
-          borderRadius: "1.75rem",
+          boxShadow: "0 6px 14px rgba(var(--vp-accent-rgb),0.35)",
+          borderRadius: "1.25rem",
         }}
       >
-        <Pencil size={11} strokeWidth={2.25} />
+        <Pencil size={9} strokeWidth={2.25} />
         Edit Profile
       </button>
 
@@ -183,7 +181,7 @@ export default function Profile() {
               bigger name-to-email gap than intended. */}
           <MarqueeName
             text={USER.firstName}
-            className="-mb-1"
+            className="-mb-2"
             fadeColor="#232a4d"
             textClassName="font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl"
           />

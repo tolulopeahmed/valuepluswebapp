@@ -364,6 +364,15 @@ export default function Settings() {
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white/35">
           Version 1.0
         </p>
+        {/* Computed from the real date (like the copyright year below),
+            not hand-typed — always reads as the actual current month. */}
+        <p className="text-[0.6rem] text-white/30">
+          Updated{" "}
+          {new Date().toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
+        </p>
         <p className="text-[0.66rem] text-white/25">
           © {new Date().getFullYear()} ValuePlus Media Limited. All Rights
           Reserved.
