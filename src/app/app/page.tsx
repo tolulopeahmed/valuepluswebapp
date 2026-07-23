@@ -80,12 +80,6 @@ export default function HomeScreen() {
   const currentModule = getCurrentModule(MODULES);
   const currentModuleXpEarned = getModuleXpEarned(currentModule);
 
-  const referralStats = {
-    totalEarned: 15000,
-    referralCount: 3,
-    perReferral: 5000,
-  };
-
   return (
     <>
       <div className="vp-card-in flex items-center gap-3 overflow-hidden">
@@ -119,7 +113,8 @@ export default function HomeScreen() {
           book shelf below is the first thing they see, same role
           progress/roadmap plays for learners. Total earned + Withdraw
           already live on the Earn tab; showing them here too was pure
-          duplication. */}
+          duplication — same reasoning that also dropped the referral
+          rewards slide from the learner card below. */}
       {mode === "learner" && (
         <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
           <HeroCards
@@ -130,9 +125,7 @@ export default function HomeScreen() {
               duration: currentModule.duration,
               xpEarned: currentModuleXpEarned,
             }}
-            referralStats={referralStats}
             onResume={() => console.log("Resume clicked")}
-            onWithdrawReferral={() => console.log("Withdraw referral clicked")}
           />
         </div>
       )}

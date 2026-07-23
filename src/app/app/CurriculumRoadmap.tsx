@@ -2,7 +2,8 @@
 
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { Check, Lock } from "lucide-react";
 import SectionLabel from "../../components/SectionLabel";
 
@@ -39,8 +40,14 @@ function RoadmapConnector({ item, delay }: { item: RoadmapItem; delay: number })
   }, [target, delay]);
 
   return (
+    // mt-3.75 / h-0.75 aren't real Tailwind spacing steps (the scale
+    // jumps 3→3.5→4, nothing in between), so they silently generated no
+    // CSS at all — the connector had zero height and sat unaligned,
+    // which is why the lines never actually showed. mt-5/h-1 are real
+    // steps, and mt-5 (20px) still centers this 4px line on the 44px
+    // node's midpoint (22px - 2px = 20px), same as before but valid.
     <div
-      className="relative mt-3.75 h-0.75 w-10 shrink-0 overflow-hidden rounded-full md:w-16"
+      className="relative mt-5 h-1 w-12 shrink-0 overflow-hidden rounded-full md:w-20"
       style={{ background: CONNECTOR_TRACK_BG }}
     >
       <div
@@ -65,10 +72,10 @@ function StepNode({ status, index }: { status: string; index: number }) {
   if (status === "done") {
     return (
       <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
         style={{ background: `rgb(${DONE_GREEN})` }}
       >
-        <Check size={15} strokeWidth={3} className="text-[#0b1a0f]" />
+        <Check size={20} strokeWidth={3} className="text-[#0b1a0f]" />
       </div>
     );
   }
@@ -78,7 +85,7 @@ function StepNode({ status, index }: { status: string; index: number }) {
       // scale (not a larger h/w) so it reads bigger without shifting the
       // layout box the connector lines are aligned against.
       <div
-        className="vp-pulse-ring flex h-8 w-8 shrink-0 scale-125 items-center justify-center rounded-full text-[0.68rem] font-black transition-transform duration-300"
+        className="vp-pulse-ring flex h-11 w-11 shrink-0 scale-125 items-center justify-center rounded-full text-[0.9rem] font-black transition-transform duration-300"
         style={{
           background: "rgb(var(--vp-accent-rgb))",
           color: "#171100",
@@ -91,10 +98,10 @@ function StepNode({ status, index }: { status: string; index: number }) {
 
   return (
     <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/45"
       style={{ background: `rgb(${LOCKED_SLATE})` }}
     >
-      <Lock size={12} strokeWidth={2.25} />
+      <Lock size={17} strokeWidth={2.25} />
     </div>
   );
 }
@@ -106,28 +113,48 @@ export function ProgressRoadmap({
   items: RoadmapItem[];
   onSelect?: (id: string | number) => void;
 }) {
+  const currentRef = useRef<HTMLButtonElement>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const currentIndex = items.findIndex((item) => item.status === "current");
+
+  // With bigger nodes only ~3 fit in view at once on mobile — once the
+  // learner is past the 3rd stage, the current node starts off-screen to
+  // the right, so bring it into view on mount instead of leaving them to
+  // discover the horizontal scroll themselves. inline: "center" (not
+  // "start") keeps a bit of prior progress visible for context too.
+  useEffect(() => {
+    if (currentIndex <= 2) return;
+    currentRef.current?.scrollIntoView({
+      behavior: shouldReduceMotion ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest",
+    });
+  }, [currentIndex, shouldReduceMotion]);
+
   return (
     <div>
       <SectionLabel>Roadmap</SectionLabel>
 
       {/* overflow-x-auto forces overflow-y to "auto" too (a CSS overflow
           quirk — you can't mix visible with a non-visible axis), which
-          clips the current node's scale/glow at the top edge. -mt-6
-          cancels the -pt-6 buffer below so the label-to-row gap still
+          clips the current node's scale/glow at the top edge. -mt-8
+          cancels the pt-8 buffer below so the label-to-row gap still
           looks like the original mb-2, while the buffer itself keeps
-          the clip boundary clear of the node's painted overflow. */}
-      <div className="-mt-6 scrollbar-none overflow-x-auto pb-1 pt-6 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
+          the clip boundary clear of the node's painted overflow (bigger
+          nodes need more headroom here than the old 32px ones did). */}
+      <div className="-mt-8 scrollbar-none overflow-x-auto pb-1 pt-8 [-webkit-overflow-scrolling:touch] [&::-webkit-scrollbar]:hidden">
         <div className="flex w-max items-start">
           {items.map((item, i) => (
             <Fragment key={item.id}>
               <button
+                ref={i === currentIndex ? currentRef : undefined}
                 type="button"
                 onClick={() => onSelect?.(item.id)}
-                className="flex w-16 shrink-0 flex-col items-center gap-2 rounded-lg transition-transform active:scale-95 md:w-24"
+                className="flex w-20 shrink-0 flex-col items-center gap-2 rounded-lg transition-transform active:scale-95 md:w-28"
               >
                 <StepNode status={item.status} index={i} />
                 <span
-                  className={`text-center text-[0.42rem] font-black uppercase leading-[1.15] tracking-wide break-words md:text-[0.48rem] ${
+                  className={`text-center text-[0.46rem] font-black uppercase leading-[1.15] tracking-wide break-words md:text-[0.52rem] ${
                     item.status === "upcoming"
                       ? "text-white/25"
                       : item.status === "current"

@@ -2,11 +2,9 @@
 
 import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Users } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
 import MarqueeName from "../../components/MarqueeName";
-import HeroSlider, { type HeroSlide } from "./HeroSlider";
 import Button from "../../components/buttons/buttons";
 
 export interface CurrentModuleData {
@@ -15,42 +13,6 @@ export interface CurrentModuleData {
   progress: number;
   duration: string;
   xpEarned: number;
-}
-
-export interface ReferralStatsData {
-  totalEarned: number;
-  referralCount: number;
-  perReferral: number;
-}
-
-// Renders a naira amount the way MyFund does: small ₦ symbol, small
-// decimal places, big whole-number amount in between. Symbol/decimal
-// sizes are in `em` so they scale automatically with whatever font-size
-// the wrapping element uses — same component works at 55px and at 30px
-// without any per-usage tuning.
-function NairaAmount({
-  value,
-  className = "",
-  bold = true,
-}: {
-  value: number;
-  className?: string;
-  bold?: boolean;
-}) {
-  const formatted = value.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  const [whole, decimal] = formatted.split(".");
-  const symbolWeight = bold ? "font-black" : "font-normal";
-
-  return (
-    <span className={`inline-flex items-baseline ${className}`}>
-      <span className={`mr-1 text-[0.4em] ${symbolWeight}`}>₦</span>
-      <span>{whole}</span>
-      <span className={`text-[0.4em] ${symbolWeight}`}>.{decimal}</span>
-    </span>
-  );
 }
 
 // Shared pill-button styling so every slide's CTA (Resume / Withdraw)
@@ -164,101 +126,19 @@ function ModuleProgressCard({
   );
 }
 
-// ── Learner slide 2: referral rewards (new) ──────────────────────
-// Mirrors the module card's layout rhythm — eyebrow, big stat, supporting
-// line, then a bottom row that ends in the CTA — so the two slides feel
-// like the same family as you swipe between them. Withdraw sits bottom
-// right, matching where Resume sits on slide 1.
-function ReferralRewardsCard({
-  data,
-  onWithdraw,
-}: {
-  data: ReferralStatsData;
-  onWithdraw?: () => void;
-}) {
-  return (
-    <GlassCard accent className="flex h-full min-h-[9.5rem] flex-col p-3.5">
-      <div className="flex items-center justify-between">
-        <SectionLabel>Referral rewards</SectionLabel>
-        <span
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-          style={{
-            background: "rgba(var(--vp-accent-rgb),0.14)",
-            color: "rgb(var(--vp-accent-rgb))",
-          }}
-        >
-          <Users size={14} strokeWidth={2} />
-        </span>
-      </div>
-
-      <p
-        className="mt-1 font-bold leading-none text-white"
-        style={{ fontFamily: "Proxima Nova", fontSize: 44 }}
-      >
-        <NairaAmount value={data.totalEarned} />
-      </p>
-
-      <div className="mt-2.5 flex flex-1 items-end justify-between gap-3">
-        <div className="flex -space-x-2">
-          {/* {Array.from({ length: avatarCount }).map((_, i) => (
-            <span
-              key={i}
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-[0.55rem] font-black text-white"
-              style={{
-                borderColor: "#2D375A",
-                background: "linear-gradient(145deg, #3a4763, #232e47)",
-              }}
-            >
-              {String.fromCharCode(65 + i)}
-            </span>
-          ))} */}
-          <p
-            className="mt-1.5 tracking-wide text-[0.9rem] text-white/90"
-            style={{ fontFamily: "PP Telegraf" }}
-          >
-            {data.referralCount} REFERRALS
-          </p>
-        </div>
-
-        <SlideCta label="Withdraw" onClick={onWithdraw} compact />
-      </div>
-    </GlassCard>
-  );
-}
-
 // ── Container ─────────────────────────────────────────────────────
-// The single thing HomeScreen renders — learner-only now. Publisher
-// mode's home used to show an EarningsCard slide here (total earned +
-// Withdraw), but that duplicated the Earn tab's whole reason for
-// existing, so the homepage now leads with the book shelf instead
-// (see PublisherBookShelf in PublisherBooks.tsx) and this component is
-// only ever called for mode === "learner".
+// The single thing HomeScreen renders — learner-only now. This used to
+// swap between two slides (module progress + referral rewards) via
+// HeroSlider, but "total earned" already duplicates the Earn tab's whole
+// reason for existing (same as Publisher's now-removed EarningsCard), so
+// that slide — and the slider it needed just to hold two cards — is gone.
+// Just the module-progress card, direct.
 export default function HeroCards({
   currentModule,
-  referralStats,
   onResume,
-  onWithdrawReferral,
 }: {
   currentModule: CurrentModuleData;
-  referralStats: ReferralStatsData;
   onResume?: () => void;
-  onWithdrawReferral?: () => void;
 }) {
-  const learnerSlides: HeroSlide[] = [
-    {
-      key: "module-progress",
-      content: <ModuleProgressCard data={currentModule} onResume={onResume} />,
-    },
-    {
-      key: "referral-rewards",
-      content: (
-        <ReferralRewardsCard
-          data={referralStats}
-          onWithdraw={onWithdrawReferral}
-        />
-      ),
-    },
-  ];
-
-  return <HeroSlider slides={learnerSlides} />;
+  return <ModuleProgressCard data={currentModule} onResume={onResume} />;
 }
