@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Camera, Eye, EyeOff, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { USER } from "../MockUser";
 import MarqueeName from "../../../components/MarqueeName";
+import AutoFitText from "../../../components/AutoFitText";
 
 // Bullet count is fixed (not tied to the real value's length) — the point
 // is to signal "hidden", not to leak the digit count of the amount
@@ -31,14 +32,11 @@ function StatTile({
   onToggleHidden?: () => void;
 }) {
   return (
-    // min-w so the tile never gets squeezed narrower than "Get NUBAN" +
-    // its badge need to sit on one line — flex-1 lets it share the row
-    // evenly with its sibling whenever there's room for both, and the
-    // parent's flex-wrap (not grid's fixed 50/50) drops it to its own
-    // full-width row instead of compressing it on the few devices where
-    // there isn't.
+    // min-w-0 (not a fixed min-w) + flex-1 — these sit side by side no
+    // matter how narrow the screen gets; AutoFitText below handles fit by
+    // shrinking instead of the tile itself needing room to wrap to.
     <div
-      className="flex min-w-[11.5rem] flex-1 items-center gap-2.5 rounded-2xl border px-3.5 py-3.5"
+      className="flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-2"
       style={{
         background: "rgba(255,255,255,0.06)",
         borderColor: "rgba(255,255,255,0.1)",
@@ -47,9 +45,11 @@ function StatTile({
       <span className="shrink-0 text-white/55">{icon}</span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-1.5">
-          <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
-            {label}
-          </p>
+          <AutoFitText className="min-w-0 flex-1">
+            <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-white/45">
+              {label}
+            </p>
+          </AutoFitText>
           {maskable && (
             <button
               type="button"
@@ -65,11 +65,12 @@ function StatTile({
             </button>
           )}
         </div>
-        {/* flex-wrap (not truncate) — "Get NUBAN" + its badge is wider
-            than a 2-column tile on most phones, and truncating it made the
-            label unreadable ("Get NU..."). Letting the badge drop to its
-            own line keeps both fully legible at any width instead. */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {/* AutoFitText (not flex-wrap/truncate) — "Get NUBAN" + its badge
+            is wider than a side-by-side tile on most phones. Scaling the
+            whole value+badge group down as one unit keeps both fully
+            legible on one line at any width, instead of wrapping the
+            badge onto its own line or clipping the label. */}
+        <AutoFitText className="mt-1">
           <p
             className="text-[1.05rem] font-black leading-none"
             style={{ color: valueColor }}
@@ -78,7 +79,7 @@ function StatTile({
           </p>
           {badge && (
             <span
-              className="shrink-0 rounded-md px-1.5 py-0.5 text-[0.48rem] font-black uppercase tracking-wide"
+              className="ml-1.5 shrink-0 rounded-md px-1.5 py-0.5 text-[0.48rem] font-black uppercase tracking-wide"
               style={{
                 background: "rgb(var(--vp-accent-rgb))",
                 color: "#171100",
@@ -87,7 +88,7 @@ function StatTile({
               {badge}
             </span>
           )}
-        </div>
+        </AutoFitText>
       </div>
     </div>
   );
@@ -115,14 +116,14 @@ export default function Profile() {
           rounded-[1.75rem]) rather than a generic button radius. */}
       <button
         type="button"
-        className="absolute right-3 top-3 flex items-center gap-1 border px-2 py-1 text-[0.56rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
+        className="absolute right-3 top-3 flex items-center gap-0.5 border px-1.5 py-0.5 text-[0.5rem] font-black tracking-wide text-white/85 backdrop-blur-sm transition-colors hover:text-white"
         style={{
           borderColor: "rgba(255,255,255,0.16)",
           background: "rgba(255,255,255,0.08)",
           borderRadius: "1.75rem",
         }}
       >
-        <Pencil size={10} strokeWidth={2.25} />
+        <Pencil size={9} strokeWidth={2.25} />
         Edit Profile
       </button>
 
@@ -170,27 +171,27 @@ export default function Profile() {
               get clipped with an ellipsis; it scrolls into view instead,
               same treatment as the email line right below it. Only
               actually animates when the text doesn't fit — a short name
-              renders completely statically. */}
+              renders completely statically. -mb-1 is the same fix as
+              Title.tsx: leading-none still reserves a bit of space below
+              the glyphs at this font-telegraf size, which read as a
+              bigger name-to-email gap than intended. */}
           <MarqueeName
             text={USER.firstName}
+            className="-mb-1"
             fadeColor="#232a4d"
             textClassName="font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl"
           />
-          {/* Smaller + tighter mt so the email sits right under the name —
-              reduced size is also what lets a full email fit on one line
-              more often, before marquee ever needs to kick in. */}
           <MarqueeName
             text={USER.email}
-            className="mt-0"
             fadeColor="#232a4d"
             textClassName="text-[0.68rem] text-white/50"
           />
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2.5">
+      <div className="mt-6 flex gap-2.5">
         <StatTile
-          icon={<TrendingUp size={17} strokeWidth={1.8} />}
+          icon={<TrendingUp size={15} strokeWidth={1.8} />}
           label="Total earnings"
           value="₦170,600"
           valueColor="#4ade80"
@@ -199,7 +200,7 @@ export default function Profile() {
           onToggleHidden={() => setAmountHidden((v) => !v)}
         />
         <StatTile
-          icon={<Landmark size={17} strokeWidth={1.8} />}
+          icon={<Landmark size={15} strokeWidth={1.8} />}
           label="Virtual account"
           value="Get NUBAN"
           badge="New"

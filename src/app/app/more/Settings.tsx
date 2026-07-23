@@ -239,7 +239,7 @@ function SettingRow({
   const content = (
     <>
       <span
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
         style={{
           background: item.danger
             ? "rgba(248,113,113,0.14)"
@@ -247,7 +247,7 @@ function SettingRow({
           color: item.danger ? "#f87171" : "rgb(var(--vp-accent-rgb))",
         }}
       >
-        <item.Icon size={15} strokeWidth={1.9} />
+        <item.Icon size={18} strokeWidth={1.9} />
       </span>
 
       <div className="min-w-0 flex-1">
