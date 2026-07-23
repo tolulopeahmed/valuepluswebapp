@@ -1024,14 +1024,19 @@ export default function GetQuote({
             .vpgq-card {
               border-radius: 1.45rem;
               padding: 1rem;
+              /* Was #0a0f1a — nearly the same near-black navy as the page
+                 background behind it, so the card barely read as a
+                 container at all. Matches GlassCard's lighter slate now
+                 (the "card on dark page" tone already used everywhere
+                 else in the app), for a real, consistent contrast. */
               background:
                 linear-gradient(
                   180deg,
                   rgba(255,255,255,.07),
                   rgba(255,255,255,.025)
                 ),
-                #0a0f1a;
-              border: 1px solid rgba(255,255,255,.12);
+                linear-gradient(180deg, #2F3A5E 0%, #2D375A 55%, #29325A 100%);
+              border: 1px solid rgba(255,255,255,.14);
               box-shadow: 0 35px 110px rgba(0,0,0,.42);
             }
 
