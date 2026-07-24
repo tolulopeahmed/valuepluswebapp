@@ -1,3 +1,5 @@
+import { notify } from "@/lib/snackbar";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -129,7 +131,18 @@ export async function apiFetch<T = unknown>(
   const body = isJson ? await res.json().catch(() => null) : null;
 
   if (!res.ok) {
-    throw new ApiError(res.status, body, extractErrorMessage(body));
+    const message = extractErrorMessage(body);
+    notify(message, "error");
+    throw new ApiError(res.status, body, message);
+  }
+
+  // Every mutation the backend cares to narrate returns a "message"
+  // field (register, login, password-reset, resend, quote-request,
+  // verify-email, ...); plain list/detail GETs never do, so this
+  // naturally only fires for the calls that actually have something to
+  // say — no per-call-site wiring needed.
+  if (body && typeof body === "object" && typeof (body as Record<string, unknown>).message === "string") {
+    notify((body as Record<string, unknown>).message as string, "success");
   }
 
   return body as T;

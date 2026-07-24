@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, ApiError } from "@/lib/api";
+import { notify } from "@/lib/snackbar";
 import Button from "../buttons/buttons";
 
 type ServiceType =
@@ -533,7 +534,6 @@ export default function GetQuote({
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success">(
     "idle",
   );
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
@@ -1039,7 +1039,6 @@ export default function GetQuote({
   }
 
   async function submitQuote() {
-    setSubmitError(null);
     setSubmitState("submitting");
 
     const numberOrUndefined = (value: string) => {
@@ -1067,9 +1066,11 @@ export default function GetQuote({
       });
       setSubmitState("success");
     } catch (err) {
-      setSubmitError(
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
-      );
+      // apiFetch already fires an error snackbar for ApiError — only the
+      // network-level case needs a fallback here.
+      if (!(err instanceof ApiError)) {
+        notify("Something went wrong. Please try again.", "error");
+      }
       setSubmitState("idle");
     }
   }
@@ -1972,12 +1973,6 @@ export default function GetQuote({
                 );
               })}
             </div>
-
-            {submitError && (
-              <p className="mt-2 text-center text-[0.74rem] text-red-300">
-                {submitError}
-              </p>
-            )}
 
             <button
               type="button"

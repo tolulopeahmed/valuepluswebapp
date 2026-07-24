@@ -7,9 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/buttons/buttons";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/snackbar";
 
 const inputBase =
-  "w-full min-h-[2.9rem] rounded-[0.8rem] border border-white/[0.09] bg-white/[0.055] px-[0.9rem] py-[0.75rem] text-white text-[0.88rem] outline-none placeholder:text-white/30 transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:bg-white/[0.08] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.09)]";
+  "w-full min-h-[2.85rem] rounded-[0.8rem] border border-[rgba(15,20,32,0.14)] bg-[#f4f5f7] px-[0.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
 
 function CompleteRegistrationForm() {
   const searchParams = useSearchParams();
@@ -23,14 +24,12 @@ function CompleteRegistrationForm() {
 
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      notify("Passwords do not match.", "error");
       return;
     }
 
@@ -44,21 +43,22 @@ function CompleteRegistrationForm() {
       });
       router.push("/app");
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
-      );
+      if (!(err instanceof ApiError)) {
+        notify("Something went wrong. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   async function handleResendCode() {
-    setError(null);
     setResending(true);
     try {
       await resendVerification(email);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not resend the code.");
+      if (!(err instanceof ApiError)) {
+        notify("Could not resend the code.", "error");
+      }
     } finally {
       setResending(false);
     }
@@ -102,12 +102,6 @@ function CompleteRegistrationForm() {
           Choose a password and enter the code we emailed you to see your
           full quote and unlock your dashboard.
         </p>
-
-        {error && (
-          <div className="mb-4 rounded-[0.7rem] border border-red-500/25 bg-red-500/10 px-3 py-2 text-center text-[0.76rem] text-red-300">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
           <input

@@ -7,8 +7,9 @@ import Button from "@/components/buttons/buttons";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/snackbar";
 
-type AuthMode = "login" | "signup" | "forgot" | "otp";
+type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -44,7 +45,7 @@ function EyeIcon({ open }: { open: boolean }) {
 
 function FieldTag({ label }: { label: string }) {
   return (
-    <span className="pointer-events-none absolute right-[0.6rem] top-1/2 inline-flex -translate-y-1/2 items-center whitespace-nowrap rounded-full border border-[rgba(239,199,0,0.28)] bg-[rgba(239,199,0,0.1)] px-[0.42rem] py-[0.18rem] text-[0.46rem] font-black uppercase tracking-[0.12em] text-[rgb(239,199,0)]">
+    <span className="pointer-events-none absolute right-[0.6rem] top-1/2 inline-flex -translate-y-1/2 items-center whitespace-nowrap rounded-full border border-[rgba(239,199,0,0.35)] bg-[rgba(20,20,30,0.88)] px-[0.42rem] py-[0.18rem] text-[0.46rem] font-black uppercase tracking-[0.12em] text-[rgb(239,199,0)]">
       {label}
     </span>
   );
@@ -62,15 +63,19 @@ export default function LoginPage() {
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
   const [focused, setFocused] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const router = useRouter();
-  const { login, registerDirect, verifyEmail, resendVerification, requestPasswordReset } =
-    useAuth();
+  const {
+    login,
+    registerDirect,
+    verifyEmail,
+    resendVerification,
+    requestPasswordReset,
+    confirmPasswordReset,
+  } = useAuth();
 
   function markComplete(id: string, value: string) {
     setFocused(null);
@@ -95,16 +100,13 @@ export default function LoginPage() {
   function switchMode(next: AuthMode) {
     setMode(next);
     setShowPw(false);
-    setDone(false);
-    setError(null);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
 
-    if (mode === "signup" && password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if ((mode === "signup" || mode === "reset") && password !== confirmPassword) {
+      notify("Passwords do not match.", "error");
       return;
     }
 
@@ -132,7 +134,10 @@ export default function LoginPage() {
 
       if (mode === "forgot") {
         await requestPasswordReset(email);
-        setDone(true);
+        setOtpCode("");
+        setPassword("");
+        setConfirmPassword("");
+        switchMode("reset");
         return;
       }
 
@@ -141,20 +146,43 @@ export default function LoginPage() {
         router.push("/app");
         return;
       }
+
+      if (mode === "reset") {
+        await confirmPasswordReset({
+          email,
+          code: otpCode,
+          new_password: password,
+          new_password_confirm: confirmPassword,
+        });
+        setPassword("");
+        setConfirmPassword("");
+        switchMode("login");
+        return;
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      // apiFetch already fires an error snackbar for ApiError — only the
+      // network-level case (never reached apiFetch's own response
+      // handling) needs a fallback here.
+      if (!(err instanceof ApiError)) {
+        notify("Something went wrong. Please try again.", "error");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   async function handleResendCode() {
-    setError(null);
     setResending(true);
     try {
-      await resendVerification(email);
+      if (mode === "reset") {
+        await requestPasswordReset(email);
+      } else {
+        await resendVerification(email);
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not resend the code.");
+      if (!(err instanceof ApiError)) {
+        notify("Could not resend the code.", "error");
+      }
     } finally {
       setResending(false);
     }
@@ -171,21 +199,25 @@ export default function LoginPage() {
     },
     forgot: {
       h: "Reset password.",
-      sub: "Enter your email and we'll send a reset link.",
+      sub: "Enter your email and we'll send a code.",
     },
     otp: {
       h: "Verify your email.",
       sub: `Enter the code we sent to ${email || "your email"}.`,
+    },
+    reset: {
+      h: "Set a new password.",
+      sub: `Enter the code we sent to ${email || "your email"} and choose a new password.`,
     },
   };
 
   const { h, sub } = titles[mode];
 
   const inputBase =
-    "w-full min-h-[2.9rem] rounded-[0.8rem] border bg-white/[0.055] px-[0.9rem] pr-[2.9rem] py-[0.75rem] text-white text-[0.88rem] outline-none placeholder:text-white/30 transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:bg-white/[0.08] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.09)]";
+    "w-full min-h-[2.85rem] rounded-[0.8rem] border bg-[#f4f5f7] px-[0.9rem] pr-[2.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
 
-  const inputIdle = "border-white/[0.09]";
-  const inputDone = "border-[rgba(239,199,0,0.26)] bg-[#090f1b]";
+  const inputIdle = "border-[rgba(15,20,32,0.14)]";
+  const inputDone = "border-[rgba(239,199,0,0.45)] bg-[#fdf6e7]";
 
   return (
     <main
@@ -225,40 +257,7 @@ export default function LoginPage() {
           {sub}
         </p>
 
-        {error && (
-          <div className="mb-4 rounded-[0.7rem] border border-red-500/25 bg-red-500/10 px-3 py-2 text-center text-[0.76rem] text-red-300">
-            {error}
-          </div>
-        )}
-
-        {mode === "forgot" && done ? (
-          <div className="py-2 text-center">
-            <div className="mx-auto mb-4 flex h-[3.2rem] w-[3.2rem] items-center justify-center rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-xl text-[#4ade80]">
-              ✓
-            </div>
-
-            <h3 className="mb-1 text-[1rem] font-black text-white">
-              Check your email
-            </h3>
-
-            <p className="mb-4 text-[0.78rem] leading-relaxed text-white/40">
-              We sent a reset link to{" "}
-              <strong className="text-white">{email}</strong>. It expires in 30
-              minutes.
-            </p>
-
-            <Button
-              type="button"
-              variant="primary"
-              size="md"
-              className="w-full"
-              onClick={() => switchMode("login")}
-            >
-              Back to log in
-            </Button>
-          </div>
-        ) : (
-          <>
+        <>
             <form
               onSubmit={handleSubmit}
               className="flex flex-col gap-[0.6rem]"
@@ -309,6 +308,7 @@ export default function LoginPage() {
                   value={email}
                   placeholder="Email address"
                   autoComplete="email"
+                  readOnly={mode === "reset"}
                   onFocus={() => setFocused("email")}
                   onBlur={() => markComplete("email", email)}
                   onChange={(e) => setEmail(e.target.value)}
@@ -320,57 +320,7 @@ export default function LoginPage() {
                 {isDone("email", email) && <FieldTag label="Email" />}
               </div>
 
-              {(mode === "login" || mode === "signup") && (
-                <div className="relative">
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={password}
-                    placeholder={
-                      mode === "signup" ? "Create a password" : "Password"
-                    }
-                    autoComplete={
-                      mode === "signup" ? "new-password" : "current-password"
-                    }
-                    onFocus={() => setFocused("pw")}
-                    onBlur={() => markComplete("pw", password)}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${inputBase} ${
-                      isDone("pw", password) ? inputDone : inputIdle
-                    }`}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                    tabIndex={-1}
-                    className="absolute right-[0.55rem] top-1/2 z-10 grid h-[1.8rem] w-[1.8rem] -translate-y-1/2 cursor-pointer place-items-center rounded-[0.45rem] border-none bg-transparent p-0 text-white/35 transition-all hover:bg-white/[0.06] hover:text-white/75 active:scale-90"
-                  >
-                    <EyeIcon open={showPw} />
-                  </button>
-                </div>
-              )}
-
-              {mode === "signup" && (
-                <div className="relative">
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={confirmPassword}
-                    placeholder="Confirm password"
-                    autoComplete="new-password"
-                    onFocus={() => setFocused("pwConfirm")}
-                    onBlur={() => markComplete("pwConfirm", confirmPassword)}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={`${inputBase} ${
-                      isDone("pwConfirm", confirmPassword)
-                        ? inputDone
-                        : inputIdle
-                    }`}
-                  />
-                </div>
-              )}
-
-              {mode === "otp" && (
+              {(mode === "otp" || mode === "reset") && (
                 <div className="relative">
                   <input
                     type="text"
@@ -388,7 +338,61 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {mode === "otp" && (
+              {(mode === "login" || mode === "signup" || mode === "reset") && (
+                <div className="relative">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    placeholder={
+                      mode === "signup"
+                        ? "Create a password"
+                        : mode === "reset"
+                          ? "Choose a new password"
+                          : "Password"
+                    }
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    onFocus={() => setFocused("pw")}
+                    onBlur={() => markComplete("pw", password)}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={`${inputBase} ${
+                      isDone("pw", password) ? inputDone : inputIdle
+                    }`}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    tabIndex={-1}
+                    className="absolute right-[0.55rem] top-1/2 z-10 grid h-[1.8rem] w-[1.8rem] -translate-y-1/2 cursor-pointer place-items-center rounded-[0.45rem] border-none bg-transparent p-0 text-[rgba(20,24,31,0.45)] transition-all hover:bg-black/[0.05] hover:text-[rgba(20,24,31,0.85)] active:scale-90"
+                  >
+                    <EyeIcon open={showPw} />
+                  </button>
+                </div>
+              )}
+
+              {(mode === "signup" || mode === "reset") && (
+                <div className="relative">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={confirmPassword}
+                    placeholder={
+                      mode === "reset" ? "Confirm new password" : "Confirm password"
+                    }
+                    autoComplete="new-password"
+                    onFocus={() => setFocused("pwConfirm")}
+                    onBlur={() => markComplete("pwConfirm", confirmPassword)}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`${inputBase} ${
+                      isDone("pwConfirm", confirmPassword)
+                        ? inputDone
+                        : inputIdle
+                    }`}
+                  />
+                </div>
+              )}
+
+              {(mode === "otp" || mode === "reset") && (
                 <button
                   type="button"
                   onClick={handleResendCode}
@@ -427,8 +431,10 @@ export default function LoginPage() {
                   "Create account →"
                 ) : mode === "otp" ? (
                   "Verify →"
+                ) : mode === "reset" ? (
+                  "Reset password →"
                 ) : (
-                  "Send reset link →"
+                  "Send code →"
                 )}
               </Button>
             </form>
@@ -462,6 +468,17 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => switchMode("signup")}
+                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
+                  >
+                    Go back
+                  </button>
+                </>
+              ) : mode === "reset" ? (
+                <>
+                  Entered the wrong email?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
                     className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
                   >
                     Go back
@@ -501,7 +518,6 @@ export default function LoginPage() {
               </p>
             )}
           </>
-        )}
       </div>
 
       <Link

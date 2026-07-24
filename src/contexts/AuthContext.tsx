@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiFetch, clearTokens, setTokens } from "@/lib/api";
+import { apiFetch, clearTokens, getTokens, setTokens } from "@/lib/api";
 
 export interface AuthUser {
   id: number;
@@ -45,6 +45,13 @@ interface VerifyEmailPayload {
   password_confirm?: string;
 }
 
+interface ConfirmPasswordResetPayload {
+  email: string;
+  code: string;
+  new_password: string;
+  new_password_confirm: string;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -54,6 +61,7 @@ interface AuthContextValue {
   verifyEmail: (data: VerifyEmailPayload) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
+  confirmPasswordReset: (data: ConfirmPasswordResetPayload) => Promise<void>;
   logout: () => void;
 }
 
@@ -75,6 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function hydrate() {
+      // No point hitting the network (or surfacing an error toast) to
+      // check who's logged in when there's no token at all — that's not
+      // an error, it's just an anonymous visitor.
+      if (!getTokens().access) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         const me = await apiFetch<AuthUser>("/auth/me/");
         if (!cancelled) setUser(me);
@@ -136,6 +152,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const confirmPasswordReset = useCallback(async (payload: ConfirmPasswordResetPayload) => {
+    await apiFetch("/auth/password-reset/confirm/", {
+      method: "POST",
+      skipAuth: true,
+      body: JSON.stringify(payload),
+    });
+  }, []);
+
   const logout = useCallback(() => {
     clearTokens();
     setUser(null);
@@ -152,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyEmail,
         resendVerification,
         requestPasswordReset,
+        confirmPasswordReset,
         logout,
       }}
     >
