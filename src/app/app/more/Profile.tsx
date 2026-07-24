@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
-import { USER } from "../MockUser";
+import { useAuth } from "../../../contexts/AuthContext";
 import MarqueeName from "../../../components/MarqueeName";
 import AutoFitText from "../../../components/AutoFitText";
 import Button from "../../../components/buttons/buttons";
@@ -103,9 +103,12 @@ function StatTile({
 // the page (more/page.tsx no longer wraps this in its own bordered card).
 // Settings' own rounded "shelf" overlaps this section's bottom edge.
 export default function Profile() {
+  // AppLayout only ever renders its children once the user is
+  // authenticated, so `user` is guaranteed non-null here.
+  const { user } = useAuth();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [amountHidden, setAmountHidden] = useState(false);
-  const initial = USER.firstName.trim().charAt(0).toUpperCase() || "V";
+  const initial = user!.first_name.trim().charAt(0).toUpperCase() || "V";
 
   return (
     <div
@@ -141,10 +144,10 @@ export default function Profile() {
           like the reference */}
       <div className="flex items-center gap-4 pr-2">
         <div className="relative shrink-0">
-          {USER.avatar && !avatarFailed ? (
+          {user!.avatar && !avatarFailed ? (
             <Image
-              src={USER.avatar}
-              alt={USER.firstName}
+              src={user!.avatar}
+              alt={user!.first_name}
               width={112}
               height={112}
               className="h-[112px] w-[112px] rounded-full border-[3px] object-cover"
@@ -186,13 +189,13 @@ export default function Profile() {
               the glyphs at this font-telegraf size, which read as a
               bigger name-to-email gap than intended. */}
           <MarqueeName
-            text={USER.firstName}
+            text={user!.first_name}
             className="-mb-2"
             fadeColor="#232a4d"
             textClassName="font-telegraf text-[2rem] font-black leading-none text-white md:text-4xl"
           />
           <MarqueeName
-            text={USER.email}
+            text={user!.email}
             fadeColor="#232a4d"
             textClassName="text-[0.68rem] text-white/50"
           />

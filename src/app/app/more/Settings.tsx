@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Switch from "@mui/material/Switch";
 import {
   Moon,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const REFERRAL_COUNT = 3;
 
@@ -214,7 +216,6 @@ const ITEMS: SettingItem[] = [
     subtitle: "Sign out of your account",
     Icon: LogOut,
     danger: true,
-    href: "/login",
   },
 ];
 
@@ -267,9 +268,9 @@ function SettingRow({
     </>
   );
 
-  // message-admin (wa.me) and logout (/login) render as links instead of
-  // buttons that fire onSelect — everything else still just logs its id
-  // until those flows exist.
+  // message-admin (wa.me) renders as a link instead of a button that
+  // fires onSelect — everything else (including logout, handled in
+  // Settings()) goes through onSelect.
   if (item.href && item.external) {
     return (
       <a
@@ -311,6 +312,17 @@ export default function Settings() {
   // AppShellContext already uses to drive the accent color and the
   // homepage's Learner/Publisher view, so this stays in sync everywhere.
   const { mode, setMode } = useAppShell();
+  const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleSelect = (id: string) => {
+    if (id === "logout") {
+      logout();
+      router.push("/login");
+      return;
+    }
+    console.log("settings:", id);
+  };
 
   return (
     // Negative top margin pulls this panel up over the hero's bottom edge;
@@ -343,11 +355,7 @@ export default function Settings() {
 
       <div className="flex flex-col gap-2.5">
         {ITEMS.map((item) => (
-          <SettingRow
-            key={item.id}
-            item={item}
-            onSelect={(id) => console.log("settings:", id)}
-          />
+          <SettingRow key={item.id} item={item} onSelect={handleSelect} />
         ))}
       </div>
 

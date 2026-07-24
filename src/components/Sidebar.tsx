@@ -2,8 +2,8 @@
 
 import { useState, type CSSProperties } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
 
 type Mode = "learner" | "publisher";
 
@@ -95,6 +95,12 @@ export default function Sidebar({
   const [logoFailed, setLogoFailed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   // Same four destinations as the mobile bottom tab bar (MainTab.tsx) —
   // "Settings" here is just this sidebar's label for the /app/more route;
@@ -379,18 +385,18 @@ export default function Sidebar({
               Chat Admin
             </a>
 
-            <Link
-              href="/login"
-              className="vp-nav-row"
-              style={{ animationDelay: "300ms" }}
-            >
-              <button className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-normal text-red-300/85 transition-[color,background] duration-200 hover:bg-red-500/10 hover:text-red-200 active:scale-[0.98]">
+            <div className="vp-nav-row" style={{ animationDelay: "300ms" }}>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-normal text-red-300/85 transition-[color,background] duration-200 hover:bg-red-500/10 hover:text-red-200 active:scale-[0.98]"
+              >
                 <span className="grid place-items-center transition-transform duration-200 group-hover:translate-x-0.5">
                   <Icon path={ICONS.logout} size={18} />
                 </span>
                 Log Out
               </button>
-            </Link>
+            </div>
           </div>
         </nav>
 

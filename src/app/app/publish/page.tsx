@@ -11,12 +11,56 @@ import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
 import MarqueeName from "../../../components/MarqueeName";
 import Button from "../../../components/buttons/buttons";
-import { BOOKS, STATUS_LABEL, type Book } from "../PublisherBooks";
+import {
+  useMyBooks,
+  MY_BOOK_STATUS_LABEL,
+  MY_BOOK_STATUS_BADGE_CLASS,
+  type MyBook,
+} from "../../../hooks/useMyBooks";
 
 type View = "grid" | "list";
+type Book = MyBook;
 
-function naira(n: number) {
+// Backend decimal fields (price/earned) arrive as strings; price is also
+// nullable on a fresh `pending` book with no print quote yet.
+function naira(value: string | number | null) {
+  if (value === null) return "—";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (Number.isNaN(n)) return "—";
   return `₦${n.toLocaleString()}`;
+}
+
+// Same initial-letter fallback pattern used for the avatar elsewhere
+// (app/page.tsx's ProfileAvatar, more/Profile.tsx) — a `pending` book
+// has no cover yet, so next/image has nothing to render.
+function BookCover({
+  book,
+  sizes,
+}: {
+  book: MyBook;
+  sizes: string;
+}) {
+  if (book.cover) {
+    return (
+      <Image
+        src={book.cover}
+        alt={book.title}
+        fill
+        sizes={sizes}
+        className="object-cover"
+      />
+    );
+  }
+
+  const initial = book.title.trim().charAt(0).toUpperCase() || "V";
+  return (
+    <div
+      className="flex h-full w-full items-center justify-center text-lg font-black text-white/80"
+      style={{ background: "linear-gradient(145deg, #3a4763, #232e47)" }}
+    >
+      {initial}
+    </div>
+  );
 }
 
 // Same border-color system as the public portfolio's book shelf
@@ -37,24 +81,20 @@ const BORDER_COLORS = [
 // had real contrast no matter how opaque; a solid dark neutral behind
 // solid white text actually pops. in_progress goes fully solid accent
 // with dark text, matching how .btn-primary already treats "text on
-// solid accent" elsewhere in the app.
-const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
-  published: "bg-[#123524] text-[#4ade80] border border-[rgba(74,222,128,0.6)]",
-  in_progress:
-    "bg-[rgb(var(--vp-accent-rgb))] text-[#171100] border border-[rgba(255,255,255,0.35)]",
-  draft: "bg-[#3a3f52] text-white border border-white/25",
-};
-
+// solid accent" elsewhere in the app. pending (a book just created from
+// a quote request, before any work has started) gets its own blue
+// treatment — distinct from draft, since it's a different state: nothing
+// has been submitted yet, staff still owe the requester a full quote.
 function StatusBadge({ status }: { status: Book["status"] }) {
   return (
     // py-1.5 (equal to px-1.5) made this a tall pill, not a compact
     // badge — a flatter vertical padding with a small (not full) radius
     // reads as a proper corner tag instead.
     <span
-      className={`inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${STATUS_BADGE_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${MY_BOOK_STATUS_BADGE_CLASS[status]}`}
     >
       {status === "published" && <Check size={8} strokeWidth={3.5} />}
-      {STATUS_LABEL[status]}
+      {MY_BOOK_STATUS_LABEL[status]}
     </span>
   );
 }
@@ -152,13 +192,7 @@ function BookGridTile({ book, index }: { book: Book; index: number }) {
         className="vp-book-cover-hover absolute inset-0 overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
         style={{ borderColor }}
       >
-        <Image
-          src={book.cover}
-          alt={book.title}
-          fill
-          sizes="(min-width: 768px) 18vw, 32vw"
-          className="object-cover"
-        />
+        <BookCover book={book} sizes="(min-width: 768px) 18vw, 32vw" />
         <span className="absolute right-1 top-1">
           <StatusBadge status={book.status} />
         </span>
@@ -218,13 +252,7 @@ function BookListRow({ book, index }: { book: Book; index: number }) {
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-white/15">
-          <Image
-            src={book.cover}
-            alt={book.title}
-            fill
-            sizes="44px"
-            className="object-cover"
-          />
+          <BookCover book={book} sizes="44px" />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -238,7 +266,7 @@ function BookListRow({ book, index }: { book: Book; index: number }) {
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <StatusBadge status={book.status} />
             <span className="text-[0.56rem] text-white/35">
-              {book.datePublished ?? "Not yet published"}
+              {book.date_published ?? "Not yet published"}
             </span>
           </div>
         </div>
@@ -292,6 +320,7 @@ export default function PublishPage() {
   const [view, setView] = useState<View>("grid");
   const router = useRouter();
   const goToAddNewTitle = () => router.push("/app/publish/new");
+  const { books, loading, error } = useMyBooks();
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -332,17 +361,25 @@ export default function PublishPage() {
         style={{ animationDelay: "40ms" }}
       >
         <SectionLabel>
-          {BOOKS.length} {BOOKS.length === 1 ? "Title" : "Titles"}
+          {books.length} {books.length === 1 ? "Title" : "Titles"}
         </SectionLabel>
         <ViewToggle view={view} onChange={setView} />
       </div>
 
-      {view === "grid" ? (
+      {error && (
+        <p className="vp-card-in mb-3 text-[0.78rem] text-red-300">{error}</p>
+      )}
+
+      {loading ? (
+        <div className="vp-card-in py-10 text-center text-[0.8rem] text-white/40">
+          Loading your books…
+        </div>
+      ) : view === "grid" ? (
         <div
           className="vp-card-in grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5"
           style={{ animationDelay: "80ms" }}
         >
-          {BOOKS.map((book, i) => (
+          {books.map((book, i) => (
             <BookGridTile key={book.id} book={book} index={i} />
           ))}
           <AddNewTitleGridTile onClick={goToAddNewTitle} />
@@ -352,7 +389,7 @@ export default function PublishPage() {
           className="vp-card-in flex flex-col gap-2.5"
           style={{ animationDelay: "80ms" }}
         >
-          {BOOKS.map((book, i) => (
+          {books.map((book, i) => (
             <BookListRow key={book.id} book={book} index={i} />
           ))}
           <AddNewTitleListRow onClick={goToAddNewTitle} />

@@ -8,7 +8,7 @@ import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import MainTab from "../../components/MainTab";
 import { AppShellProvider, useAppShell, type Mode } from "./AppShellContext";
-import { USER } from "./MockUser";
+import { useAuth } from "../../contexts/AuthContext";
 import { VP_PAGE_BG } from "./GlassCard";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
@@ -21,10 +21,24 @@ const ACCENT_RGB: Record<Mode, string> = {
   publisher: "255,145,64",
 };
 
+// xp/level/streak are gamification fields with no backend equivalent yet
+// (no Academy progress model wired here) — static placeholders until
+// that's built, not read from the real user.
+const PLACEHOLDER_XP = 0;
+const PLACEHOLDER_LEVEL = 1;
+const PLACEHOLDER_STREAK = 0;
+
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { mode, setMode, sidebarOpen, setSidebarOpen } = useAppShell();
   const router = useRouter();
   const pathname = usePathname();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   // Switching mode from the sidebar/header toggle used to only re-theme
   // the accent color — if you were sitting on /app/learn and flipped to
@@ -62,6 +76,16 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
     "--vp-accent": `rgb(${ACCENT_RGB[mode]})`,
   };
 
+  // While the initial token/session check runs, or once we know there's
+  // no session (redirect above is in flight), don't flash the real shell.
+  if (isLoading || !isAuthenticated || !user) {
+    return (
+      <div className="grid min-h-svh place-items-center" style={{ background: VP_PAGE_BG }}>
+        <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative min-h-svh overflow-x-hidden md:flex"
@@ -72,14 +96,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         onClose={() => setSidebarOpen(false)}
         mode={mode}
         onModeChange={handleModeChange}
-        firstName={USER.firstName}
-        xp={USER.xp}
-        level={USER.level}
+        firstName={user.first_name}
+        xp={PLACEHOLDER_XP}
+        level={PLACEHOLDER_LEVEL}
       />
 
       <div className="min-w-0 flex-1">
         <Header
-          streak={USER.streak}
+          streak={PLACEHOLDER_STREAK}
           notificationCount={2}
           mode={mode}
           onModeChange={handleModeChange}

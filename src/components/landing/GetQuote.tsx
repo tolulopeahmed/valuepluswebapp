@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { Check, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
   useMemo,
@@ -10,6 +11,9 @@ import {
   type ChangeEvent,
   type RefObject,
 } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiFetch, ApiError } from "@/lib/api";
+import Button from "../buttons/buttons";
 
 type ServiceType =
   | "fixed"
@@ -436,6 +440,57 @@ function getServiceCost({
   return 0;
 }
 
+// Two very different "you're done" states share this one component:
+// an anonymous visitor (public /getQuote) needs to go check their email
+// and click through to /complete-registration; a visitor who was already
+// logged in (in-app "Add New Title") is already verified — the backend
+// just attached the new pending book to their account, so there's
+// nothing left to confirm, just a way back to the dashboard.
+function QuoteSuccessPanel({
+  email,
+  isAuthenticated,
+  onGoToDashboard,
+}: {
+  email: string;
+  isAuthenticated: boolean;
+  onGoToDashboard: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center px-2 py-10 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-2xl text-[#4ade80]">
+        ✓
+      </div>
+
+      {isAuthenticated ? (
+        <>
+          <h3 className="mb-2 text-[1.1rem] font-black text-white">
+            Added to your dashboard
+          </h3>
+          <p className="mb-6 max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
+            Your new title is on your Publish page with a pending status.
+            We&apos;ll follow up with the full quote, including print cost,
+            once it&apos;s ready.
+          </p>
+          <Button variant="primary" size="md" onClick={onGoToDashboard}>
+            Go to dashboard →
+          </Button>
+        </>
+      ) : (
+        <>
+          <h3 className="mb-2 text-[1.1rem] font-black text-white">
+            Check your email
+          </h3>
+          <p className="max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
+            We sent the details you submitted, plus a code, to{" "}
+            <strong className="text-white">{email}</strong>. Click the link
+            in that email to choose a password and see your full quote.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // showExtras/onToggleExtras are optional so the public /getQuote page's
 // <GetQuote /> (no props) renders byte-identical to before — the Print
 // Quantity Guide + POD Plans section always shows there. The app's
@@ -474,6 +529,28 @@ export default function GetQuote({
   const [estimateInView, setEstimateInView] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [completedFields, setCompletedFields] = useState<string[]>([]);
+
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success">(
+    "idle",
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+
+  // Already-logged-in visitors (the in-app "Add New Title" flow) don't
+  // need to retype their own name/email — prefill once per login, but
+  // only if the field is still empty so we never clobber something
+  // they've typed. Adjusting state during render (guarded so it only
+  // fires once per user) rather than in an effect — this is React's own
+  // documented pattern for "state that depends on a prop/value change"
+  // and avoids an extra post-mount render pass.
+  const [prefilledForEmail, setPrefilledForEmail] = useState<string | null>(null);
+  if (isAuthenticated && user && prefilledForEmail !== user.email) {
+    setPrefilledForEmail(user.email);
+    setFullName((current) => current || `${user.first_name} ${user.last_name}`.trim());
+    setEmail((current) => current || user.email);
+  }
 
   const pageCount = toNumber(pages);
   const wordCount = toNumber(words);
@@ -554,12 +631,6 @@ export default function GetQuote({
       );
     }, 0);
   }, [chapterCount, copyCount, pageCount, selectedServices, wordCount]);
-
-  const quoteCount = selectedServices.filter(
-    (item) => item.type === "quote",
-  ).length;
-
-  const selectedServiceNames = selectedServices.map((service) => service.label);
 
   useEffect(() => {
     const node = estimateCardRef.current;
@@ -967,41 +1038,40 @@ export default function GetQuote({
     );
   }
 
-  function sendToWhatsApp() {
-    const message = [
-      "Hello ValuePlus, I would like to request the full cost for my book.",
-      "",
-      `Book Title: ${bookTitle || "Not provided"}`,
-      `Category: ${category || "Not provided"}`,
-      `Book Size: ${bookSize || "Not provided"}`,
-      `Estimated Pages: ${pages || "Not provided"}`,
-      `Estimated Words: ${words || "Not provided"}`,
-      `Chapters / Illustrations: ${chapters || "Not provided"}`,
-      `Copies: ${copies || "Not provided"}`,
-      "",
-      `Selected Services: ${
-        selectedServiceNames.length > 0
-          ? selectedServiceNames.join(", ")
-          : "None selected"
-      }`,
-      `Estimated Total: ${formatNaira(estimate)}`,
-      quoteCount > 0
-        ? `Custom Quote Items: ${quoteCount} item${quoteCount > 1 ? "s" : ""}`
-        : "",
-      "",
-      `Name: ${fullName || "Not provided"}`,
-      `WhatsApp: ${whatsapp || "Not provided"}`,
-      `Email: ${email || "Not provided"}`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+  async function submitQuote() {
+    setSubmitError(null);
+    setSubmitState("submitting");
 
-    const whatsappNumber = "234";
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
-      message,
-    )}`;
+    const numberOrUndefined = (value: string) => {
+      const n = toNumber(value);
+      return n > 0 ? n : undefined;
+    };
 
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+    try {
+      await apiFetch("/quotations/request/", {
+        method: "POST",
+        skipAuth: true,
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          whatsapp_number: whatsapp,
+          book_title: bookTitle,
+          category: category || undefined,
+          book_size: bookSize || undefined,
+          pages: numberOrUndefined(pages),
+          words: numberOrUndefined(words),
+          chapters: numberOrUndefined(chapters),
+          copies: numberOrUndefined(copies),
+          selected_service_ids: effectiveSelectedIds,
+        }),
+      });
+      setSubmitState("success");
+    } catch (err) {
+      setSubmitError(
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
+      );
+      setSubmitState("idle");
+    }
   }
 
   return (
@@ -1666,6 +1736,14 @@ export default function GetQuote({
           </div>
 
           <div className="vpgq-card">
+            {submitState === "success" ? (
+              <QuoteSuccessPanel
+                email={email}
+                isAuthenticated={isAuthenticated}
+                onGoToDashboard={() => router.push("/app/publish")}
+              />
+            ) : (
+              <>
             <div ref={estimateCardRef} className="vpgq-estimate-card">
               <p className="vpgq-estimate-label">Estimated Amount</p>
 
@@ -1832,6 +1910,8 @@ export default function GetQuote({
                       placeholder="Email address"
                       type="email"
                       autoComplete="email"
+                      readOnly={isAuthenticated}
+                      style={isAuthenticated ? { opacity: 0.6 } : undefined}
                     />
 
                     {shouldShowFieldTag("email", email) && (
@@ -1893,18 +1973,33 @@ export default function GetQuote({
               })}
             </div>
 
+            {submitError && (
+              <p className="mt-2 text-center text-[0.74rem] text-red-300">
+                {submitError}
+              </p>
+            )}
+
             <button
               type="button"
               className="vpgq-submit"
-              onClick={sendToWhatsApp}
+              onClick={submitQuote}
+              disabled={submitState === "submitting"}
             >
               <span className="vpgq-submit-title">
-                Send me{" "}
-                <span style={{ fontFamily: "PP Telegraf" }}>PRINT Cost + </span>
-                <span className="vpgq-submit-total">
-                  {formatNaira(displayTotal)}
-                </span>
-                <span> →</span>
+                {submitState === "submitting" ? (
+                  "Sending…"
+                ) : (
+                  <>
+                    Send me{" "}
+                    <span style={{ fontFamily: "PP Telegraf" }}>
+                      PRINT Cost +{" "}
+                    </span>
+                    <span className="vpgq-submit-total">
+                      {formatNaira(displayTotal)}
+                    </span>
+                    <span> →</span>
+                  </>
+                )}
               </span>
             </button>
 
@@ -1934,6 +2029,8 @@ export default function GetQuote({
                   {showExtras ? "Show less" : "View more"}
                 </span>
               </button>
+            )}
+              </>
             )}
           </div>
         </div>

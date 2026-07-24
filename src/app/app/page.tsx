@@ -12,7 +12,7 @@ import HeroCards from "./HeroCards";
 // import SidePanel from "./SidePanel";
 import Transactions from "../../components/Transactions";
 import { useAppShell } from "./AppShellContext";
-import { USER } from "./MockUser";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   MODULES,
   getCurrentModule,
@@ -73,6 +73,9 @@ function ProfileAvatar({
 
 export default function HomeScreen() {
   const { mode, setSidebarOpen } = useAppShell();
+  // AppLayout only ever renders its children once the user is
+  // authenticated, so `user` is guaranteed non-null here.
+  const { user } = useAuth();
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
   );
@@ -87,7 +90,7 @@ export default function HomeScreen() {
           <Title className="block max-w-full overflow-hidden">
             <span className="flex min-w-0 max-w-full items-center overflow-hidden">
               <MarqueeName
-                text={`Hi, ${USER.firstName}`}
+                text={`Hi, ${user!.first_name}`}
                 className="min-w-0 flex-1"
                 fadeColor="rgba(10,14,27,0.96)"
               />
@@ -102,8 +105,8 @@ export default function HomeScreen() {
 
         <div className="shrink-0">
           <ProfileAvatar
-            name={USER.firstName}
-            avatar={USER.avatar}
+            name={user!.first_name}
+            avatar={user!.avatar}
             onClick={() => setSidebarOpen(true)}
           />
         </div>
