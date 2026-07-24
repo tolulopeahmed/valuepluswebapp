@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import Button from "@/components/buttons/buttons";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { ApiError } from "@/lib/api";
 
-type AuthMode = "login" | "signup" | "forgot";
+type AuthMode = "login" | "signup" | "forgot" | "otp";
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -55,14 +57,20 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const [focused, setFocused] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const router = useRouter();
+  const { login, registerDirect, verifyEmail, resendVerification, requestPasswordReset } =
+    useAuth();
 
   function markComplete(id: string, value: string) {
     setFocused(null);
@@ -88,50 +96,69 @@ export default function LoginPage() {
     setMode(next);
     setShowPw(false);
     setDone(false);
+    setError(null);
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    setError(null);
 
-    setLoading(true);
-
-    const payload =
-      mode === "signup"
-        ? {
-            first_name: firstName,
-            last_name: lastName,
-            email,
-            password,
-          }
-        : mode === "login"
-          ? {
-              email,
-              password,
-            }
-          : {
-              email,
-            };
-
-    console.log("AUTH PAYLOAD:", payload);
-
-    // TODO: wire to Django endpoints:
-    // login: POST /api/auth/login/
-    // signup: POST /api/auth/signup/
-    // forgot: POST /api/auth/request-password-reset/
-
-    await new Promise((resolve) => setTimeout(resolve, 900));
-
-    setLoading(false);
-
-    if (mode === ("login" as AuthMode)) {
-      router.push("/app");
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
-    if (mode === "forgot") {
-      setDone(true);
+    setLoading(true);
+
+    try {
+      if (mode === "login") {
+        await login(email, password);
+        router.push("/app");
+        return;
+      }
+
+      if (mode === "signup") {
+        await registerDirect({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          password,
+          password_confirm: confirmPassword,
+        });
+        setOtpCode("");
+        switchMode("otp");
+        return;
+      }
+
+      if (mode === "forgot") {
+        await requestPasswordReset(email);
+        setDone(true);
+        return;
+      }
+
+      if (mode === "otp") {
+        await verifyEmail({ email, code: otpCode });
+        router.push("/app");
+        return;
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  } // 👈 THIS CLOSES handleSubmit
+  }
+
+  async function handleResendCode() {
+    setError(null);
+    setResending(true);
+    try {
+      await resendVerification(email);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not resend the code.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   const titles: Record<AuthMode, { h: string; sub: string }> = {
     login: {
@@ -145,6 +172,10 @@ export default function LoginPage() {
     forgot: {
       h: "Reset password.",
       sub: "Enter your email and we'll send a reset link.",
+    },
+    otp: {
+      h: "Verify your email.",
+      sub: `Enter the code we sent to ${email || "your email"}.`,
     },
   };
 
@@ -193,6 +224,12 @@ export default function LoginPage() {
         <p className="mb-6 text-center text-[0.78rem] leading-relaxed text-white/40">
           {sub}
         </p>
+
+        {error && (
+          <div className="mb-4 rounded-[0.7rem] border border-red-500/25 bg-red-500/10 px-3 py-2 text-center text-[0.76rem] text-red-300">
+            {error}
+          </div>
+        )}
 
         {mode === "forgot" && done ? (
           <div className="py-2 text-center">
@@ -283,7 +320,7 @@ export default function LoginPage() {
                 {isDone("email", email) && <FieldTag label="Email" />}
               </div>
 
-              {mode !== "forgot" && (
+              {(mode === "login" || mode === "signup") && (
                 <div className="relative">
                   <input
                     type={showPw ? "text" : "password"}
@@ -314,6 +351,54 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {mode === "signup" && (
+                <div className="relative">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={confirmPassword}
+                    placeholder="Confirm password"
+                    autoComplete="new-password"
+                    onFocus={() => setFocused("pwConfirm")}
+                    onBlur={() => markComplete("pwConfirm", confirmPassword)}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className={`${inputBase} ${
+                      isDone("pwConfirm", confirmPassword)
+                        ? inputDone
+                        : inputIdle
+                    }`}
+                  />
+                </div>
+              )}
+
+              {mode === "otp" && (
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={otpCode}
+                    placeholder="6-digit code"
+                    maxLength={6}
+                    onFocus={() => setFocused("otp")}
+                    onBlur={() => markComplete("otp", otpCode)}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    className={`${inputBase} ${
+                      isDone("otp", otpCode) ? inputDone : inputIdle
+                    } text-center tracking-[0.4em]`}
+                  />
+                </div>
+              )}
+
+              {mode === "otp" && (
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resending}
+                  className="-mt-1 cursor-pointer self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
+                >
+                  {resending ? "Sending…" : "Resend code"}
+                </button>
+              )}
+
               {mode === "login" && (
                 <button
                   type="button"
@@ -340,6 +425,8 @@ export default function LoginPage() {
                   "Log in →"
                 ) : mode === "signup" ? (
                   "Create account →"
+                ) : mode === "otp" ? (
+                  "Verify →"
                 ) : (
                   "Send reset link →"
                 )}
@@ -367,6 +454,17 @@ export default function LoginPage() {
                     className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
                   >
                     Log in
+                  </button>
+                </>
+              ) : mode === "otp" ? (
+                <>
+                  Entered the wrong email?{" "}
+                  <button
+                    type="button"
+                    onClick={() => switchMode("signup")}
+                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
+                  >
+                    Go back
                   </button>
                 </>
               ) : (

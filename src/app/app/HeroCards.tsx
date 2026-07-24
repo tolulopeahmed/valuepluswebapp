@@ -1,7 +1,8 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Play } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
 import MarqueeName from "../../components/MarqueeName";
@@ -19,12 +20,14 @@ export interface CurrentModuleData {
 // looks and behaves identically — same gold fill, same tap spring.
 function SlideCta({
   label,
+  icon,
   onClick,
   variant = "primary",
   compact = false,
   style,
 }: {
   label: string;
+  icon?: ReactNode;
   onClick?: () => void;
   variant?: "primary" | "secondary";
   compact?: boolean;
@@ -45,7 +48,7 @@ function SlideCta({
         // No rounded-* override — falls back to .btn-base's own
         // var(--r-md), the same radius every other primary/secondary
         // button in the app uses, instead of a one-off pill shape.
-        className="w-auto items-center gap-1.5 whitespace-nowrap text-xs font-black uppercase tracking-wide"
+        className="w-auto items-center gap-1 whitespace-nowrap text-xs font-black uppercase tracking-wide"
         style={{
           // .btn-sm's own padding/min-height live in globals.css outside
           // any @layer, so they beat Tailwind's layered px/py utilities
@@ -53,14 +56,14 @@ function SlideCta({
           // that reliably overrides it for the compact variant. Radius
           // also needs its own override here: var(--r-md) (0.95rem) was
           // sized for the taller default .btn-sm (2.75rem) — on this
-          // much shorter 2.1rem button the same radius is close to half
-          // the height, so it still reads as a pill. var(--r-sm)
-          // (0.65rem) keeps the same proportional "rounded corner, not
-          // pill" look at this smaller scale.
+          // much shorter button the same radius is close to half the
+          // height, so it still reads as a pill. var(--r-sm) (0.65rem)
+          // keeps the same proportional "rounded corner, not pill" look
+          // at this smaller scale.
           ...(compact
             ? {
-                minHeight: "2.1rem",
-                padding: "0.5rem 1rem",
+                minHeight: "1.85rem",
+                padding: "0.4rem 0.8rem",
                 borderRadius: "var(--r-sm)",
               }
             : {}),
@@ -74,6 +77,7 @@ function SlideCta({
           ...style,
         }}
       >
+        {icon}
         {label}
       </Button>
     </motion.div>
@@ -120,7 +124,12 @@ function ModuleProgressCard({
           </p>
         </div>
 
-        <SlideCta label="Resume" onClick={onResume} compact />
+        <SlideCta
+          label="Resume"
+          icon={<Play size={11} strokeWidth={2.5} fill="currentColor" />}
+          onClick={onResume}
+          compact
+        />
       </div>
     </GlassCard>
   );

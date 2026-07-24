@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import {
   useEffect,
   useMemo,
@@ -1294,14 +1294,12 @@ export default function GetQuote({
             }
 
             .vpgq-chip-active {
-              border-color: rgba(var(--vp-accent-rgb), .66);
-              background:
-                radial-gradient(circle at 15% 20%, rgba(var(--vp-accent-rgb), .17), transparent 36%),
-                rgba(var(--vp-accent-rgb), .095);
-              color: white;
+              border-color: var(--vp-accent);
+              background: var(--vp-accent);
+              color: #171100;
               box-shadow:
-                0 0 0 1px rgba(var(--vp-accent-rgb), .09),
-                0 4px 16px rgba(var(--vp-accent-rgb), .1);
+                0 0 0 1px rgba(var(--vp-accent-rgb), .2),
+                0 4px 16px rgba(var(--vp-accent-rgb), .22);
             }
 
             .vpgq-chip-free {
@@ -1311,32 +1309,37 @@ export default function GetQuote({
             }
 
             .vpgq-chip-free.vpgq-chip-active {
-              border-color: rgba(52, 211, 153, .65);
-              background:
-                radial-gradient(circle at 15% 20%, rgba(52, 211, 153, .18), transparent 36%),
-                rgba(52, 211, 153, .11);
+              border-color: #34d399;
+              background: #34d399;
+              color: #022c22;
               box-shadow:
-                0 0 0 1px rgba(52, 211, 153, .11),
-                0 4px 16px rgba(52, 211, 153, .09);
+                0 0 0 1px rgba(52, 211, 153, .2),
+                0 4px 16px rgba(52, 211, 153, .22);
             }
 
             .vpgq-check {
               display: grid;
               place-items: center;
-              width: 1rem;
-              height: 1rem;
-              min-width: 1rem;
+              width: 1.15rem;
+              height: 1.15rem;
+              min-width: 1.15rem;
               border-radius: 999px;
               border: 1.5px solid rgba(255,255,255,.2);
               background: rgba(255,255,255,.04);
+            }
+
+            .vpgq-check-icon {
+              width: .7rem;
+              height: .7rem;
               color: transparent;
-              font-size: .55rem;
-              font-weight: 950;
             }
 
             .vpgq-chip-active .vpgq-check {
-              border-color: var(--vp-accent);
-              background: var(--vp-accent);
+              border-color: transparent;
+              background: rgba(23, 17, 0, .14);
+            }
+
+            .vpgq-chip-active .vpgq-check-icon {
               color: #171100;
             }
 
@@ -1345,8 +1348,11 @@ export default function GetQuote({
             }
 
             .vpgq-chip-free.vpgq-chip-active .vpgq-check {
-              border-color: #34d399;
-              background: #34d399;
+              border-color: transparent;
+              background: rgba(2, 44, 34, .14);
+            }
+
+            .vpgq-chip-free.vpgq-chip-active .vpgq-check-icon {
               color: #022c22;
             }
 
@@ -1357,7 +1363,7 @@ export default function GetQuote({
             }
 
             .vpgq-chip-active .vpgq-chip-meta {
-              color: var(--vp-accent);
+              color: #171100;
             }
 
             .vpgq-chip-meta-cost {
@@ -1371,10 +1377,20 @@ export default function GetQuote({
               font-weight: 950;
             }
 
+            .vpgq-chip-active .vpgq-chip-meta-cost {
+              border-color: rgba(23, 17, 0, .28);
+              background: rgba(23, 17, 0, .1);
+              color: #171100 !important;
+            }
+
             .vpgq-chip-free .vpgq-chip-meta,
-            .vpgq-chip-free.vpgq-chip-active .vpgq-chip-meta,
             .vpgq-chip-meta-free {
               color: #34d399 !important;
+            }
+
+            .vpgq-chip-free.vpgq-chip-active .vpgq-chip-meta,
+            .vpgq-chip-free.vpgq-chip-active .vpgq-chip-meta-free {
+              color: #022c22 !important;
             }
 
             .vpgq-inline-field-shell {
@@ -1853,7 +1869,9 @@ export default function GetQuote({
                               onClick={() => toggleService(item.id)}
                               aria-pressed={isSelected}
                             >
-                              <span className="vpgq-check">✓</span>
+                              <span className="vpgq-check">
+                                <Check className="vpgq-check-icon" strokeWidth={3} />
+                              </span>
 
                               <span>{item.label}</span>
 

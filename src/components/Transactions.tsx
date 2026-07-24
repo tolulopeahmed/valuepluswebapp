@@ -160,7 +160,7 @@ function TransactionRow({
         </p>
         <p className="mt-1 text-[0.52rem] text-white/40">{tx.date}</p>
         <span
-          className="mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.44rem] font-black uppercase tracking-wide"
+          className="mt-1 inline-flex w-fit items-center rounded-md border px-1 py-0.5 text-[0.4rem] font-black uppercase tracking-wide"
           style={{
             background: status.bg,
             borderColor: status.border,

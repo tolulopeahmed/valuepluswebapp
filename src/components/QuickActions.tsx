@@ -63,7 +63,7 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
         duration: 0.3,
       }}
       whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
-      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left backdrop-blur-sm transition-colors duration-200 active:bg-white/8"
+      className="flex w-full items-center gap-3 rounded-2xl border px-4 py-2 text-left backdrop-blur-sm transition-colors duration-200 active:bg-white/8"
       style={{
         background:
           "linear-gradient(135deg, rgba(var(--vp-accent-rgb),0.14), rgba(var(--vp-accent-rgb),0.05))",
@@ -71,10 +71,10 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
       }}
     >
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center"
+        className="flex h-5 w-5 shrink-0 items-center justify-center"
         style={{ color: "rgb(var(--vp-accent-rgb))" }}
       >
-        <action.Icon size={19} strokeWidth={1.7} />
+        <action.Icon size={17} strokeWidth={1.7} />
       </span>
 
       <span className="min-w-0 flex-1 truncate text-[0.85rem] font-bold text-white">
@@ -82,7 +82,7 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
       </span>
 
       {action.badge ? (
-        <span className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-wide text-white/80">
+        <span className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-2.5 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-white/80">
           {action.badge}
         </span>
       ) : (

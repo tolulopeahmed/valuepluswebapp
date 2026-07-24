@@ -191,21 +191,21 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
           variant="primary"
           size="sm"
           onClick={onWithdraw}
-          className="shrink-0 items-center gap-1.5 whitespace-nowrap px-5 py-2.5 text-[0.85rem] font-bold"
+          className="shrink-0 items-center gap-1 whitespace-nowrap px-4 py-2 text-[0.78rem] font-bold"
           style={{
-            // Solid accent fill, same as Resume/Withdraw on the learner
-            // home cards — .btn-primary's own background/color/shadow
-            // already do that, so no color override here anymore. Just
-            // the sizing: this button is short (2.1rem), so var(--r-md)
-            // — sized for the taller default .btn-sm — would sit near
-            // half its height and still read as a pill; var(--r-sm)
-            // keeps the same proportional look at this smaller scale.
-            minHeight: "2.1rem",
-            padding: "0.5rem 1rem",
+            // Solid accent fill, same as Resume on the learner home card
+            // — .btn-primary's own background/color/shadow already do
+            // that, so no color override here anymore. Just the sizing:
+            // this button is short, so var(--r-md) — sized for the
+            // taller default .btn-sm — would sit near half its height
+            // and still read as a pill; var(--r-sm) keeps the same
+            // proportional look at this smaller scale.
+            minHeight: "1.85rem",
+            padding: "0.4rem 0.8rem",
             borderRadius: "var(--r-sm)",
           }}
         >
-          <DollarSign size={15} strokeWidth={2.5} />
+          <DollarSign size={13} strokeWidth={2.5} />
           Withdraw
         </Button>
       </div>

@@ -314,10 +314,15 @@ export default function PublishPage() {
         <Button
           variant="primary"
           size="sm"
-          className="w-auto shrink-0 items-center gap-1.5 whitespace-nowrap"
+          className="shrink-0 items-center gap-1 whitespace-nowrap px-4 py-2 text-[0.78rem] font-bold"
+          style={{
+            minHeight: "1.85rem",
+            padding: "0.4rem 0.8rem",
+            borderRadius: "var(--r-sm)",
+          }}
           onClick={goToAddNewTitle}
         >
-          <Plus size={15} strokeWidth={2.75} />
+          <Plus size={13} strokeWidth={2.5} />
           Add New Title
         </Button>
       </div>

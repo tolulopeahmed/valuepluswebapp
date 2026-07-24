@@ -6,6 +6,7 @@ import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { USER } from "../MockUser";
 import MarqueeName from "../../../components/MarqueeName";
 import AutoFitText from "../../../components/AutoFitText";
+import Button from "../../../components/buttons/buttons";
 
 // Bullet count is fixed (not tied to the real value's length) — the point
 // is to signal "hidden", not to leak the digit count of the amount
@@ -114,22 +115,27 @@ export default function Profile() {
           "radial-gradient(120% 70% at 15% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 55%), radial-gradient(90% 60% at 100% 0%, rgba(var(--vp-accent-rgb),0.14), transparent 60%), linear-gradient(180deg, #232a4d 0%, #171d38 60%, #12172c 100%)",
       }}
     >
-      {/* Edit Profile — small inset from the corner (not flush), same
-          solid accent fill as the learner home's Resume/Withdraw pill
-          (SlideCta in HeroCards.tsx) instead of a translucent glass tint. */}
-      <button
-        type="button"
-        className="absolute right-3 top-3 flex items-center gap-1 px-2 py-1 text-[0.52rem] font-black tracking-wide transition-transform active:scale-95"
-        style={{
-          background: "rgb(var(--vp-accent-rgb))",
-          color: "#171100",
-          boxShadow: "0 6px 14px rgba(var(--vp-accent-rgb),0.35)",
-          borderRadius: "1.25rem",
-        }}
-      >
-        <Pencil size={9} strokeWidth={2.25} />
-        Edit Profile
-      </button>
+      {/* Edit Profile — same solid-accent pill treatment as the Earn
+          page's Withdraw button (EarningsHero in earn/page.tsx). The
+          positioning lives on this wrapper, not the Button itself —
+          .btn-base sets its own `position: relative`, which wins the
+          cascade over an `absolute` class on the same element and
+          silently drops the button back into normal flow. */}
+      <div className="absolute right-3 top-3">
+        <Button
+          variant="primary"
+          size="sm"
+          className="shrink-0 items-center gap-1 whitespace-nowrap px-4 py-2 text-[0.78rem] font-bold"
+          style={{
+            minHeight: "1.85rem",
+            padding: "0.4rem 0.8rem",
+            borderRadius: "var(--r-sm)",
+          }}
+        >
+          <Pencil size={13} strokeWidth={2.5} />
+          Edit Profile
+        </Button>
+      </div>
 
       {/* Avatar top-left, name + email beside it, vertically centered
           like the reference */}
