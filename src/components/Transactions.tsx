@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Users, BookOpen, RefreshCcw, type LucideIcon } from "lucide-react";
 import SectionLabel from "./SectionLabel";
 import Modal from "./Modal";
+import { useTransactions, type WalletTransaction } from "../hooks/useWallet";
 
 type TxStatus = "confirmed" | "pending" | "failed";
 type TxType = "credit" | "debit";
@@ -25,42 +26,57 @@ interface TransactionGroup {
   items: Transaction[];
 }
 
-// Swap this for real data once the transactions endpoint is wired up —
-// shape is deliberately flat so a fetched payload can map to it 1:1.
-const MOCK_TRANSACTIONS: TransactionGroup[] = [
-  {
-    month: "July 2026",
-    items: [
-      {
-        id: "1",
-        title: "Referral Reward",
-        date: "Jul 12, 2026 · 1:53 PM",
-        status: "confirmed",
-        type: "credit",
-        amount: 5000,
-        Icon: Users,
-      },
-      {
-        id: "2",
-        title: "Book Sale",
-        date: "Jul 12, 2026 · 1:52 PM",
-        status: "confirmed",
-        type: "credit",
-        amount: 12500,
-        Icon: BookOpen,
-      },
-      {
-        id: "3",
-        title: "Book Reprint",
-        date: "Jul 12, 2026 · 1:52 PM",
-        status: "pending",
-        type: "debit",
-        amount: 32000,
-        Icon: RefreshCcw,
-      },
-    ],
-  },
-];
+const SOURCE_ICON: Record<WalletTransaction["source"], LucideIcon> = {
+  book_sale: BookOpen,
+  referral: Users,
+  withdrawal: RefreshCcw,
+};
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// Real transactions arrive already ordered newest-first (see
+// Transaction.Meta.ordering server-side) — grouping preserves that order
+// since each month's bucket is created the first time it's seen.
+function groupByMonth(items: WalletTransaction[]): TransactionGroup[] {
+  const groups = new Map<string, Transaction[]>();
+
+  for (const tx of items) {
+    const month = new Date(tx.created_at).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const row: Transaction = {
+      id: tx.id,
+      title:
+        tx.title ||
+        (tx.source === "book_sale"
+          ? "Book Sale"
+          : tx.source === "referral"
+            ? "Referral Reward"
+            : "Withdrawal"),
+      date: formatDate(tx.created_at),
+      status: tx.status,
+      type: tx.type,
+      amount: Number(tx.amount),
+      Icon: SOURCE_ICON[tx.source],
+    };
+    if (!groups.has(month)) groups.set(month, []);
+    groups.get(month)!.push(row);
+  }
+
+  return Array.from(groups.entries()).map(([month, txItems]) => ({
+    month,
+    items: txItems,
+  }));
+}
 
 // Status/amount semantics stay universal (green = confirmed/credit, warm =
 // debit, red = failed) — only the chrome around them (icon tiles, text,
@@ -281,35 +297,49 @@ function TransactionDetailsModal({
 
 export default function Transactions() {
   const [selected, setSelected] = useState<Transaction | null>(null);
+  const { transactions, loading } = useTransactions();
+  const groups = groupByMonth(transactions);
 
   return (
     <div className="flex flex-col gap-2">
       <SectionLabel>My recent transactions</SectionLabel>
 
-      <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
-        {MOCK_TRANSACTIONS.map((group) => (
-          <div key={group.month} className="flex flex-col gap-1.5">
-            <p
-              className="px-1 pb-0.5 text-[0.78rem] font-bold"
-              style={{ color: "rgb(var(--vp-accent-rgb))" }}
-            >
-              {group.month}
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {group.items.map((tx) => (
-                <TransactionRow key={tx.id} tx={tx} onOpen={setSelected} />
-              ))}
+      {loading ? (
+        <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
+          Loading your transactions…
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
+          No transactions yet.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
+          {groups.map((group) => (
+            <div key={group.month} className="flex flex-col gap-1.5">
+              <p
+                className="px-1 pb-0.5 text-[0.78rem] font-bold"
+                style={{ color: "rgb(var(--vp-accent-rgb))" }}
+              >
+                {group.month}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {group.items.map((tx) => (
+                  <TransactionRow key={tx.id} tx={tx} onOpen={setSelected} />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <button
-        type="button"
-        className="mx-auto mt-1 text-[0.68rem] font-semibold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60"
-      >
-        View all transactions...
-      </button>
+      {groups.length > 0 && (
+        <button
+          type="button"
+          className="mx-auto mt-1 text-[0.68rem] font-semibold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60"
+        >
+          View all transactions...
+        </button>
+      )}
 
       <TransactionDetailsModal
         tx={selected}

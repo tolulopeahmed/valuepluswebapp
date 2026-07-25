@@ -2,13 +2,14 @@
 
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
 import MainTab from "../../components/MainTab";
 import { AppShellProvider, useAppShell, type Mode } from "./AppShellContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { useStudentProfile, deriveLevel } from "../../hooks/useAcademy";
 import { VP_PAGE_BG } from "./GlassCard";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
@@ -21,24 +22,33 @@ const ACCENT_RGB: Record<Mode, string> = {
   publisher: "255,145,64",
 };
 
-// xp/level/streak are gamification fields with no backend equivalent yet
-// (no Academy progress model wired here) — static placeholders until
-// that's built, not read from the real user.
-const PLACEHOLDER_XP = 0;
-const PLACEHOLDER_LEVEL = 1;
-const PLACEHOLDER_STREAK = 0;
-
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const { mode, setMode, sidebarOpen, setSidebarOpen } = useAppShell();
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { profile } = useStudentProfile();
+  const { level } = deriveLevel(profile?.total_xp ?? 0);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/login");
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Lands a fresh session on the tab matching how the account was
+  // created — quote-first signups default to is_author (Publisher),
+  // direct signups default to is_student (Learner) — instead of always
+  // opening on Learner. Runs once per session, on the first successful
+  // user load, so it never fights a manual toggle afterward.
+  const didSetInitialMode = useRef(false);
+  useEffect(() => {
+    if (didSetInitialMode.current || !user) return;
+    didSetInitialMode.current = true;
+    if (user.is_author && !user.is_student) {
+      setMode("publisher");
+    }
+  }, [user, setMode]);
 
   // Switching mode from the sidebar/header toggle used to only re-theme
   // the accent color — if you were sitting on /app/learn and flipped to
@@ -97,13 +107,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
         mode={mode}
         onModeChange={handleModeChange}
         firstName={user.first_name}
-        xp={PLACEHOLDER_XP}
-        level={PLACEHOLDER_LEVEL}
+        xp={profile?.total_xp ?? 0}
+        level={level}
       />
 
       <div className="min-w-0 flex-1">
         <Header
-          streak={PLACEHOLDER_STREAK}
+          streak={profile?.current_streak_days ?? 0}
           notificationCount={2}
           mode={mode}
           onModeChange={handleModeChange}
@@ -115,7 +125,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             normal flow — pt here covers the header's own height (not
             just the gap after it) so content doesn't start underneath it. */}
         <main className="px-4 pb-28 pt-[3.75rem] md:px-8 md:pb-10 md:pt-[4.25rem]">
-          <div className="mx-auto flex max-w-6xl flex-col gap-3 md:gap-4">
+          <div className="mx-auto flex max-w-6xl flex-col gap-5 md:gap-6">
             {children}
           </div>
         </main>

@@ -7,105 +7,16 @@ import Subtitle from "../../../components/Subtitle";
 import MarqueeName from "../../../components/MarqueeName";
 import LessonDetailModal, {
   type LessonDetail,
-  type LessonStatus,
 } from "../../../components/LessonDetailsModal";
 import { Check, Lock } from "lucide-react";
+import { useLearnerCurriculum, type ModuleItem } from "../CurriculumModules";
+import { completeLesson } from "../../../hooks/useAcademy";
+import { notify } from "../../../lib/snackbar";
 
-// Re-using the same MODULES data
-const MODULES = [
-  {
-    id: 1,
-    module: "Module 01",
-    title: "Foundations: A–Z of Publishing",
-    description:
-      "Tools of the Trade: understanding the publishing process, from manuscript to market.",
-    actionTip:
-      "Revisit your notes on the manuscript-to-market pipeline before moving on — everything else builds on this.",
-    xp: 120,
-    duration: "12 min",
-    progress: 100,
-  },
-  {
-    id: 2,
-    module: "Module 02",
-    title: "Design: Inside and Cover",
-    description:
-      "Cover design, inside design, formatting and layout, and everything that makes a book reader-ready.",
-    actionTip:
-      "Sketch three cover directions before opening any design tool — constraints spark better covers than a blank canvas.",
-    xp: 200,
-    duration: "18 min",
-    progress: 100,
-  },
-  {
-    id: 3,
-    module: "Module 03",
-    title: "Proofreading and Editing",
-    description:
-      "Getting the book error-free and updating it to ensure high engagement and readability.",
-    actionTip:
-      "Read your manuscript aloud — your ear will catch awkward phrasing your eyes skim right past.",
-    xp: 150,
-    duration: "15 min",
-    progress: 40,
-  },
-  {
-    id: 4,
-    module: "Module 04",
-    title: "Printing: Presswork",
-    description:
-      "From back-cover printing and lamination to inside printing, perfect-binding, sewing, trimming and packaging.",
-    actionTip:
-      "Order a single physical proof before committing to a full print run — screens lie about paper weight and color.",
-    xp: 180,
-    duration: "20 min",
-    progress: 0,
-  },
-  {
-    id: 5,
-    module: "Module 05",
-    title: "Distribution: KDP, Selar, etc.",
-    description:
-      "Upload, metadata, pricing strategy, and getting your book into readers' hands.",
-    actionTip:
-      "Write your book's metadata and keywords before uploading — retrofitting SEO after launch costs you early sales.",
-    xp: 220,
-    duration: "18 min",
-    progress: 0,
-  },
-  {
-    id: 6,
-    module: "Module 06",
-    title: "Capstone: Publish First Book",
-    description:
-      "Write a book about an important area of your life that you've succeeded in and publish it for others to achieve the same.",
-    actionTip:
-      "Set a firm publish date now — a deadline turns a capstone project into a finished book.",
-    xp: 200,
-    duration: "25 min",
-    progress: 0,
-  },
-];
-
-const CURRENT_MODULE =
-  MODULES.find((m) => m.progress > 0 && m.progress < 100) ?? MODULES[0];
-
-const CURRENT_MODULE_XP_EARNED = Math.round(
-  (CURRENT_MODULE.xp * CURRENT_MODULE.progress) / 100,
-);
-
-const MODULE_EARNED_XP = MODULES.reduce((sum, m) => {
-  if (m.progress === 100) return sum + m.xp;
-  if (m.id === CURRENT_MODULE.id) return sum + CURRENT_MODULE_XP_EARNED;
-  return sum;
-}, 0);
-
-const MODULE_TOTAL_XP = MODULES.reduce((s, m) => s + m.xp, 0);
-
-function lessonStatus(progress: number, isCurrentId: boolean): LessonStatus {
-  if (progress === 100) return "done";
-  if (isCurrentId) return "current";
-  return "upcoming";
+function lessonStatus(m: ModuleItem, currentId: number | null) {
+  if (m.progress === 100) return "done" as const;
+  if (m.id === currentId) return "current" as const;
+  return "upcoming" as const;
 }
 
 // GlassCard — brought in line with the real app/app/GlassCard.tsx: the
@@ -170,8 +81,16 @@ function SummaryPill({
 
 // AllLessonsSection component (moved from home page)
 function AllLessonsSection({
+  modules,
+  currentId,
+  earnedXp,
+  totalXp,
   onSelect,
 }: {
+  modules: ModuleItem[];
+  currentId: number | null;
+  earnedXp: number;
+  totalXp: number;
   onSelect: (lesson: LessonDetail) => void;
 }) {
   return (
@@ -179,14 +98,13 @@ function AllLessonsSection({
       <div className="mb-4 flex items-baseline justify-between">
         <SectionLabel>All lessons</SectionLabel>
         <span className="text-[0.6rem] font-black text-white/45">
-          {MODULE_EARNED_XP.toLocaleString()} /{" "}
-          {MODULE_TOTAL_XP.toLocaleString()} XP
+          {earnedXp.toLocaleString()} / {totalXp.toLocaleString()} XP
         </span>
       </div>
 
       <div className="flex flex-col gap-1">
-        {MODULES.map((m, i) => {
-          const status = lessonStatus(m.progress, m.id === CURRENT_MODULE.id);
+        {modules.map((m, i) => {
+          const status = lessonStatus(m, currentId);
           const isCurrent = status === "current";
 
           const barColor =
@@ -202,13 +120,14 @@ function AllLessonsSection({
               onClick={() =>
                 onSelect({
                   index: i + 1,
-                  total: MODULES.length,
+                  total: modules.length,
                   moduleLabel: m.module,
                   title: m.title,
                   description: m.description,
                   actionTip: m.actionTip,
                   xp: m.xp,
                   status,
+                  lessonId: m.lessonId,
                 })
               }
               className={`group flex w-full items-start gap-3 rounded-xl px-2.5 py-3 text-left transition-all active:scale-[0.99] ${
@@ -308,6 +227,33 @@ export default function LearnPage() {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
   );
+  const {
+    modules,
+    current,
+    loading,
+    refetch: refetchCurriculum,
+  } = useLearnerCurriculum();
+
+  const currentId = current?.id ?? null;
+  const totalXp = modules.reduce((s, m) => s + m.xp, 0);
+  const earnedXp = modules.reduce(
+    (s, m) => s + Math.round((m.xp * m.progress) / 100),
+    0,
+  );
+  const completedCount = modules.filter((m) => m.progress === 100).length;
+
+  const resumeLesson = async (lessonId: string) => {
+    if (!lessonId) return;
+    try {
+      const result = await completeLesson(lessonId);
+      await refetchCurriculum();
+      if (result.xp_earned > 0) {
+        notify(`Lesson complete! +${result.xp_earned} XP`, "success");
+      }
+    } catch {
+      notify("Could not save your progress. Please try again.", "error");
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -331,52 +277,69 @@ export default function LearnPage() {
         <Subtitle>Explore all lessons and track your progress</Subtitle>
       </div>
 
-      {/* All Lessons Section */}
-      <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
-        <AllLessonsSection onSelect={setSelectedLesson} />
-      </div>
-
-      {/* Progress Summary Row — styled like QuickActions' buttons */}
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
-          <SummaryPill label="Completed">
-            <p className="text-2xl font-black text-white">
-              {MODULES.filter((m) => m.progress === 100).length}
-              <span className="text-base font-normal text-white/40">
-                {" "}
-                / {MODULES.length}
-              </span>
-            </p>
-          </SummaryPill>
+      {loading ? (
+        <div className="vp-card-in py-10 text-center text-[0.8rem] text-white/40">
+          Loading your curriculum…
         </div>
+      ) : (
+        <>
+          {/* All Lessons Section */}
+          <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
+            <AllLessonsSection
+              modules={modules}
+              currentId={currentId}
+              earnedXp={earnedXp}
+              totalXp={totalXp}
+              onSelect={setSelectedLesson}
+            />
+          </div>
 
-        <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
-          <SummaryPill label="Total XP">
-            <p className="text-2xl font-black text-white">
-              {MODULE_EARNED_XP.toLocaleString()}
-              <span className="text-base font-normal text-white/40">
-                {" "}
-                / {MODULE_TOTAL_XP.toLocaleString()}
-              </span>
-            </p>
-          </SummaryPill>
-        </div>
+          {/* Progress Summary Row — styled like QuickActions' buttons */}
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
+              <SummaryPill label="Completed">
+                <p className="text-2xl font-black text-white">
+                  {completedCount}
+                  <span className="text-base font-normal text-white/40">
+                    {" "}
+                    / {modules.length}
+                  </span>
+                </p>
+              </SummaryPill>
+            </div>
 
-        <div className="vp-card-in" style={{ animationDelay: "180ms" }}>
-          <SummaryPill label="Current Module">
-            <p className="text-sm font-black text-white truncate">
-              {CURRENT_MODULE.title}
-            </p>
-            <p className="text-xs text-white/40">
-              {CURRENT_MODULE.progress}% complete
-            </p>
-          </SummaryPill>
-        </div>
-      </div>
+            <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
+              <SummaryPill label="Total XP">
+                <p className="text-2xl font-black text-white">
+                  {earnedXp.toLocaleString()}
+                  <span className="text-base font-normal text-white/40">
+                    {" "}
+                    / {totalXp.toLocaleString()}
+                  </span>
+                </p>
+              </SummaryPill>
+            </div>
+
+            <div className="vp-card-in" style={{ animationDelay: "180ms" }}>
+              <SummaryPill label="Current Module">
+                <p className="text-sm font-black text-white truncate">
+                  {current?.title ?? "—"}
+                </p>
+                <p className="text-xs text-white/40">
+                  {current?.progress ?? 0}% complete
+                </p>
+              </SummaryPill>
+            </div>
+          </div>
+        </>
+      )}
 
       <LessonDetailModal
         open={selectedLesson !== null}
         onClose={() => setSelectedLesson(null)}
+        onResume={() => {
+          if (selectedLesson) resumeLesson(selectedLesson.lessonId);
+        }}
         lesson={selectedLesson}
       />
     </div>

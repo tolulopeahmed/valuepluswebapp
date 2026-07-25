@@ -4,15 +4,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Plus, LayoutGrid, List, Trash2, Check } from "lucide-react";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
 import MarqueeName from "../../../components/MarqueeName";
 import Button from "../../../components/buttons/buttons";
+import BookDetailsModal from "../../../components/BookDetailsModal";
 import {
   useMyBooks,
+  naira,
+  BookCover,
+  EmptyBooksState,
   MY_BOOK_STATUS_LABEL,
   MY_BOOK_STATUS_BADGE_CLASS,
   type MyBook,
@@ -20,48 +23,6 @@ import {
 
 type View = "grid" | "list";
 type Book = MyBook;
-
-// Backend decimal fields (price/earned) arrive as strings; price is also
-// nullable on a fresh `pending` book with no print quote yet.
-function naira(value: string | number | null) {
-  if (value === null) return "—";
-  const n = typeof value === "string" ? Number(value) : value;
-  if (Number.isNaN(n)) return "—";
-  return `₦${n.toLocaleString()}`;
-}
-
-// Same initial-letter fallback pattern used for the avatar elsewhere
-// (app/page.tsx's ProfileAvatar, more/Profile.tsx) — a `pending` book
-// has no cover yet, so next/image has nothing to render.
-function BookCover({
-  book,
-  sizes,
-}: {
-  book: MyBook;
-  sizes: string;
-}) {
-  if (book.cover) {
-    return (
-      <Image
-        src={book.cover}
-        alt={book.title}
-        fill
-        sizes={sizes}
-        className="object-cover"
-      />
-    );
-  }
-
-  const initial = book.title.trim().charAt(0).toUpperCase() || "V";
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center text-lg font-black text-white/80"
-      style={{ background: "linear-gradient(145deg, #3a4763, #232e47)" }}
-    >
-      {initial}
-    </div>
-  );
-}
 
 // Same border-color system as the public portfolio's book shelf
 // (.vp-portfolio-book-card-1..6 in globals.css) — cycled by index so each
@@ -181,14 +142,22 @@ function ViewToggle({
 // child — nesting a button inside a button is invalid HTML and breaks
 // click handling — so the outer element carries the tile's size/position
 // and the cover button fills it via inset-0.
-function BookGridTile({ book, index }: { book: Book; index: number }) {
+function BookGridTile({
+  book,
+  index,
+  onSelect,
+}: {
+  book: Book;
+  index: number;
+  onSelect: (book: Book) => void;
+}) {
   const borderColor = BORDER_COLORS[index % BORDER_COLORS.length];
 
   return (
     <div className="relative aspect-[3/4.4] w-full">
       <button
         type="button"
-        onClick={() => console.log("publish: open book", book.id)}
+        onClick={() => onSelect(book)}
         className="vp-book-cover-hover absolute inset-0 overflow-hidden rounded-2xl border shadow-[0_10px_26px_rgba(0,0,0,0.4)] transition-transform duration-200 active:scale-[0.97]"
         style={{ borderColor }}
       >
@@ -238,7 +207,15 @@ function AddNewTitleGridTile({ onClick }: { onClick: () => void }) {
   );
 }
 
-function BookListRow({ book, index }: { book: Book; index: number }) {
+function BookListRow({
+  book,
+  index,
+  onSelect,
+}: {
+  book: Book;
+  index: number;
+  onSelect: (book: Book) => void;
+}) {
   const borderColor = BORDER_COLORS[index % BORDER_COLORS.length];
 
   return (
@@ -248,7 +225,7 @@ function BookListRow({ book, index }: { book: Book; index: number }) {
     >
       <button
         type="button"
-        onClick={() => console.log("publish: open book", book.id)}
+        onClick={() => onSelect(book)}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-lg border border-white/15">
@@ -318,6 +295,7 @@ function AddNewTitleListRow({ onClick }: { onClick: () => void }) {
 
 export default function PublishPage() {
   const [view, setView] = useState<View>("grid");
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const router = useRouter();
   const goToAddNewTitle = () => router.push("/app/publish/new");
   const { books, loading, error } = useMyBooks();
@@ -329,7 +307,7 @@ export default function PublishPage() {
           on the title/subtitle column below (for the marquee/truncate) —
           putting it here on the row too clipped the button's own glow
           into a hard-edged box instead of a soft natural fade. */}
-      <div className="vp-card-in mb-3 flex items-center justify-between gap-3">
+      <div className="vp-card-in mb-5 flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 overflow-hidden">
           <Title className="block truncate">Publish</Title>
           <Subtitle className="block max-w-full">
@@ -356,15 +334,17 @@ export default function PublishPage() {
         </Button>
       </div>
 
-      <div
-        className="vp-card-in mb-3.5 flex items-center justify-between gap-3"
-        style={{ animationDelay: "40ms" }}
-      >
-        <SectionLabel>
-          {books.length} {books.length === 1 ? "Title" : "Titles"}
-        </SectionLabel>
-        <ViewToggle view={view} onChange={setView} />
-      </div>
+      {!loading && books.length > 0 && (
+        <div
+          className="vp-card-in mb-4 flex items-center justify-between gap-3"
+          style={{ animationDelay: "40ms" }}
+        >
+          <SectionLabel>
+            {books.length} {books.length === 1 ? "Title" : "Titles"}
+          </SectionLabel>
+          <ViewToggle view={view} onChange={setView} />
+        </div>
+      )}
 
       {error && (
         <p className="vp-card-in mb-3 text-[0.78rem] text-red-300">{error}</p>
@@ -374,13 +354,22 @@ export default function PublishPage() {
         <div className="vp-card-in py-10 text-center text-[0.8rem] text-white/40">
           Loading your books…
         </div>
+      ) : books.length === 0 ? (
+        <div className="vp-card-in" style={{ animationDelay: "80ms" }}>
+          <EmptyBooksState onAddTitle={goToAddNewTitle} minHeight="22rem" />
+        </div>
       ) : view === "grid" ? (
         <div
           className="vp-card-in grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5"
           style={{ animationDelay: "80ms" }}
         >
           {books.map((book, i) => (
-            <BookGridTile key={book.id} book={book} index={i} />
+            <BookGridTile
+              key={book.id}
+              book={book}
+              index={i}
+              onSelect={setSelectedBook}
+            />
           ))}
           <AddNewTitleGridTile onClick={goToAddNewTitle} />
         </div>
@@ -390,11 +379,26 @@ export default function PublishPage() {
           style={{ animationDelay: "80ms" }}
         >
           {books.map((book, i) => (
-            <BookListRow key={book.id} book={book} index={i} />
+            <BookListRow
+              key={book.id}
+              book={book}
+              index={i}
+              onSelect={setSelectedBook}
+            />
           ))}
           <AddNewTitleListRow onClick={goToAddNewTitle} />
         </div>
       )}
+
+      <BookDetailsModal
+        open={selectedBook !== null}
+        onClose={() => setSelectedBook(null)}
+        book={selectedBook}
+        onOrderReprint={(book) =>
+          console.log("publish: order reprint", book.id)
+        }
+        onChangePrice={(book) => console.log("publish: change price", book.id)}
+      />
     </div>
   );
 }

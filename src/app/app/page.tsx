@@ -9,16 +9,12 @@ import Title from "../../components/Title";
 import Subtitle from "../../components/Subtitle";
 import MarqueeName from "../../components/MarqueeName";
 import HeroCards from "./HeroCards";
-// import SidePanel from "./SidePanel";
 import Transactions from "../../components/Transactions";
 import { useAppShell } from "./AppShellContext";
 import { useAuth } from "../../contexts/AuthContext";
-import {
-  MODULES,
-  getCurrentModule,
-  getModuleXpEarned,
-  LearnerRoadmap,
-} from "./CurriculumModules";
+import { useLearnerCurriculum, LearnerRoadmap } from "./CurriculumModules";
+import { completeLesson } from "../../hooks/useAcademy";
+import { notify } from "../../lib/snackbar";
 import { PublisherBookShelf } from "./PublisherBooks";
 import LessonDetailModal, {
   type LessonDetail,
@@ -53,6 +49,9 @@ function ProfileAvatar({
         <Image
           src={avatar}
           alt={name}
+          width={64}
+          height={64}
+          unoptimized
           className="h-16 w-16 rounded-full border-2 object-cover md:h-14 md:w-14"
           style={{ borderColor: "rgb(var(--vp-accent-rgb))" }}
         />
@@ -79,9 +78,26 @@ export default function HomeScreen() {
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
   );
+  const {
+    modules,
+    current: currentModule,
+    currentXpEarned: currentModuleXpEarned,
+    loading: curriculumLoading,
+    refetch: refetchCurriculum,
+  } = useLearnerCurriculum();
 
-  const currentModule = getCurrentModule(MODULES);
-  const currentModuleXpEarned = getModuleXpEarned(currentModule);
+  const resumeLesson = async (lessonId: string) => {
+    if (!lessonId) return;
+    try {
+      const result = await completeLesson(lessonId);
+      await refetchCurriculum();
+      if (result.xp_earned > 0) {
+        notify(`Lesson complete! +${result.xp_earned} XP`, "success");
+      }
+    } catch {
+      notify("Could not save your progress. Please try again.", "error");
+    }
+  };
 
   return (
     <>
@@ -118,7 +134,7 @@ export default function HomeScreen() {
           already live on the Earn tab; showing them here too was pure
           duplication — same reasoning that also dropped the referral
           rewards slide from the learner card below. */}
-      {mode === "learner" && (
+      {mode === "learner" && currentModule && (
         <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
           <HeroCards
             currentModule={{
@@ -128,7 +144,7 @@ export default function HomeScreen() {
               duration: currentModule.duration,
               xpEarned: currentModuleXpEarned,
             }}
-            onResume={() => console.log("Resume clicked")}
+            onResume={() => resumeLesson(currentModule.lessonId)}
           />
         </div>
       )}
@@ -138,7 +154,17 @@ export default function HomeScreen() {
         style={{ animationDelay: mode === "learner" ? "80ms" : "60ms" }}
       >
         {mode === "learner" ? (
-          <LearnerRoadmap onSelect={setSelectedLesson} />
+          curriculumLoading ? (
+            <div className="py-6 text-center text-[0.8rem] text-white/40">
+              Loading your curriculum…
+            </div>
+          ) : (
+            <LearnerRoadmap
+              modules={modules}
+              currentId={currentModule?.id ?? null}
+              onSelect={setSelectedLesson}
+            />
+          )
         ) : (
           <PublisherBookShelf />
         )}
@@ -149,13 +175,6 @@ export default function HomeScreen() {
         there's enough width for two columns — they stack on mobile instead.
       */}
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-        {/* <div
-          className="vp-card-in md:col-span-1"
-          style={{ animationDelay: "140ms" }}
-        >
-          <SidePanel mode={mode} />
-        </div> */}
-
         <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
           <SectionLabel>Quick actions</SectionLabel>
           <QuickActions
@@ -172,6 +191,9 @@ export default function HomeScreen() {
       <LessonDetailModal
         open={selectedLesson !== null}
         onClose={() => setSelectedLesson(null)}
+        onResume={() => {
+          if (selectedLesson) resumeLesson(selectedLesson.lessonId);
+        }}
         lesson={selectedLesson}
       />
     </>

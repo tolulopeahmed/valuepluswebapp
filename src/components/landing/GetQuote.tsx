@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import Button from "../buttons/buttons";
+import Modal from "../Modal";
 
 type ServiceType =
   | "fixed"
@@ -447,17 +448,28 @@ function getServiceCost({
 // logged in (in-app "Add New Title") is already verified — the backend
 // just attached the new pending book to their account, so there's
 // nothing left to confirm, just a way back to the dashboard.
+//
+// Rendered twice from two different places: once inside the success
+// Modal (right after submitting, `onClose` provided so it can dismiss
+// itself), and once inline in the card underneath, which keeps showing
+// this same message after the modal is closed — `onSubmitAnother` is
+// how they get back to a blank form for a second title instead of
+// reloading the page.
 function QuoteSuccessPanel({
   email,
   isAuthenticated,
   onGoToDashboard,
+  onSubmitAnother,
+  onClose,
 }: {
   email: string;
   isAuthenticated: boolean;
   onGoToDashboard: () => void;
+  onSubmitAnother: () => void;
+  onClose?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center px-2 py-10 text-center">
+    <div className="flex flex-col items-center px-1 py-2 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-2xl text-[#4ade80]">
         ✓
       </div>
@@ -472,20 +484,57 @@ function QuoteSuccessPanel({
             We&apos;ll follow up with the full quote, including print cost,
             once it&apos;s ready.
           </p>
-          <Button variant="primary" size="md" onClick={onGoToDashboard}>
-            Go to dashboard →
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:flex-row">
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-1"
+              onClick={onGoToDashboard}
+            >
+              Go to dashboard →
+            </Button>
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1"
+              onClick={onSubmitAnother}
+            >
+              Submit another manuscript
+            </Button>
+          </div>
         </>
       ) : (
         <>
           <h3 className="mb-2 text-[1.1rem] font-black text-white">
-            Check your email
+            Quote request sent!
           </h3>
-          <p className="max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
-            We sent the details you submitted, plus a code, to{" "}
-            <strong className="text-white">{email}</strong>. Click the link
-            in that email to choose a password and see your full quote.
+          <p className="mb-6 max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
+            We&apos;ve emailed the details you submitted to{" "}
+            <strong className="text-white">{email}</strong>. Open that email
+            and click <strong className="text-white">Complete Your
+            Registration</strong> to choose a password, log in, and see your
+            full quote on your dashboard.
           </p>
+          <div className="flex w-full flex-col gap-2 sm:flex-row">
+            {onClose && (
+              <Button
+                variant="primary"
+                size="md"
+                className="flex-1"
+                onClick={onClose}
+              >
+                Got it
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1"
+              onClick={onSubmitAnother}
+            >
+              Submit another manuscript
+            </Button>
+          </div>
         </>
       )}
     </div>
@@ -534,6 +583,11 @@ export default function GetQuote({
   const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success">(
     "idle",
   );
+  // Separate from submitState on purpose: dismissing the modal (X,
+  // backdrop, Escape, "Got it") should only hide the popup — the card
+  // underneath keeps showing the success message until the user
+  // explicitly asks to start another one via resetForAnotherManuscript.
+  const [modalOpen, setModalOpen] = useState(false);
 
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
@@ -1065,6 +1119,7 @@ export default function GetQuote({
         }),
       });
       setSubmitState("success");
+      setModalOpen(true);
     } catch (err) {
       // apiFetch already fires an error snackbar for ApiError — only the
       // network-level case needs a fallback here.
@@ -1073,6 +1128,28 @@ export default function GetQuote({
       }
       setSubmitState("idle");
     }
+  }
+
+  // Clears only the manuscript-specific fields — full name/WhatsApp/email
+  // stay put, since a second title is very often the same person
+  // submitting again right away and re-typing their own contact details
+  // would be pure friction.
+  function resetForAnotherManuscript() {
+    setBookTitle("");
+    setCategory("");
+    setBookSize("");
+    setCopies("");
+    setPages("");
+    setWords("");
+    setChapters("");
+    setManualSelectedIds([]);
+    setWordAnchorId(null);
+    setCompletedFields((current) =>
+      current.filter((id) => id === "name" || id === "number" || id === "email"),
+    );
+    setFocusedField(null);
+    setModalOpen(false);
+    setSubmitState("idle");
   }
 
   return (
@@ -1742,6 +1819,7 @@ export default function GetQuote({
                 email={email}
                 isAuthenticated={isAuthenticated}
                 onGoToDashboard={() => router.push("/app/publish")}
+                onSubmitAnother={resetForAnotherManuscript}
               />
             ) : (
               <>
@@ -2029,6 +2107,16 @@ export default function GetQuote({
             )}
           </div>
         </div>
+
+        <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+          <QuoteSuccessPanel
+            email={email}
+            isAuthenticated={isAuthenticated}
+            onGoToDashboard={() => router.push("/app/publish")}
+            onSubmitAnother={resetForAnotherManuscript}
+            onClose={() => setModalOpen(false)}
+          />
+        </Modal>
 
         {showExtras && (
         <div className="mx-auto max-w-7xl">

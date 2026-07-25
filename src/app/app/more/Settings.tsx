@@ -20,8 +20,14 @@ import {
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useBankAccount, useReferrals } from "../../../hooks/useWallet";
+import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
 
-const REFERRAL_COUNT = 3;
+// Backend decimal fields arrive as strings.
+function naira(value: string) {
+  const n = Number(value);
+  return `₦${Number.isNaN(n) ? 0 : n.toLocaleString()}`;
+}
 
 // Same admin line used by Sidebar's "Chat Admin" row and the public
 // site's footer FAB: 09024312689 in wa.me international format.
@@ -157,17 +163,38 @@ interface SettingItem {
   external?: boolean;
 }
 
-const ITEMS: SettingItem[] = [
+// Bank/referral rows need live data, so this builds the list at render
+// time instead of a module-level constant — everything else here has no
+// backend equivalent yet (see the plan's "explicitly out of scope") and
+// stays static.
+function buildItems({
+  isBankLinked,
+  bankName,
+  referralCount,
+  referralTotalEarned,
+  referralPending,
+}: {
+  isBankLinked: boolean;
+  bankName: string | null;
+  referralCount: number;
+  referralTotalEarned: string;
+  referralPending: string;
+}): SettingItem[] {
+  return [
   {
     id: "bank",
     label: "My Bank Accounts",
     subtitle: "Set up accounts for faster withdrawals",
     Icon: Landmark,
-    trailing: <StatusChip>GTBank</StatusChip>,
+    trailing: (
+      <StatusChip tone={isBankLinked ? "accent" : "neutral"}>
+        {isBankLinked ? bankName : "Not added"}
+      </StatusChip>
+    ),
   },
   {
     id: "referrals",
-    label: `My Referrals (${REFERRAL_COUNT})`,
+    label: `My Referrals (${referralCount})`,
     subtitle: "Invite friends so you both earn",
     Icon: UserPlus,
     trailing: (
@@ -176,9 +203,11 @@ const ITEMS: SettingItem[] = [
           className="text-[0.85rem] font-black"
           style={{ color: "#34D399" }}
         >
-          ₦15,000
+          {naira(referralTotalEarned)}
         </span>
-        <span className="text-[0.55rem] text-white/35">₦5,000 pending</span>
+        <span className="text-[0.55rem] text-white/35">
+          {naira(referralPending)} pending
+        </span>
       </div>
     ),
   },
@@ -217,7 +246,8 @@ const ITEMS: SettingItem[] = [
     Icon: LogOut,
     danger: true,
   },
-];
+  ];
+}
 
 function SettingRow({
   item,
@@ -314,14 +344,30 @@ export default function Settings() {
   const { mode, setMode } = useAppShell();
   const { logout } = useAuth();
   const router = useRouter();
+  const { bankAccount, isLinked } = useBankAccount();
+  const { referrals } = useReferrals();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const items = buildItems({
+    isBankLinked: isLinked,
+    bankName: bankAccount?.bank_name ?? null,
+    referralCount: referrals?.count ?? 0,
+    referralTotalEarned: referrals?.total_earned ?? "0",
+    referralPending: referrals?.pending_amount ?? "0",
+  });
 
   const handleSelect = (id: string) => {
     if (id === "logout") {
-      logout();
-      router.push("/login");
+      setShowLogoutConfirm(true);
       return;
     }
     console.log("settings:", id);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
+    await logout();
+    router.push("/login");
   };
 
   return (
@@ -354,7 +400,7 @@ export default function Settings() {
       <SectionLabel className="mt-4">Settings</SectionLabel>
 
       <div className="flex flex-col gap-2.5">
-        {ITEMS.map((item) => (
+        {items.map((item) => (
           <SettingRow key={item.id} item={item} onSelect={handleSelect} />
         ))}
       </div>
@@ -386,6 +432,12 @@ export default function Settings() {
           Reserved.
         </p>
       </div>
+
+      <LogoutConfirmModal
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }

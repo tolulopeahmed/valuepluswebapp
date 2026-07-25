@@ -18,12 +18,22 @@ function CompleteRegistrationForm() {
   const { verifyEmail, resendVerification } = useAuth();
 
   const [email, setEmail] = useState(searchParams.get("email") ?? "");
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+
+  // The email link already carries the code — opening it and clicking
+  // through is itself the proof of email ownership an OTP is for, so
+  // there's nothing left to ask the user to type back in. Only fall back
+  // to a visible code field if they land here without one (e.g. typed
+  // the URL by hand, or a very old email).
+  const codeFromLink = Boolean(searchParams.get("code"));
+  // Resending invalidates the code that was embedded in the link, so if
+  // the user asks for a new one they need somewhere to type it.
+  const [showCodeField, setShowCodeField] = useState(!codeFromLink);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +65,8 @@ function CompleteRegistrationForm() {
     setResending(true);
     try {
       await resendVerification(email);
+      setCode("");
+      setShowCodeField(true);
     } catch (err) {
       if (!(err instanceof ApiError)) {
         notify("Could not resend the code.", "error");
@@ -99,8 +111,9 @@ function CompleteRegistrationForm() {
         </h1>
 
         <p className="mb-6 text-center text-[0.78rem] leading-relaxed text-white/40">
-          Choose a password and enter the code we emailed you to see your
-          full quote and unlock your dashboard.
+          {showCodeField
+            ? "Choose a password and enter the code we emailed you to see your full quote and unlock your dashboard."
+            : "Just choose a password to see your full quote and unlock your dashboard."}
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
@@ -113,15 +126,17 @@ function CompleteRegistrationForm() {
             className={inputBase}
           />
 
-          <input
-            type="text"
-            inputMode="numeric"
-            value={code}
-            placeholder="6-digit code"
-            maxLength={6}
-            onChange={(e) => setCode(e.target.value)}
-            className={`${inputBase} text-center tracking-[0.4em]`}
-          />
+          {showCodeField && (
+            <input
+              type="text"
+              inputMode="numeric"
+              value={code}
+              placeholder="6-digit code"
+              maxLength={6}
+              onChange={(e) => setCode(e.target.value)}
+              className={`${inputBase} text-center tracking-[0.4em]`}
+            />
+          )}
 
           <input
             type="password"

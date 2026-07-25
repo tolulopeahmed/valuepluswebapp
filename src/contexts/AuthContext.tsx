@@ -62,7 +62,8 @@ interface AuthContextValue {
   resendVerification: (email: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (data: ConfirmPasswordResetPayload) => Promise<void>;
-  logout: () => void;
+  updateAvatar: (file: Blob) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -160,7 +161,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const logout = useCallback(() => {
+  // Cropped image comes in as a Blob (canvas output has no filename), so
+  // it's appended under a fixed name — the backend's ImageField only
+  // cares about the bytes/content-type, not the original filename.
+  const updateAvatar = useCallback(async (file: Blob) => {
+    const formData = new FormData();
+    formData.append("avatar", file, "avatar.jpg");
+    const data = await apiFetch<AuthUser>("/auth/me/", {
+      method: "PATCH",
+      body: formData,
+    });
+    setUser(data);
+  }, []);
+
+  const logout = useCallback(async () => {
+    // Fire-and-forget: blacklists the refresh token server-side so it
+    // can never be replayed, but doesn't hold up the visible logout —
+    // the token headers are already captured by the time this call goes
+    // out, so clearing local state right after is safe either way.
+    const { refresh } = getTokens();
+    if (refresh) {
+      apiFetch("/auth/logout/", {
+        method: "POST",
+        body: JSON.stringify({ refresh }),
+      }).catch(() => {});
+    }
     clearTokens();
     setUser(null);
   }, []);
@@ -177,6 +202,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resendVerification,
         requestPasswordReset,
         confirmPasswordReset,
+        updateAvatar,
         logout,
       }}
     >

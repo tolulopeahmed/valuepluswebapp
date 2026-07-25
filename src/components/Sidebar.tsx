@@ -4,6 +4,7 @@ import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 
 type Mode = "learner" | "publisher";
 
@@ -93,12 +94,15 @@ export default function Sidebar({
   onModeChange,
 }: SidebarProps) {
   const [logoFailed, setLogoFailed] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
+  const confirmLogout = async () => {
+    setShowLogoutConfirm(false);
+    onClose();
+    await logout();
     router.push("/login");
   };
 
@@ -388,7 +392,7 @@ export default function Sidebar({
             <div className="vp-nav-row" style={{ animationDelay: "300ms" }}>
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={() => setShowLogoutConfirm(true)}
                 className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-normal text-red-300/85 transition-[color,background] duration-200 hover:bg-red-500/10 hover:text-red-200 active:scale-[0.98]"
               >
                 <span className="grid place-items-center transition-transform duration-200 group-hover:translate-x-0.5">
@@ -409,6 +413,12 @@ export default function Sidebar({
           </button>
         </div>
       </aside>
+
+      <LogoutConfirmModal
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </>
   );
 }

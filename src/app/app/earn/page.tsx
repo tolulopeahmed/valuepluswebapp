@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import {
-  Users,
-  BookOpen,
   Gift,
   Share2,
   Wallet,
@@ -17,7 +15,7 @@ import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
 import GlassCard from "../GlassCard";
 import { useAppShell } from "../AppShellContext";
-import { BOOKS } from "../PublisherBooks";
+import { useMyBooks } from "../../../hooks/useMyBooks";
 
 type EarningStatus = "confirmed" | "pending";
 type EarningSource = "referral" | "book-sale";
@@ -38,77 +36,11 @@ interface EarningGroup {
   items: Earning[];
 }
 
-// Swap this for the real earnings endpoint once it's wired up — shape is
-// deliberately flat so a fetched payload can map to it 1:1. Total earned
-// and pending are derived from this list below, never hand-entered, so
-// the hero card can never drift out of sync with the transactions list.
-const EARNINGS: EarningGroup[] = [
-  {
-    month: "July 2026",
-    items: [
-      {
-        id: "e1",
-        source: "book-sale",
-        title: "Book Sale",
-        subtitle: "Confluence: A Life Story",
-        date: "Jul 15, 2026 · 10:20 AM",
-        status: "confirmed",
-        amount: 12500,
-        Icon: BookOpen,
-      },
-      {
-        id: "e2",
-        source: "referral",
-        title: "Referral Reward",
-        subtitle: "Chidi O. joined via your link",
-        date: "Jul 12, 2026 · 1:53 PM",
-        status: "confirmed",
-        amount: 5000,
-        Icon: Users,
-      },
-      {
-        id: "e3",
-        source: "book-sale",
-        title: "Book Sale",
-        subtitle: "Design: Inside and Cover",
-        date: "Jul 10, 2026 · 4:05 PM",
-        status: "pending",
-        amount: 18000,
-        Icon: BookOpen,
-      },
-    ],
-  },
-  {
-    month: "June 2026",
-    items: [
-      {
-        id: "e4",
-        source: "referral",
-        title: "Referral Reward",
-        subtitle: "Amaka B. joined via your link",
-        date: "Jun 28, 2026 · 9:15 AM",
-        status: "confirmed",
-        amount: 5000,
-        Icon: Users,
-      },
-      {
-        id: "e5",
-        source: "book-sale",
-        title: "Book Sale",
-        subtitle: "Foundations: A–Z of Publishing",
-        date: "Jun 22, 2026 · 6:40 PM",
-        status: "confirmed",
-        amount: 9500,
-        Icon: BookOpen,
-      },
-    ],
-  },
-];
-
-const ALL_EARNINGS = EARNINGS.flatMap((g) => g.items);
-const TOTAL_EARNED = ALL_EARNINGS.filter(
-  (e) => e.status === "confirmed",
-).reduce((sum, e) => sum + e.amount, 0);
+// No transactions endpoint exists yet (real payouts/referral rewards are
+// a separate feature — see apps/wallet in the plan), so this starts
+// genuinely empty rather than showing fabricated history. Once that
+// endpoint exists, group its response by month into this same shape.
+const EARNINGS: EarningGroup[] = [];
 
 const STATUS_STYLES: Record<
   EarningStatus,
@@ -153,10 +85,18 @@ function NairaAmount({
 // bottom-right with proper inset padding, like the MyFund reference.
 // Same content as the homepage's publisher EarningsCard (HeroCards.tsx)
 // — icon+label cluster top-left, big regular-weight Proxima Nova amount,
-// a "N Titles" line bottom-left (BOOKS.length, same count as the Publish
-// page), same button color/radius — not just the same look, the same
-// container end to end. ──
-function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
+// a "N Titles" line bottom-left (real book count from useMyBooks(), same
+// count as the Publish page), same button color/radius — not just the
+// same look, the same container end to end. ──
+function EarningsHero({
+  totalEarned,
+  titleCount,
+  onWithdraw,
+}: {
+  totalEarned: number;
+  titleCount: number;
+  onWithdraw?: () => void;
+}) {
   return (
     <GlassCard accent className="flex min-h-[9.5rem] flex-col p-3.5">
       <div className="flex items-center gap-2">
@@ -176,7 +116,7 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
         className="mt-1 text-5xl font-bold leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
-        <NairaAmount value={TOTAL_EARNED} />
+        <NairaAmount value={totalEarned} />
       </p>
 
       {/* Bottom row — stats left, Withdraw pill right, both sitting on
@@ -184,7 +124,7 @@ function EarningsHero({ onWithdraw }: { onWithdraw?: () => void }) {
           reference's QuickSave corner. */}
       <div className="mt-2 flex items-end justify-between gap-3">
         <SectionLabel style={{ marginBottom: 0 }}>
-          {BOOKS.length} {BOOKS.length === 1 ? "Title" : "Titles"}
+          {titleCount} {titleCount === 1 ? "Title" : "Titles"}
         </SectionLabel>
 
         <Button
@@ -400,6 +340,18 @@ function EarningDetailsModal({
 
 // ── All earnings — every referral reward and book sale, grouped by month ─
 function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
+  if (EARNINGS.length === 0) {
+    return (
+      <div className="flex flex-col gap-2">
+        <SectionLabel>All earnings</SectionLabel>
+        <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
+          No earnings yet — book sales and referral rewards will show up
+          here.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-2">
       <SectionLabel>All earnings</SectionLabel>
@@ -431,6 +383,12 @@ function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
 
 export default function EarnPage() {
   const [selected, setSelected] = useState<Earning | null>(null);
+  const { books } = useMyBooks();
+  // `earned` defaults to "0.00" per book (see apps/books.Book), so this
+  // is correctly ₦0 for a new account with zero backend work — no real
+  // book-sale event exists yet to make it anything else (see apps/wallet
+  // in the plan for that next step).
+  const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
@@ -440,7 +398,11 @@ export default function EarnPage() {
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
-        <EarningsHero onWithdraw={() => console.log("Withdraw clicked")} />
+        <EarningsHero
+          totalEarned={totalEarned}
+          titleCount={books.length}
+          onWithdraw={() => console.log("Withdraw clicked")}
+        />
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "100ms" }}>

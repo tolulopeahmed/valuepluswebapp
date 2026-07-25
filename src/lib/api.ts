@@ -108,8 +108,12 @@ export async function apiFetch<T = unknown>(
 
   async function doFetch(): Promise<Response> {
     const { access } = getTokens();
+    // FormData bodies (file uploads) need the browser to set its own
+    // Content-Type with a multipart boundary — setting it manually to
+    // "application/json" (or anything else) breaks parsing server-side.
+    const isFormData = rest.body instanceof FormData;
     const finalHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(headers as Record<string, string> | undefined),
     };
     if (!skipAuth && access) {

@@ -2,136 +2,18 @@
 
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Check, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionLabel from "../../components/SectionLabel";
-import GlassCard from "./GlassCard";
-import Button from "../../components/buttons/buttons";
 import BookDetailsModal from "../../components/BookDetailsModal";
-import { BOOKS, slugifyTitle, STATUS_LABEL, type Book } from "../../data/books";
-
-// Book/BOOKS/slugifyTitle/STATUS_LABEL live in src/data/books.ts (not
-// defined here) so the public /book/[slug] server page can import the
-// plain array directly — pulling it through this "use client" module
-// resolves to an unusable client reference there instead of real data.
-export { BOOKS, slugifyTitle, STATUS_LABEL, type Book };
-
-export interface Sale {
-  title: string;
-  buyer: string;
-  amount: number;
-  time: string;
-}
-
-export const RECENT_SALES: Sale[] = [
-  {
-    title: "A 10-Day Hack for Busy Moms",
-    buyer: "R. Okoye",
-    amount: 4500,
-    time: "2h ago",
-  },
-  {
-    title: "Letters to My Child",
-    buyer: "A. Bello",
-    amount: 3000,
-    time: "5h ago",
-  },
-  {
-    title: "A 10-Day Hack for Busy Moms",
-    buyer: "T. Musa",
-    amount: 4500,
-    time: "1d ago",
-  },
-];
-
-export interface LeaderboardEntry {
-  name: string;
-  xp: number;
-  rank: number;
-  isYou?: boolean;
-}
-
-export const LEADERBOARD: LeaderboardEntry[] = [
-  { name: "Akolade F.", xp: 4120, rank: 1 },
-  { name: "Chidinma O.", xp: 3870, rank: 2 },
-  { name: "Tolulope A. (You)", xp: 2340, rank: 3, isYou: true },
-];
-
-function naira(n: number) {
-  return `₦${n.toLocaleString()}`;
-}
-
-const STATUS_BADGE_CLASS: Record<Book["status"], string> = {
-  published: "bg-[rgba(74,222,128,0.15)] text-[#4ade80]",
-  in_progress:
-    "bg-[rgba(var(--vp-accent-rgb),0.12)] text-[rgb(var(--vp-accent-rgb))]",
-  draft: "bg-white/10 text-white/50",
-};
-
-// export function BooksSection({ books = BOOKS }: { books?: Book[] }) {
-//   return (
-//     <div>
-//       <SectionLabel>Manage books</SectionLabel>
-
-//       <div className="grid gap-2.5 md:grid-cols-2">
-//         {books.map((book, i) => (
-//           <GlassCard
-//             key={book.id}
-//             className="vp-card-in p-4"
-//             style={{ animationDelay: `${i * 50}ms` }}
-//           >
-//             <div className="flex items-center gap-3">
-//               <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg border border-white/15">
-//                 <Image
-//                   src={book.cover}
-//                   alt={book.title}
-//                   fill
-//                   sizes="40px"
-//                   className="object-cover"
-//                 />
-//               </div>
-
-//               <div className="min-w-0 flex-1">
-//                 <p className="truncate text-[0.82rem] font-black text-white">
-//                   {book.title}
-//                 </p>
-//                 <p className="truncate text-[0.58rem] text-white/35">
-//                   {book.category}
-//                 </p>
-
-//                 <div className="mt-0.5 flex items-center gap-2">
-//                   <span
-//                     className={`inline-flex items-center rounded-full px-1.5 py-2px text-[0.44rem] font-black uppercase tracking-wider ${STATUS_BADGE_CLASS[book.status]}`}
-//                   >
-//                     {STATUS_LABEL[book.status]}
-//                   </span>
-
-//                   {book.sales > 0 && (
-//                     <span className="text-[0.55rem] text-white/35">
-//                       {book.sales} sales
-//                     </span>
-//                   )}
-//                 </div>
-
-//                 {book.earned > 0 && (
-//                   <p className="mt-0.5 text-[0.68rem] font-black text-[rgb(var(--vp-accent-rgb))]">
-//                     {naira(book.earned)} earned
-//                   </p>
-//                 )}
-//               </div>
-
-//               <Button variant="secondary" size="sm" className="shrink-0">
-//                 Manage
-//               </Button>
-//             </div>
-//           </GlassCard>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
+import {
+  useMyBooks,
+  naira,
+  BookCover,
+  EmptyBooksState,
+  type MyBook,
+} from "../../hooks/useMyBooks";
 
 // Same border-color system as the Publish page's shelf and the public
 // portfolio's book cards (.vp-portfolio-book-card-1..6 in globals.css) —
@@ -146,15 +28,15 @@ const BORDER_COLORS = [
   "rgba(227,179,109,0.5)",
 ];
 
-// Green check = published, orange ellipsis = still in progress or a
-// draft — one badge covers both non-published states, since the shelf
-// only needs to distinguish "live" from "not live yet".
-function ShelfStatusBadge({ status }: { status: Book["status"] }) {
+// Green check = published, orange ellipsis = anything not live yet
+// (pending/draft/in_progress) — one badge covers all three, since the
+// shelf only needs to distinguish "live" from "not live yet".
+function ShelfStatusBadge({ status }: { status: MyBook["status"] }) {
   const isPublished = status === "published";
 
   return (
     <span
-      className="vp-shelf-status-badge"
+      className={`vp-shelf-status-badge${isPublished ? "" : " vp-badge-glow"}`}
       style={
         isPublished
           ? { background: "#4ade80", color: "#0b1a0f" }
@@ -177,9 +59,9 @@ function ShelfBookTile({
   index,
   onSelect,
 }: {
-  book: Book;
+  book: MyBook;
   index: number;
-  onSelect: (book: Book) => void;
+  onSelect: (book: MyBook) => void;
 }) {
   return (
     <button
@@ -188,13 +70,7 @@ function ShelfBookTile({
       className="vp-shelf-book-item vp-book-cover-hover"
       style={{ borderColor: BORDER_COLORS[index % BORDER_COLORS.length] }}
     >
-      <Image
-        src={book.cover}
-        alt={book.title}
-        fill
-        sizes="45vw"
-        className="object-cover"
-      />
+      <BookCover book={book} sizes="45vw" />
       <ShelfStatusBadge status={book.status} />
 
       {/* Same hover/press reveal as the public portfolio's book cards
@@ -239,7 +115,8 @@ export function PublisherBookShelf() {
   const goToAddNewTitle = () => router.push("/app/publish/new");
   const viewportRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [selectedBook, setSelectedBook] = useState<MyBook | null>(null);
+  const { books, loading } = useMyBooks();
 
   // Auto-advances scrollLeft a little every frame, once — unlike the
   // portfolio marquee (a duplicated CSS animation that loops forever),
@@ -272,7 +149,7 @@ export function PublisherBookShelf() {
 
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [books.length]);
 
   const pause = () => {
     pausedRef.current = true;
@@ -285,31 +162,39 @@ export function PublisherBookShelf() {
     <div>
       <SectionLabel>My Books</SectionLabel>
 
-      <div className="vp-shelf-marquee-shell">
-        <div
-          ref={viewportRef}
-          className="vp-shelf-marquee-viewport"
-          onMouseEnter={pause}
-          onMouseLeave={resume}
-          onPointerDown={pause}
-          onPointerUp={resume}
-          onPointerCancel={resume}
-          onTouchStart={pause}
-          onTouchEnd={resume}
-        >
-          <div className="vp-shelf-marquee-track">
-            {BOOKS.map((book, i) => (
-              <ShelfBookTile
-                key={book.id}
-                book={book}
-                index={i}
-                onSelect={setSelectedBook}
-              />
-            ))}
-            <ShelfAddTile onClick={goToAddNewTitle} />
+      {loading ? (
+        <div className="py-6 text-center text-[0.8rem] text-white/40">
+          Loading your books…
+        </div>
+      ) : books.length === 0 ? (
+        <EmptyBooksState onAddTitle={goToAddNewTitle} minHeight="14rem" />
+      ) : (
+        <div className="vp-shelf-marquee-shell">
+          <div
+            ref={viewportRef}
+            className="vp-shelf-marquee-viewport"
+            onMouseEnter={pause}
+            onMouseLeave={resume}
+            onPointerDown={pause}
+            onPointerUp={resume}
+            onPointerCancel={resume}
+            onTouchStart={pause}
+            onTouchEnd={resume}
+          >
+            <div className="vp-shelf-marquee-track">
+              {books.map((book, i) => (
+                <ShelfBookTile
+                  key={book.id}
+                  book={book}
+                  index={i}
+                  onSelect={setSelectedBook}
+                />
+              ))}
+              <ShelfAddTile onClick={goToAddNewTitle} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <BookDetailsModal
         open={selectedBook !== null}

@@ -15,6 +15,7 @@ export interface LessonDetail {
   actionTip: string;
   xp: number;
   status: LessonStatus;
+  lessonId: string;
 }
 
 const ACCENT_GOLD = "rgb(239,199,0)";

@@ -12,6 +12,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useBankAccount, useReferrals } from "../hooks/useWallet";
+import { useMyBooks } from "../hooks/useMyBooks";
 
 type Mode = "learner" | "publisher";
 
@@ -22,28 +24,52 @@ interface QuickAction {
   badge?: string;
 }
 
-const LEARNER_ACTIONS: QuickAction[] = [
-  { id: "refer", label: "Refer & Earn", Icon: UserPlus, badge: "₦10,000" },
-  { id: "bank", label: "Add bank account", Icon: Landmark, badge: "GTBANK" },
-  { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
-  { id: "streaks", label: "Streaks", Icon: Flame },
-  { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
-];
+function naira(n: number) {
+  return `₦${n.toLocaleString()}`;
+}
 
-// Placeholder set — publisher pass comes later. Kept structurally
-// identical so swapping content in is a one-line change.
-const PUBLISHER_ACTIONS: QuickAction[] = [
-  {
-    id: "royalty",
-    label: "Withdraw royalties",
-    Icon: UserPlus,
-    badge: "₦186,000",
-  },
-  { id: "bank", label: "Add bank account", Icon: Landmark, badge: "GTBANK" },
-  { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
-  { id: "streaks", label: "Streaks", Icon: Flame },
-  { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
-];
+// Real per-user badges (referral earnings, bank-link status, publisher
+// royalties) instead of the fixed ₦10,000/GTBank/₦186,000 this used to
+// show for every account — a fresh account now genuinely reads "Not
+// added"/₦0 here too, matching Settings and the Earn page.
+function useQuickActions(mode: Mode): QuickAction[] {
+  const { isLinked, bankAccount } = useBankAccount();
+  const { referrals } = useReferrals();
+  const { books } = useMyBooks();
+
+  const bankBadge = isLinked
+    ? (bankAccount?.bank_name ?? "LINKED").toUpperCase()
+    : "NOT ADDED";
+
+  if (mode === "publisher") {
+    const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
+    return [
+      {
+        id: "royalty",
+        label: "Withdraw royalties",
+        Icon: UserPlus,
+        badge: naira(totalEarned),
+      },
+      { id: "bank", label: "Add bank account", Icon: Landmark, badge: bankBadge },
+      { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
+      { id: "streaks", label: "Streaks", Icon: Flame },
+      { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
+    ];
+  }
+
+  return [
+    {
+      id: "refer",
+      label: "Refer & Earn",
+      Icon: UserPlus,
+      badge: naira(Number(referrals?.total_earned ?? 0)),
+    },
+    { id: "bank", label: "Add bank account", Icon: Landmark, badge: bankBadge },
+    { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
+    { id: "streaks", label: "Streaks", Icon: Flame },
+    { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
+  ];
+}
 
 // Always show the "real" actions; Streaks, Message Admin (and anything else
 // beyond this count) stay tucked behind the "N more" toggle.
@@ -102,7 +128,7 @@ export default function QuickActions({
   onNavigate: (dest: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const actions = mode === "learner" ? LEARNER_ACTIONS : PUBLISHER_ACTIONS;
+  const actions = useQuickActions(mode);
 
   const visible = expanded ? actions : actions.slice(0, VISIBLE_COUNT);
   const hiddenCount = actions.length - VISIBLE_COUNT;

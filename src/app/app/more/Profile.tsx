@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import Image from "next/image";
-import { Camera, Landmark, Pencil, TrendingUp } from "lucide-react";
+import { Camera, Check, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useMyBooks } from "../../../hooks/useMyBooks";
 import MarqueeName from "../../../components/MarqueeName";
 import AutoFitText from "../../../components/AutoFitText";
 import Button from "../../../components/buttons/buttons";
+import Modal from "../../../components/Modal";
+import AvatarCropModal from "../../../components/AvatarCropModal";
+import { notify } from "../../../lib/snackbar";
+import { ApiError } from "../../../lib/api";
 
 // Bullet count is fixed (not tied to the real value's length) — the point
 // is to signal "hidden", not to leak the digit count of the amount
@@ -99,16 +104,77 @@ function StatTile({
   );
 }
 
+function AvatarUpdatedModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div className="flex flex-col items-center text-center">
+        <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(74,222,128,0.28)] bg-[rgba(74,222,128,0.12)] text-[#4ade80]">
+          <Check size={24} strokeWidth={2.5} />
+        </span>
+
+        <h3 className="mb-2 text-[1.05rem] font-black text-white">
+          Profile picture updated!
+        </h3>
+        <p className="mb-6 max-w-[20rem] text-[0.82rem] leading-relaxed text-white/50">
+          Your new photo is live across your dashboard.
+        </p>
+
+        <Button variant="primary" size="md" className="w-full" onClick={onClose}>
+          Nice
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 // No rounded corners/border of its own — renders full-bleed directly on
 // the page (more/page.tsx no longer wraps this in its own bordered card).
 // Settings' own rounded "shelf" overlaps this section's bottom edge.
 export default function Profile() {
   // AppLayout only ever renders its children once the user is
   // authenticated, so `user` is guaranteed non-null here.
-  const { user } = useAuth();
+  const { user, updateAvatar } = useAuth();
+  const { books } = useMyBooks();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [amountHidden, setAmountHidden] = useState(false);
+  const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const initial = user!.first_name.trim().charAt(0).toUpperCase() || "V";
+  const totalEarnings = books.reduce((sum, b) => sum + Number(b.earned), 0);
+
+  const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets picking the same file again re-trigger onChange
+    if (!file) return;
+    setPendingImageSrc(URL.createObjectURL(file));
+  };
+
+  const closeCropModal = () => {
+    if (pendingImageSrc) URL.revokeObjectURL(pendingImageSrc);
+    setPendingImageSrc(null);
+  };
+
+  const handleCropSave = async (blob: Blob) => {
+    try {
+      await updateAvatar(blob);
+      setAvatarFailed(false);
+      closeCropModal();
+      setShowSuccess(true);
+    } catch (err) {
+      // apiFetch already fires an error snackbar for ApiError — only the
+      // network-level case needs a fallback here.
+      if (!(err instanceof ApiError)) {
+        notify("Could not update your profile picture. Please try again.", "error");
+      }
+    }
+  };
 
   return (
     <div
@@ -150,6 +216,7 @@ export default function Profile() {
               alt={user!.first_name}
               width={112}
               height={112}
+              unoptimized
               className="h-[112px] w-[112px] rounded-full border-[3px] object-cover"
               style={{ borderColor: "rgba(var(--vp-accent-rgb),0.5)" }}
               onError={() => setAvatarFailed(true)}
@@ -165,15 +232,25 @@ export default function Profile() {
               {initial}
             </div>
           )}
-          <span
-            className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full border-2"
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Change profile picture"
+            className="absolute bottom-1 right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-transform active:scale-90"
             style={{
               background: "rgb(var(--vp-accent-rgb))",
               borderColor: "#171d38",
             }}
           >
             <Camera size={14} strokeWidth={2.25} color="#171100" />
-          </span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
         </div>
 
         {/* mt-8 nudges the text block below the Edit Profile pill's row so
@@ -206,7 +283,7 @@ export default function Profile() {
         <StatTile
           icon={<TrendingUp size={15} strokeWidth={1.8} />}
           label="Total earnings"
-          value="₦170,600"
+          value={`₦${totalEarnings.toLocaleString()}`}
           valueColor="#4ade80"
           maskable
           hidden={amountHidden}
@@ -219,6 +296,18 @@ export default function Profile() {
           badge="New"
         />
       </div>
+
+      <AvatarCropModal
+        open={pendingImageSrc !== null}
+        imageSrc={pendingImageSrc}
+        onClose={closeCropModal}
+        onSave={handleCropSave}
+      />
+
+      <AvatarUpdatedModal
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+      />
     </div>
   );
 }

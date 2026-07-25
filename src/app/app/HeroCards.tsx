@@ -2,7 +2,6 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Play } from "lucide-react";
 import GlassCard from "./GlassCard";
 import SectionLabel from "../../components/SectionLabel";
 import MarqueeName from "../../components/MarqueeName";
@@ -124,12 +123,7 @@ function ModuleProgressCard({
           </p>
         </div>
 
-        <SlideCta
-          label="Resume"
-          icon={<Play size={11} strokeWidth={2.5} fill="currentColor" />}
-          onClick={onResume}
-          compact
-        />
+        <SlideCta label="Resume" onClick={onResume} compact />
       </div>
     </GlassCard>
   );

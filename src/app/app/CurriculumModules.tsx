@@ -2,6 +2,7 @@
 
 "use client";
 
+import { useCoreCourse, type CoreCourse } from "../../hooks/useAcademy";
 import { ProgressRoadmap, type RoadmapItem } from "./CurriculumRoadmap";
 import type {
   LessonDetail,
@@ -10,6 +11,7 @@ import type {
 
 export interface ModuleItem {
   id: number;
+  lessonId: string;
   module: string;
   title: string;
   description: string;
@@ -19,125 +21,90 @@ export interface ModuleItem {
   progress: number;
 }
 
-export const MODULES: ModuleItem[] = [
-  {
-    id: 1,
-    module: "Module 01",
-    title: "Foundations: A–Z of Publishing",
-    description:
-      "Tools of the Trade: understanding the publishing process, from manuscript to market.",
-    actionTip:
-      "Revisit your notes on the manuscript-to-market pipeline before moving on — everything else builds on this.",
-    xp: 120,
-    duration: "12 min",
-    progress: 100,
-  },
-  {
-    id: 2,
-    module: "Module 02",
-    title: "Design: Inside and Cover",
-    description:
-      "Cover design, inside design, formatting and layout, and everything that makes a book reader-ready.",
-    actionTip:
-      "Sketch three cover directions before opening any design tool — constraints spark better covers than a blank canvas.",
-    xp: 200,
-    duration: "18 min",
-    progress: 100,
-  },
-  {
-    id: 3,
-    module: "Module 03",
-    title: "Proofreading and Editing",
-    description:
-      "Getting the book error-free and updating it to ensure high engagement and readability.",
-    actionTip:
-      "Read your manuscript aloud — your ear will catch awkward phrasing your eyes skim right past.",
-    xp: 150,
-    duration: "15 min",
-    progress: 40,
-  },
-  {
-    id: 4,
-    module: "Module 04",
-    title: "Printing: Presswork",
-    description:
-      "From back-cover printing and lamination to inside printing, perfect-binding, sewing, trimming and packaging.",
-    actionTip:
-      "Order a single physical proof before committing to a full print run — screens lie about paper weight and color.",
-    xp: 180,
-    duration: "20 min",
-    progress: 0,
-  },
-  {
-    id: 5,
-    module: "Module 05",
-    title: "Distribution: KDP, Selar, etc.",
-    description:
-      "Upload, metadata, pricing strategy, and getting your book into readers' hands.",
-    actionTip:
-      "Write your book's metadata and keywords before uploading — retrofitting SEO after launch costs you early sales.",
-    xp: 220,
-    duration: "18 min",
-    progress: 0,
-  },
-  {
-    id: 6,
-    module: "Module 06",
-    title: "Capstone: Publish First Book",
-    description:
-      "Write a book about an important area of your life that you've succeeded in and publish it for others to achieve the same.",
-    actionTip:
-      "Set a firm publish date now — a deadline turns a capstone project into a finished book.",
-    xp: 200,
-    duration: "25 min",
-    progress: 0,
-  },
-];
+// Course.modules -> ModuleItem[]. The seed data gives every module
+// exactly one lesson, so a "module" and its lesson are 1:1 here — real
+// per-lesson completion is binary (is_completed), so progress is always
+// 0 or 100, never the partial values the old mock used.
+export function courseToModules(course: CoreCourse | null): ModuleItem[] {
+  if (!course) return [];
 
-export function getCurrentModule(modules: ModuleItem[] = MODULES) {
-  return modules.find((m) => m.progress > 0 && m.progress < 100) ?? modules[0];
+  return course.modules.map((m, i) => {
+    const lesson = m.lessons[0];
+    return {
+      id: m.id,
+      lessonId: lesson?.id ?? "",
+      module: `Module ${String(i + 1).padStart(2, "0")}`,
+      title: lesson?.title ?? m.title,
+      description: lesson?.body ?? "",
+      actionTip: lesson?.action_tip ?? "",
+      xp: lesson?.xp_reward ?? 0,
+      duration: lesson ? `${lesson.estimated_minutes} min` : "",
+      progress: lesson?.is_completed ? 100 : 0,
+    };
+  });
+}
+
+// "Current" = the first not-yet-completed module (what a learner should
+// resume next); once everything is done, stick on the last one.
+export function getCurrentModule(modules: ModuleItem[]): ModuleItem | null {
+  if (modules.length === 0) return null;
+  return modules.find((m) => m.progress < 100) ?? modules[modules.length - 1];
 }
 
 export function getModuleXpEarned(module: ModuleItem) {
   return Math.round((module.xp * module.progress) / 100);
 }
 
-function moduleStatus(m: ModuleItem, currentId: number): LessonStatus {
+function moduleStatus(m: ModuleItem, currentId: number | null): LessonStatus {
   if (m.progress === 100) return "done";
   if (m.id === currentId) return "current";
   return "upcoming";
 }
 
+// One real fetch (+ auto-enroll) per mount, shared by every consumer that
+// needs the learner's curriculum — HomeScreen, LearnPage.
+export function useLearnerCurriculum() {
+  const { course, loading, error, refetch } = useCoreCourse();
+  const modules = courseToModules(course);
+  const current = getCurrentModule(modules);
+  const currentXpEarned = current ? getModuleXpEarned(current) : 0;
+
+  return { modules, current, currentXpEarned, loading, error, refetch };
+}
+
 export function LearnerRoadmap({
+  modules,
+  currentId,
   onSelect,
 }: {
+  modules: ModuleItem[];
+  currentId: number | null;
   onSelect?: (lesson: LessonDetail) => void;
 }) {
-  const current = getCurrentModule(MODULES);
-
-  const items: RoadmapItem[] = MODULES.map((m) => ({
+  const items: RoadmapItem[] = modules.map((m) => ({
     id: m.id,
     label: m.title,
-    status: moduleStatus(m, current.id),
+    status: moduleStatus(m, currentId),
     progress: m.progress,
   }));
 
   const handleSelect = (id: string | number) => {
     if (!onSelect) return;
 
-    const index = MODULES.findIndex((m) => m.id === id);
-    const m = MODULES[index];
+    const index = modules.findIndex((m) => m.id === id);
+    const m = modules[index];
     if (!m) return;
 
     onSelect({
       index: index + 1,
-      total: MODULES.length,
+      total: modules.length,
       moduleLabel: m.module,
       title: m.title,
       description: m.description,
       actionTip: m.actionTip,
       xp: m.xp,
-      status: moduleStatus(m, current.id),
+      status: moduleStatus(m, currentId),
+      lessonId: m.lessonId,
     });
   };
 

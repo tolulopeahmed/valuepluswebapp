@@ -1970,6 +1970,35 @@ header {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* Shared "still in progress" glow — same orange on any status badge that
+   means "not published yet" (the shelf's corner icon, the Publish page's
+   pending pill), so the two read as one consistent visual language.
+   Self-contained box-shadow (backdrop + glow together) since an
+   animation's box-shadow always wins over a static utility class's. */
+@keyframes vpBadgeGlow {
+  0%,
+  100% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.35),
+      0 0 0 0 rgba(251, 146, 60, 0.65);
+  }
+  50% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.35),
+      0 0 9px 3px rgba(251, 146, 60, 0.55);
+  }
+}
+
+.vp-badge-glow {
+  animation: vpBadgeGlow 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-badge-glow {
+    animation: none;
+  }
+}
+
 /* Same reveal-on-hover/press mechanism as .vp-portfolio-book-details —
    title (accent color) on top, price below, instead of category/title. */
 .vp-shelf-book-details {
