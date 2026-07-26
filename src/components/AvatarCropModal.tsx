@@ -135,7 +135,8 @@ export default function AvatarCropModal({
           size="md"
           className="flex-1"
           onClick={handleSave}
-          disabled={saving || !croppedAreaPixels}
+          disabled={!croppedAreaPixels}
+          loading={saving}
         >
           {saving ? "Saving…" : "Save photo"}
         </Button>

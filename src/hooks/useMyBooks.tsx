@@ -2,9 +2,18 @@
 
 import Image from "next/image";
 import { Plus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import ShrinkToFitText from "@/components/ShrinkToFitText";
 
 // Snapshot of the manuscript details a user submitted on "Get a Quote" —
 // present whenever a book originated from that flow (i.e. every `pending`
@@ -21,6 +30,9 @@ export interface BookQuotationSummary {
   selected_services: { id: string; label: string; type: string; amount: string }[];
   services_total: string;
   print_cost: string | null;
+  // Whether anything from the "Print Finish" group was requested — if
+  // not, services_total is already the final cost, not a partial one.
+  has_print_element: boolean;
   additional_notes: string;
   created_at: string;
 }
@@ -69,11 +81,30 @@ export const MY_BOOK_STATUS_BADGE_CLASS: Record<MyBook["status"], string> = {
   published: "bg-[#123524] text-[#4ade80] border border-[rgba(74,222,128,0.6)]",
 };
 
-export function useMyBooks() {
+interface MyBooksContextValue {
+  books: MyBook[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+const MyBooksContext = createContext<MyBooksContextValue | null>(null);
+
+// Every tab (Home, Publish, Earn, More) and a couple of modals each used
+// to call a self-fetching useMyBooks() independently — fine on its own,
+// except React Router... no, Next's app-router layout keeps /app/app's
+// layout mounted across sibling tab navigation, so each of THESE hooks
+// was unmounting/remounting (and therefore refetching from scratch) every
+// single time the user switched tabs, on top of firing more than once
+// per page when several consumers rendered at once. One provider, mounted
+// once in app/app/layout.tsx alongside AppShellProvider, now owns the
+// single fetch — every consumer just reads the shared cache.
+export function MyBooksProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [books, setBooks] = useState<MyBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
 
   const refetch = useCallback(async () => {
     if (!isAuthenticated) {
@@ -95,16 +126,36 @@ export function useMyBooks() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    // Fetching on mount/auth-change is the "synchronize with an external
-    // system" case useEffect exists for. refetch()'s loading/error resets
-    // do run synchronously before its first await (that's what this rule
-    // flags), which is the standard, safe shape for a fetch-on-mount hook
-    // — restructuring it away would only make this harder to follow.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // Only the very first authenticated mount (or a fresh login after a
+    // logout) should trigger a fetch here — once loaded, the data lives
+    // in this provider for the rest of the session and every tab switch
+    // just re-reads it via context instead of hitting the network again.
+    // Callers that need a fresh copy after a mutation (e.g. after
+    // submitting a quote) already call the returned refetch() explicitly.
+    if (!isAuthenticated) {
+      hasFetchedRef.current = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      refetch(); // clears books/loading for the logged-out state
+      return;
+    }
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     refetch();
-  }, [refetch]);
+  }, [isAuthenticated, refetch]);
 
-  return { books, loading, error, refetch };
+  return (
+    <MyBooksContext.Provider value={{ books, loading, error, refetch }}>
+      {children}
+    </MyBooksContext.Provider>
+  );
+}
+
+export function useMyBooks() {
+  const ctx = useContext(MyBooksContext);
+  if (!ctx) {
+    throw new Error("useMyBooks must be used within MyBooksProvider (i.e. inside src/app/app)");
+  }
+  return ctx;
 }
 
 // Backend decimal fields (price/earned) arrive as strings; price is also
@@ -189,24 +240,43 @@ export function BookCover({ book, sizes }: { book: MyBook; sizes: string }) {
     <div
       className="flex h-full w-full flex-col items-center gap-1 p-2.5 text-center"
       style={{
-        background: `linear-gradient(150deg, ${from}, ${to})`,
+        // Faint watermark layered UNDER the gradient (first in the list
+        // paints on top of later ones) — background images always paint
+        // before any box content, positioned or not, so this can't ever
+        // end up covering the title/subtitle/author text above it.
+        backgroundImage: `url(/images/logos/valueplus-mark-watermark.png), linear-gradient(150deg, ${from}, ${to})`,
+        backgroundSize: "70% auto, cover",
+        backgroundPosition: "center, center",
+        backgroundRepeat: "no-repeat, no-repeat",
         containerType: "inline-size",
       }}
     >
-      <div className="flex flex-1 flex-col items-center justify-center gap-1">
-        <p
-          className="line-clamp-3 font-black uppercase text-white"
-          style={{ fontSize: "20cqw", lineHeight: 0.95, letterSpacing: "-0.01em" }}
+      {/* min-w-0 is the fix, not just decoration — items-center (the
+          root's cross-axis alignment) doesn't stretch this flex child to
+          the root's width by default, so without an explicit width it
+          shrink-wraps to its widest *unbroken* line (e.g. one long word
+          like "CONVERSION" at a big font-size) and grows past the cover's
+          actual edges instead of being constrained by them. */}
+      <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center gap-1">
+        <ShrinkToFitText
+          className="w-full font-black uppercase tracking-[-0.01em] text-white"
+          maxRatio={0.2}
+          minRatio={0.07}
+          maxLines={3}
+          lineHeight={0.95}
         >
           {title}
-        </p>
+        </ShrinkToFitText>
         {book.subtitle && (
-          <p
-            className="line-clamp-2 font-medium leading-snug text-white/55"
-            style={{ fontSize: "4.5cqw" }}
+          <ShrinkToFitText
+            className="w-full font-medium text-white/55"
+            maxRatio={0.045}
+            minRatio={0.03}
+            maxLines={2}
+            lineHeight={1.3}
           >
             {book.subtitle}
-          </p>
+          </ShrinkToFitText>
         )}
       </div>
 
@@ -216,12 +286,14 @@ export function BookCover({ book, sizes }: { book: MyBook; sizes: string }) {
             className="h-px w-5"
             style={{ background: "rgba(255,255,255,0.3)" }}
           />
-          <p
-            className="pt-1 font-semibold uppercase tracking-[0.14em] text-white/60"
-            style={{ fontSize: "4cqw" }}
+          <ShrinkToFitText
+            className="w-full min-w-0 pt-1 font-semibold uppercase tracking-[0.1em] text-white/70"
+            maxRatio={0.055}
+            minRatio={0.042}
+            maxLines={2}
           >
             {authorName}
-          </p>
+          </ShrinkToFitText>
         </>
       )}
     </div>

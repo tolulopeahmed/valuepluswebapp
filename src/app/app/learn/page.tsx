@@ -325,8 +325,14 @@ export default function LearnPage() {
                 <p className="text-sm font-black text-white truncate">
                   {current?.title ?? "—"}
                 </p>
-                <p className="text-xs text-white/40">
-                  {current?.progress ?? 0}% complete
+                <p
+                  className={`text-xs text-white/40 ${
+                    !current || current.progress === 0 ? "uppercase tracking-wide" : ""
+                  }`}
+                >
+                  {!current || current.progress === 0
+                    ? "Yet to start"
+                    : `${current.progress}% complete`}
                 </p>
               </SummaryPill>
             </div>

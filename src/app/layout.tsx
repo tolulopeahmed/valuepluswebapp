@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SnackbarProvider } from "@/components/Snackbar";
+import ReferralCapture from "@/components/ReferralCapture";
 
 export const metadata: Metadata = {
   title: "ValuePlus | Learn the A-Z of Publishing",
@@ -37,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <ReferralCapture />
         <SnackbarProvider>
           <AuthProvider>{children}</AuthProvider>
         </SnackbarProvider>

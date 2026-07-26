@@ -48,11 +48,11 @@ const BORDER_COLORS = [
 // has been submitted yet, staff still owe the requester a full quote.
 function StatusBadge({ status }: { status: Book["status"] }) {
   return (
-    // py-1.5 (equal to px-1.5) made this a tall pill, not a compact
-    // badge — a flatter vertical padding with a small (not full) radius
-    // reads as a proper corner tag instead.
+    // py-1.5 (equal to px-1.5) keeps this a compact, flat pill rather
+    // than a tall one — full rounding (not the old small corner-tag
+    // radius) matches the pill badge used everywhere else (BookDetailsModal).
     <span
-      className={`inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${MY_BOOK_STATUS_BADGE_CLASS[status]}`}
+      className={`inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[0.42rem] font-black uppercase tracking-wide shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${MY_BOOK_STATUS_BADGE_CLASS[status]}`}
     >
       {status === "published" && <Check size={8} strokeWidth={3.5} />}
       {MY_BOOK_STATUS_LABEL[status]}
@@ -162,15 +162,23 @@ function BookGridTile({
         style={{ borderColor }}
       >
         <BookCover book={book} sizes="(min-width: 768px) 18vw, 32vw" />
-        <span className="absolute right-1 top-1">
-          <StatusBadge status={book.status} />
-        </span>
 
         <div className="vp-shelf-book-details">
           <p className="vp-shelf-book-title">{book.title}</p>
           <p className="vp-shelf-book-price">{naira(book.price)}</p>
         </div>
       </button>
+
+      {/* Inset within the card, matching the home shelf's corner badge
+          (.vp-shelf-status-badge: top/right 0.5rem = top-2/right-2) —
+          poking the badge up above the edge (the old -top-2) looked
+          like it was straddling the border instead of sitting neatly
+          in the corner. Still a sibling of the cover button rather than
+          a child, just so it never risks being clipped by the button's
+          own overflow-hidden rounded corners. */}
+      <span className="absolute top-2 right-2 z-10">
+        <StatusBadge status={book.status} />
+      </span>
 
       <DeleteDraftButton
         book={book}

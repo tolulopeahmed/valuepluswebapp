@@ -20,6 +20,7 @@ export interface AuthUser {
   is_student: boolean;
   is_verified: boolean;
   avatar: string | null;
+  preferred_mode: "learner" | "publisher";
   account_type_label: string;
   created_at: string;
 }
@@ -36,6 +37,7 @@ interface RegisterPayload {
   last_name: string;
   password: string;
   password_confirm: string;
+  referrer_email?: string;
 }
 
 interface VerifyEmailPayload {
@@ -63,7 +65,14 @@ interface AuthContextValue {
   requestPasswordReset: (email: string) => Promise<void>;
   confirmPasswordReset: (data: ConfirmPasswordResetPayload) => Promise<void>;
   updateAvatar: (file: Blob) => Promise<void>;
+  updateProfile: (data: ProfilePayload) => Promise<void>;
   logout: () => Promise<void>;
+}
+
+export interface ProfilePayload {
+  first_name: string;
+  last_name: string;
+  phone_number: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -174,6 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data);
   }, []);
 
+  const updateProfile = useCallback(async (payload: ProfilePayload) => {
+    const data = await apiFetch<AuthUser>("/auth/me/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    setUser(data);
+  }, []);
+
   const logout = useCallback(async () => {
     // Fire-and-forget: blacklists the refresh token server-side so it
     // can never be replayed, but doesn't hold up the visible logout —
@@ -203,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         requestPasswordReset,
         confirmPasswordReset,
         updateAvatar,
+        updateProfile,
         logout,
       }}
     >

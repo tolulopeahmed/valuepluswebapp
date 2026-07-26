@@ -1876,21 +1876,39 @@ header {
   background: rgba(0, 0, 0, 0.16);
 }
 
-.vp-shelf-marquee-shell::before {
-  content: "";
+/* Each edge's shadow is its own element now (not one shell-wide ::before)
+   so JS can fade each side in/out independently based on actual scroll
+   position — the left one has no business showing while the shelf is
+   already scrolled all the way to the start (e.g. a single book), same
+   as the right one has no business showing once scrolled to the end. */
+.vp-shelf-edge-shadow {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
   z-index: 5;
+  width: 14%;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.vp-shelf-edge-shadow-left {
+  left: 0;
   background: linear-gradient(
     90deg,
     #0a0e1b 0%,
-    rgba(10, 14, 27, 0.72) 4%,
-    transparent 10%,
-    transparent 90%,
-    rgba(10, 14, 27, 0.72) 96%,
-    #0a0e1b 100%
+    rgba(10, 14, 27, 0.72) 40%,
+    transparent 100%
   );
-  pointer-events: none;
+}
+
+.vp-shelf-edge-shadow-right {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    #0a0e1b 0%,
+    rgba(10, 14, 27, 0.72) 40%,
+    transparent 100%
+  );
 }
 
 .vp-shelf-marquee-viewport {

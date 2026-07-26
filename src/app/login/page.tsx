@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
+import { getStoredReferrerEmail, clearStoredReferrerEmail } from "@/lib/referral";
 
 type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
 
@@ -60,6 +61,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  // Lazy initializer — auto-fills from a `?ref=` link captured earlier
+  // (see ReferralCapture), but stays a normal, editable field so someone
+  // who was just told their referrer's email verbally can type it in too.
+  const [referrerEmail, setReferrerEmail] = useState(() => getStoredReferrerEmail());
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -126,7 +131,9 @@ export default function LoginPage() {
           last_name: lastName,
           password,
           password_confirm: confirmPassword,
+          referrer_email: referrerEmail.trim() || undefined,
         });
+        clearStoredReferrerEmail();
         setOtpCode("");
         switchMode("otp");
         return;
@@ -392,13 +399,35 @@ export default function LoginPage() {
                 </div>
               )}
 
+              {mode === "signup" && (
+                <div className="relative">
+                  <input
+                    type="email"
+                    value={referrerEmail}
+                    placeholder="Referred by? Their email (optional)"
+                    autoComplete="off"
+                    onFocus={() => setFocused("referrerEmail")}
+                    onBlur={() => markComplete("referrerEmail", referrerEmail)}
+                    onChange={(e) => setReferrerEmail(e.target.value)}
+                    className={`${inputBase} ${
+                      isDone("referrerEmail", referrerEmail) ? inputDone : inputIdle
+                    }`}
+                  />
+
+                  {isDone("referrerEmail", referrerEmail) && <FieldTag label="Referral" />}
+                </div>
+              )}
+
               {(mode === "otp" || mode === "reset") && (
                 <button
                   type="button"
                   onClick={handleResendCode}
                   disabled={resending}
-                  className="-mt-1 cursor-pointer self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
+                  className="-mt-1 inline-flex cursor-pointer items-center gap-1.5 self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
                 >
+                  {resending && (
+                    <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(239,199,0,0.25)] border-t-[rgb(239,199,0)]" />
+                  )}
                   {resending ? "Sending…" : "Resend code"}
                 </button>
               )}
@@ -418,13 +447,11 @@ export default function LoginPage() {
                 variant="primary"
                 size="md"
                 className="mt-1 w-full"
-                disabled={loading}
+                loading={loading}
+                disabled={mode === "login" && (!email.trim() || !password.trim())}
               >
                 {loading ? (
-                  <>
-                    <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(23,17,0,0.3)] border-t-[#171100]" />
-                    Please wait…
-                  </>
+                  "Please wait…"
                 ) : mode === "login" ? (
                   "Log in →"
                 ) : mode === "signup" ? (

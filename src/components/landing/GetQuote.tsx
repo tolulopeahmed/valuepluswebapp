@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
+import { getStoredReferrerEmail, clearStoredReferrerEmail } from "@/lib/referral";
 import Button from "../buttons/buttons";
 import Modal from "../Modal";
 
@@ -458,12 +459,14 @@ function getServiceCost({
 function QuoteSuccessPanel({
   email,
   isAuthenticated,
+  hasPrintElement,
   onGoToDashboard,
   onSubmitAnother,
   onClose,
 }: {
   email: string;
   isAuthenticated: boolean;
+  hasPrintElement: boolean;
   onGoToDashboard: () => void;
   onSubmitAnother: () => void;
   onClose?: () => void;
@@ -480,9 +483,18 @@ function QuoteSuccessPanel({
             Added to your dashboard
           </h3>
           <p className="mb-6 max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
-            Your new title is on your Publish page with a pending status.
-            We&apos;ll follow up with the full quote, including print cost,
-            once it&apos;s ready.
+            {hasPrintElement ? (
+              <>
+                Your new title is on your Publish page with a pending status.
+                We&apos;ll follow up with the full quote, including print cost,
+                once it&apos;s ready.
+              </>
+            ) : (
+              <>
+                Your new title is on your Publish page with a pending status —
+                that quote is already your final cost, no print costs to add.
+              </>
+            )}
           </p>
           <div className="flex w-full flex-col gap-2 sm:flex-row">
             <Button
@@ -510,10 +522,12 @@ function QuoteSuccessPanel({
           </h3>
           <p className="mb-6 max-w-[26rem] text-[0.82rem] leading-relaxed text-white/50">
             We&apos;ve emailed the details you submitted to{" "}
-            <strong className="text-white">{email}</strong>. Open that email
-            and click <strong className="text-white">Complete Your
-            Registration</strong> to choose a password, log in, and see your
-            full quote on your dashboard.
+            <strong className="text-white">{email}</strong>. Open that email and
+            click{" "}
+            <strong className="text-white">Complete Your Registration</strong>{" "}
+            to choose a password, log in, and see
+            {hasPrintElement ? " your full quote" : " your quote"} on your
+            dashboard.
           </p>
           <div className="flex w-full flex-col gap-2 sm:flex-row">
             {onClose && (
@@ -573,6 +587,10 @@ export default function GetQuote({
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  // Lazy initializer — auto-fills from a `?ref=` link captured earlier
+  // (see ReferralCapture), but stays a normal, editable field so someone
+  // who was just told their referrer's email verbally can type it in too.
+  const [referrerEmail, setReferrerEmail] = useState(() => getStoredReferrerEmail());
   const [manualSelectedIds, setManualSelectedIds] = useState<string[]>([]);
   const [wordAnchorId, setWordAnchorId] = useState<string | null>(null);
   const [displayTotal, setDisplayTotal] = useState(0);
@@ -580,9 +598,9 @@ export default function GetQuote({
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [completedFields, setCompletedFields] = useState<string[]>([]);
 
-  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success">(
-    "idle",
-  );
+  const [submitState, setSubmitState] = useState<
+    "idle" | "submitting" | "success"
+  >("idle");
   // Separate from submitState on purpose: dismissing the modal (X,
   // backdrop, Escape, "Got it") should only hide the popup — the card
   // underneath keeps showing the success message until the user
@@ -599,10 +617,14 @@ export default function GetQuote({
   // fires once per user) rather than in an effect — this is React's own
   // documented pattern for "state that depends on a prop/value change"
   // and avoids an extra post-mount render pass.
-  const [prefilledForEmail, setPrefilledForEmail] = useState<string | null>(null);
+  const [prefilledForEmail, setPrefilledForEmail] = useState<string | null>(
+    null,
+  );
   if (isAuthenticated && user && prefilledForEmail !== user.email) {
     setPrefilledForEmail(user.email);
-    setFullName((current) => current || `${user.first_name} ${user.last_name}`.trim());
+    setFullName(
+      (current) => current || `${user.first_name} ${user.last_name}`.trim(),
+    );
     setEmail((current) => current || user.email);
   }
 
@@ -614,6 +636,13 @@ export default function GetQuote({
   const hasManualPrintFinish = useMemo(() => {
     return manualSelectedIds.some((id) => printFinishIds.includes(id));
   }, [manualSelectedIds]);
+
+  // Anything from the "Print Finish" group (paper/lamination/binding/
+  // nylon, or the 250+ page auto-add) means staff still need to price
+  // printing by hand — the displayed total isn't the final cost yet.
+  // With none of that selected, the total already IS the final cost, so
+  // the button/success copy/email shouldn't imply more is coming.
+  const hasPrintElement = hasManualPrintFinish || pageCount > 250;
 
   const effectiveSelectedIds = useMemo(() => {
     const next = [...manualSelectedIds];
@@ -1116,8 +1145,10 @@ export default function GetQuote({
           chapters: numberOrUndefined(chapters),
           copies: numberOrUndefined(copies),
           selected_service_ids: effectiveSelectedIds,
+          referrer_email: referrerEmail.trim() || undefined,
         }),
       });
+      clearStoredReferrerEmail();
       setSubmitState("success");
       setModalOpen(true);
     } catch (err) {
@@ -1128,6 +1159,15 @@ export default function GetQuote({
       }
       setSubmitState("idle");
     }
+  }
+
+  // Dismissing the success modal leaves the inline success panel showing
+  // underneath, sitting exactly where the form used to be — often well
+  // down the page for a long manuscript form. Scroll back to the top so
+  // the user lands somewhere sensible instead of staying stranded mid-page.
+  function closeSuccessModal() {
+    setModalOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   // Clears only the manuscript-specific fields — full name/WhatsApp/email
@@ -1145,7 +1185,9 @@ export default function GetQuote({
     setManualSelectedIds([]);
     setWordAnchorId(null);
     setCompletedFields((current) =>
-      current.filter((id) => id === "name" || id === "number" || id === "email"),
+      current.filter(
+        (id) => id === "name" || id === "number" || id === "email",
+      ),
     );
     setFocusedField(null);
     setModalOpen(false);
@@ -1818,394 +1860,428 @@ export default function GetQuote({
               <QuoteSuccessPanel
                 email={email}
                 isAuthenticated={isAuthenticated}
+                hasPrintElement={hasPrintElement}
                 onGoToDashboard={() => router.push("/app/publish")}
                 onSubmitAnother={resetForAnotherManuscript}
               />
             ) : (
               <>
-            <div ref={estimateCardRef} className="vpgq-estimate-card">
-              <p className="vpgq-estimate-label">Estimated Amount</p>
+                <div ref={estimateCardRef} className="vpgq-estimate-card">
+                  <p className="vpgq-estimate-label">Estimated Amount</p>
 
-              <div className="vpgq-estimate-amount">
-                {formatNaira(displayTotal)}
-              </div>
-            </div>
-
-            <div className="vpgq-sub-panel">
-              <span className="vpgq-label" style={{ color: "#60c8ff" }}>
-                Manuscript details
-              </span>
-
-                <div className="vpgq-grid">
-                  <div
-                    className={getFieldClassName(
-                      "title",
-                      bookTitle,
-                      "vpgq-wide",
-                    )}
-                  >
-                    <input
-                      value={bookTitle}
-                      onChange={(event) => setBookTitle(event.target.value)}
-                      onFocus={() => setFocusedField("title")}
-                      onBlur={() => markFieldComplete("title", bookTitle)}
-                      placeholder="Book title"
-                      autoComplete="off"
-                    />
-
-                    {shouldShowFieldTag("title", bookTitle) && (
-                      <span className="vpgq-field-tag">Title</span>
-                    )}
-                  </div>
-
-                  <div
-                    className={getFieldClassName(
-                      "category",
-                      category,
-                      "vpgq-field-select vpgq-wide",
-                    )}
-                  >
-                    <select
-                      value={category}
-                      onChange={(event) => setCategory(event.target.value)}
-                      onFocus={() => setFocusedField("category")}
-                      onBlur={() => markFieldComplete("category", category)}
-                    >
-                      <option value="">Book category</option>
-
-                      {bookCategories.map((item) => (
-                        <option key={item}>{item}</option>
-                      ))}
-                    </select>
-
-                    {shouldShowFieldTag("category", category) && (
-                      <span className="vpgq-field-tag">Category</span>
-                    )}
-                  </div>
-
-                  <div
-                    className={getFieldClassName(
-                      "size",
-                      bookSize,
-                      "vpgq-field-select",
-                    )}
-                  >
-                    <select
-                      value={bookSize}
-                      onChange={(event) => setBookSize(event.target.value)}
-                      onFocus={() => setFocusedField("size")}
-                      onBlur={() => markFieldComplete("size", bookSize)}
-                    >
-                      {bookSizes.map((size) => (
-                        <option key={size}>{size}</option>
-                      ))}
-                    </select>
-
-                    {shouldShowFieldTag("size", bookSize) && (
-                      <span className="vpgq-field-tag">Book Size</span>
-                    )}
-                  </div>
-
-                  <div className={getFieldClassName("pages", pages)}>
-                    <input
-                      ref={pagesInputRef}
-                      value={pages}
-                      onChange={(event) => updateNumeric(event, setPages)}
-                      onFocus={() => setFocusedField("pages")}
-                      onBlur={() => markFieldComplete("pages", pages)}
-                      placeholder="Estimated number of pages"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                    />
-
-                    {shouldShowFieldTag("pages", pages) && (
-                      <span className="vpgq-field-tag">Pages</span>
-                    )}
-                  </div>
-
-                  <div className={getFieldClassName("copies", copies)}>
-                    <input
-                      ref={copiesInputRef}
-                      value={copies}
-                      onChange={(event) => updateNumeric(event, setCopies)}
-                      onFocus={() => setFocusedField("copies")}
-                      onBlur={() => markFieldComplete("copies", copies)}
-                      placeholder="Total copies needed"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                    />
-
-                    {shouldShowFieldTag("copies", copies) && (
-                      <span className="vpgq-field-tag">Copies</span>
-                    )}
+                  <div className="vpgq-estimate-amount">
+                    {formatNaira(displayTotal)}
                   </div>
                 </div>
-              </div>
 
-              <div className="vpgq-sub-panel vpgq-sub-panel-contact">
-                <span className="vpgq-label" style={{ color: "#60c8ff" }}>
-                  Your Details
-                </span>
+                <div className="vpgq-sub-panel">
+                  <span className="vpgq-label" style={{ color: "#60c8ff" }}>
+                    Manuscript details
+                  </span>
 
-                <div className="vpgq-grid">
-                  <div className={getFieldClassName("name", fullName)}>
-                    <input
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                      onFocus={() => setFocusedField("name")}
-                      onBlur={() => markFieldComplete("name", fullName)}
-                      placeholder="Your full name"
-                      autoComplete="name"
-                    />
+                  <div className="vpgq-grid">
+                    <div
+                      className={getFieldClassName(
+                        "title",
+                        bookTitle,
+                        "vpgq-wide",
+                      )}
+                    >
+                      <input
+                        value={bookTitle}
+                        onChange={(event) => setBookTitle(event.target.value)}
+                        onFocus={() => setFocusedField("title")}
+                        onBlur={() => markFieldComplete("title", bookTitle)}
+                        placeholder="Book title"
+                        autoComplete="off"
+                      />
 
-                    {shouldShowFieldTag("name", fullName) && (
-                      <span className="vpgq-field-tag">Name</span>
-                    )}
-                  </div>
+                      {shouldShowFieldTag("title", bookTitle) && (
+                        <span className="vpgq-field-tag">Title</span>
+                      )}
+                    </div>
 
-                  <div className={getFieldClassName("number", whatsapp)}>
-                    <input
-                      value={whatsapp}
-                      onChange={(event) => setWhatsapp(event.target.value)}
-                      onFocus={() => setFocusedField("number")}
-                      onBlur={() => markFieldComplete("number", whatsapp)}
-                      placeholder="WhatsApp number"
-                      inputMode="tel"
-                    />
+                    <div
+                      className={getFieldClassName(
+                        "category",
+                        category,
+                        "vpgq-field-select vpgq-wide",
+                      )}
+                    >
+                      <select
+                        value={category}
+                        onChange={(event) => setCategory(event.target.value)}
+                        onFocus={() => setFocusedField("category")}
+                        onBlur={() => markFieldComplete("category", category)}
+                      >
+                        <option value="">Book category</option>
 
-                    {shouldShowFieldTag("number", whatsapp) && (
-                      <span className="vpgq-field-tag">WhatsApp</span>
-                    )}
-                  </div>
+                        {bookCategories.map((item) => (
+                          <option key={item}>{item}</option>
+                        ))}
+                      </select>
 
-                  <div
-                    className={getFieldClassName("email", email, "vpgq-wide")}
-                  >
-                    <input
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      onFocus={() => setFocusedField("email")}
-                      onBlur={() => markFieldComplete("email", email)}
-                      placeholder="Email address"
-                      type="email"
-                      autoComplete="email"
-                      readOnly={isAuthenticated}
-                      style={isAuthenticated ? { opacity: 0.6 } : undefined}
-                    />
+                      {shouldShowFieldTag("category", category) && (
+                        <span className="vpgq-field-tag">Category</span>
+                      )}
+                    </div>
 
-                    {shouldShowFieldTag("email", email) && (
-                      <span className="vpgq-field-tag">Email</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    <div
+                      className={getFieldClassName(
+                        "size",
+                        bookSize,
+                        "vpgq-field-select",
+                      )}
+                    >
+                      <select
+                        value={bookSize}
+                        onChange={(event) => setBookSize(event.target.value)}
+                        onFocus={() => setFocusedField("size")}
+                        onBlur={() => markFieldComplete("size", bookSize)}
+                      >
+                        {bookSizes.map((size) => (
+                          <option key={size}>{size}</option>
+                        ))}
+                      </select>
 
-            <div className="vpgq-services-panel">
-              <p className="vpgq-head">Other Services for Your Book</p>
+                      {shouldShowFieldTag("size", bookSize) && (
+                        <span className="vpgq-field-tag">Book Size</span>
+                      )}
+                    </div>
 
-              {groups.map((group) => {
-                const items = serviceOptions.filter(
-                  (item) => item.group === group,
-                );
+                    <div className={getFieldClassName("pages", pages)}>
+                      <input
+                        ref={pagesInputRef}
+                        value={pages}
+                        onChange={(event) => updateNumeric(event, setPages)}
+                        onFocus={() => setFocusedField("pages")}
+                        onBlur={() => markFieldComplete("pages", pages)}
+                        placeholder="Estimated number of pages"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
 
-                return (
-                  <div key={group} className="vpgq-group">
-                    <p className="vpgq-group-title">{group}</p>
+                      {shouldShowFieldTag("pages", pages) && (
+                        <span className="vpgq-field-tag">Pages</span>
+                      )}
+                    </div>
 
-                    <div className="vpgq-chips">
-                      {items.map((item) => {
-                        const isSelected = selectedSet.has(item.id);
-                        const meta = getMeta(item);
-                        const isFree = item.type === "free";
+                    <div className={getFieldClassName("copies", copies)}>
+                      <input
+                        ref={copiesInputRef}
+                        value={copies}
+                        onChange={(event) => updateNumeric(event, setCopies)}
+                        onFocus={() => setFocusedField("copies")}
+                        onBlur={() => markFieldComplete("copies", copies)}
+                        placeholder="Total copies needed"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
 
-                        return (
-                          <div key={item.id} className="vpgq-chip-wrap">
-                            <button
-                              type="button"
-                              className={`vpgq-chip${
-                                isSelected ? " vpgq-chip-active" : ""
-                              }${isFree ? " vpgq-chip-free" : ""}`}
-                              onClick={() => toggleService(item.id)}
-                              aria-pressed={isSelected}
-                            >
-                              <span className="vpgq-check">
-                                <Check className="vpgq-check-icon" strokeWidth={3} />
-                              </span>
-
-                              <span>{item.label}</span>
-
-                              {meta && (
-                                <span className={getMetaClassName(item)}>
-                                  {meta}
-                                </span>
-                              )}
-                            </button>
-
-                            {renderWordCountField(item.id)}
-                            {renderIllustrationCountField(item.id)}
-                          </div>
-                        );
-                      })}
+                      {shouldShowFieldTag("copies", copies) && (
+                        <span className="vpgq-field-tag">Copies</span>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-
-            <button
-              type="button"
-              className="vpgq-submit"
-              onClick={submitQuote}
-              disabled={submitState === "submitting"}
-            >
-              <span className="vpgq-submit-title">
-                {submitState === "submitting" ? (
-                  "Sending…"
-                ) : (
-                  <>
-                    Send me{" "}
-                    <span style={{ fontFamily: "PP Telegraf" }}>
-                      PRINT Cost +{" "}
-                    </span>
-                    <span className="vpgq-submit-total">
-                      {formatNaira(displayTotal)}
-                    </span>
-                    <span> →</span>
-                  </>
-                )}
-              </span>
-            </button>
-
-            {onToggleExtras && (
-              <button
-                type="button"
-                onClick={onToggleExtras}
-                className="mt-3 flex w-full flex-col items-center gap-1.5 py-2 text-white/40 transition-colors hover:text-white/60"
-              >
-                <div className="flex w-full items-center gap-3">
-                  <span className="h-px flex-1 bg-white/12" />
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      transition: "transform 0.25s ease",
-                      transform: showExtras
-                        ? "rotate(180deg)"
-                        : "rotate(0deg)",
-                    }}
-                  >
-                    <ChevronDown size={16} strokeWidth={2} />
-                  </span>
-                  <span className="h-px flex-1 bg-white/12" />
                 </div>
 
-                <span className="text-[0.72rem] font-semibold">
-                  {showExtras ? "Show less" : "View more"}
-                </span>
-              </button>
-            )}
+                <div className="vpgq-sub-panel vpgq-sub-panel-contact">
+                  <span className="vpgq-label" style={{ color: "#60c8ff" }}>
+                    Author&apos;s Details
+                  </span>
+
+                  <div className="vpgq-grid">
+                    <div className={getFieldClassName("name", fullName)}>
+                      <input
+                        value={fullName}
+                        onChange={(event) => setFullName(event.target.value)}
+                        onFocus={() => setFocusedField("name")}
+                        onBlur={() => markFieldComplete("name", fullName)}
+                        placeholder="Your full name"
+                        autoComplete="name"
+                      />
+
+                      {shouldShowFieldTag("name", fullName) && (
+                        <span className="vpgq-field-tag">Name</span>
+                      )}
+                    </div>
+
+                    <div className={getFieldClassName("number", whatsapp)}>
+                      <input
+                        value={whatsapp}
+                        onChange={(event) => setWhatsapp(event.target.value)}
+                        onFocus={() => setFocusedField("number")}
+                        onBlur={() => markFieldComplete("number", whatsapp)}
+                        placeholder="WhatsApp number"
+                        inputMode="tel"
+                      />
+
+                      {shouldShowFieldTag("number", whatsapp) && (
+                        <span className="vpgq-field-tag">WhatsApp</span>
+                      )}
+                    </div>
+
+                    <div
+                      className={getFieldClassName("email", email, "vpgq-wide")}
+                    >
+                      <input
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        onFocus={() => setFocusedField("email")}
+                        onBlur={() => markFieldComplete("email", email)}
+                        placeholder="Email address"
+                        type="email"
+                        autoComplete="email"
+                        readOnly={isAuthenticated}
+                        style={isAuthenticated ? { opacity: 0.6 } : undefined}
+                      />
+
+                      {shouldShowFieldTag("email", email) && (
+                        <span className="vpgq-field-tag">Email</span>
+                      )}
+                    </div>
+
+                    <div
+                      className={getFieldClassName("referral", referrerEmail, "vpgq-wide")}
+                    >
+                      <input
+                        value={referrerEmail}
+                        onChange={(event) => setReferrerEmail(event.target.value)}
+                        onFocus={() => setFocusedField("referral")}
+                        onBlur={() => markFieldComplete("referral", referrerEmail)}
+                        placeholder="Referred by? Their email (optional)"
+                        type="email"
+                        autoComplete="off"
+                      />
+
+                      {shouldShowFieldTag("referral", referrerEmail) && (
+                        <span className="vpgq-field-tag">Referral</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="vpgq-services-panel">
+                  <p className="vpgq-head">Other Services for Your Book</p>
+
+                  {groups.map((group) => {
+                    const items = serviceOptions.filter(
+                      (item) => item.group === group,
+                    );
+
+                    return (
+                      <div key={group} className="vpgq-group">
+                        <p className="vpgq-group-title">{group}</p>
+
+                        <div className="vpgq-chips">
+                          {items.map((item) => {
+                            const isSelected = selectedSet.has(item.id);
+                            const meta = getMeta(item);
+                            const isFree = item.type === "free";
+
+                            return (
+                              <div key={item.id} className="vpgq-chip-wrap">
+                                <button
+                                  type="button"
+                                  className={`vpgq-chip${
+                                    isSelected ? " vpgq-chip-active" : ""
+                                  }${isFree ? " vpgq-chip-free" : ""}`}
+                                  onClick={() => toggleService(item.id)}
+                                  aria-pressed={isSelected}
+                                >
+                                  <span className="vpgq-check">
+                                    <Check
+                                      className="vpgq-check-icon"
+                                      strokeWidth={3}
+                                    />
+                                  </span>
+
+                                  <span>{item.label}</span>
+
+                                  {meta && (
+                                    <span className={getMetaClassName(item)}>
+                                      {meta}
+                                    </span>
+                                  )}
+                                </button>
+
+                                {renderWordCountField(item.id)}
+                                {renderIllustrationCountField(item.id)}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="vpgq-submit"
+                  onClick={submitQuote}
+                  disabled={submitState === "submitting"}
+                >
+                  <span className="vpgq-submit-title">
+                    {submitState === "submitting" ? (
+                      <>
+                        <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(23,17,0,0.3)] border-t-[#171100]" />
+                        Sending…
+                      </>
+                    ) : hasPrintElement ? (
+                      <>
+                        Send me{" "}
+                        <span style={{ fontFamily: "PP Telegraf" }}>
+                          PRINT Cost +{" "}
+                        </span>
+                        <span className="vpgq-submit-total">
+                          {formatNaira(displayTotal)}
+                        </span>
+                        <span> →</span>
+                      </>
+                    ) : (
+                      <>
+                        Continue - Total:{" "}
+                        <span className="vpgq-submit-total">
+                          {formatNaira(displayTotal)}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                </button>
+
+                {onToggleExtras && (
+                  <button
+                    type="button"
+                    onClick={onToggleExtras}
+                    className="mt-3 flex w-full flex-col items-center gap-1.5 py-2 text-white/40 transition-colors hover:text-white/60"
+                  >
+                    <div className="flex w-full items-center gap-3">
+                      <span className="h-px flex-1 bg-white/12" />
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          transition: "transform 0.25s ease",
+                          transform: showExtras
+                            ? "rotate(180deg)"
+                            : "rotate(0deg)",
+                        }}
+                      >
+                        <ChevronDown size={16} strokeWidth={2} />
+                      </span>
+                      <span className="h-px flex-1 bg-white/12" />
+                    </div>
+
+                    <span className="text-[0.72rem] font-semibold">
+                      {showExtras ? "Show less" : "View more"}
+                    </span>
+                  </button>
+                )}
               </>
             )}
           </div>
         </div>
 
-        <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+        <Modal open={modalOpen} onClose={closeSuccessModal}>
           <QuoteSuccessPanel
             email={email}
             isAuthenticated={isAuthenticated}
+            hasPrintElement={hasPrintElement}
             onGoToDashboard={() => router.push("/app/publish")}
             onSubmitAnother={resetForAnotherManuscript}
-            onClose={() => setModalOpen(false)}
+            onClose={closeSuccessModal}
           />
         </Modal>
 
         {showExtras && (
-        <div className="mx-auto max-w-7xl">
-          <div className="vpgq-volume-card">
-            <div>
-              <p className="eyebrow">Print Quantity Guide</p>
-
-              <h2 className="display-heading section-heading text-white">
-                Choose{" "}
-                <span className="text-[var(--vp-accent)]">print range</span>
-              </h2>
-
-              <p className="mt-4 text-sm leading-7 text-white/55">
-                Your unit cost reduces as your print quantity increases. This
-                helps authors choose between sample prints, POD, mini bulk, and
-                full bulk production.
-              </p>
-            </div>
-
-            <div className="vpgq-volume-grid">
-              {printVolumeOptions.map((option) => (
-                <div
-                  key={option.title}
-                  className={`vpgq-volume-item${
-                    option.popular ? " vpgq-volume-popular" : ""
-                  }`}
-                >
-                  {option.popular && (
-                    <span className="vpgq-volume-tag">Most Popular</span>
-                  )}
-
-                  <h3 className={option.popular ? "mt-3" : ""}>
-                    {option.title}
-                  </h3>
-
-                  <p className="vpgq-volume-range">{option.range}</p>
-
-                  <p className="vpgq-volume-note">{option.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="vpgq-pod-card">
-            <div className="grid gap-6 md:grid-cols-[1fr_1fr] md:items-center">
+          <div className="mx-auto max-w-7xl">
+            <div className="vpgq-volume-card">
               <div>
-                <p className="eyebrow">POD Plans</p>
+                <p className="eyebrow">Print Quantity Guide</p>
 
                 <h2 className="display-heading section-heading text-white">
-                  Print on Demand{" "}
-                  <span className="text-[var(--vp-accent)]">(POD)</span>
+                  Choose{" "}
+                  <span className="text-[var(--vp-accent)]">print range</span>
                 </h2>
 
                 <p className="mt-4 text-sm leading-7 text-white/55">
-                  We offer Print on Demand for units as low as 50 copies as well
-                  as Conventional Bulk Prints. POD allows authors to print with
-                  what they have, though unit cost is usually higher.
+                  Your unit cost reduces as your print quantity increases. This
+                  helps authors choose between sample prints, POD, mini bulk,
+                  and full bulk production.
                 </p>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                <Image
-                  src="/images/pod.png"
-                  alt="Print on Demand"
-                  width={1200}
-                  height={760}
-                  className="h-auto w-full object-cover"
-                />
+              <div className="vpgq-volume-grid">
+                {printVolumeOptions.map((option) => (
+                  <div
+                    key={option.title}
+                    className={`vpgq-volume-item${
+                      option.popular ? " vpgq-volume-popular" : ""
+                    }`}
+                  >
+                    {option.popular && (
+                      <span className="vpgq-volume-tag">Most Popular</span>
+                    )}
+
+                    <h3 className={option.popular ? "mt-3" : ""}>
+                      {option.title}
+                    </h3>
+
+                    <p className="vpgq-volume-range">{option.range}</p>
+
+                    <p className="vpgq-volume-note">{option.note}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="vpgq-pod-grid">
-              {publishingPricing.map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`vpgq-price-card${
-                    plan.featured ? " vpgq-featured" : ""
-                  }`}
-                >
-                  <h3>{plan.name}</h3>
+            <div className="vpgq-pod-card">
+              <div className="grid gap-6 md:grid-cols-[1fr_1fr] md:items-center">
+                <div>
+                  <p className="eyebrow">POD Plans</p>
 
-                  <p>{plan.note}</p>
+                  <h2 className="display-heading section-heading text-white">
+                    Print on Demand{" "}
+                    <span className="text-[var(--vp-accent)]">(POD)</span>
+                  </h2>
 
-                  <h4>{plan.price}</h4>
+                  <p className="mt-4 text-sm leading-7 text-white/55">
+                    We offer Print on Demand for units as low as 50 copies as
+                    well as Conventional Bulk Prints. POD allows authors to
+                    print with what they have, though unit cost is usually
+                    higher.
+                  </p>
                 </div>
-              ))}
+
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                  <Image
+                    src="/images/pod.png"
+                    alt="Print on Demand"
+                    width={1200}
+                    height={760}
+                    className="h-auto w-full object-cover"
+                  />
+                </div>
+              </div>
+
+              <div className="vpgq-pod-grid">
+                {publishingPricing.map((plan) => (
+                  <div
+                    key={plan.name}
+                    className={`vpgq-price-card${
+                      plan.featured ? " vpgq-featured" : ""
+                    }`}
+                  >
+                    <h3>{plan.name}</h3>
+
+                    <p>{plan.note}</p>
+
+                    <h4>{plan.price}</h4>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
         )}
       </section>
     </>

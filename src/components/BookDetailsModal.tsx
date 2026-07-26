@@ -56,7 +56,9 @@ function buildWhatsAppMessage(book: MyBook): string {
 
   lines.push(
     "",
-    "I'm still expecting my full quote (including print cost) — could you follow up? Thank you!",
+    q?.has_print_element
+      ? "I'm still expecting my full quote (including print cost) — could you follow up? Thank you!"
+      : "Just confirming this is my final quote — could you follow up? Thank you!",
   );
 
   return lines.join("\n");
@@ -110,7 +112,9 @@ function QuotationDetails({ book }: { book: MyBook }) {
           className="mt-2 text-[0.72rem] font-black"
           style={{ color: "rgb(var(--vp-accent-rgb))" }}
         >
-          Services total so far: {naira(q.services_total)}
+          {q.has_print_element
+            ? `Services total so far: ${naira(q.services_total)}`
+            : `Total: ${naira(q.services_total)}`}
         </p>
       )}
 
@@ -196,8 +200,17 @@ export default function BookDetailsModal({
       {isAwaitingQuote ? (
         <>
           <p className="text-[0.72rem] leading-relaxed text-white/40">
-            We&apos;ll follow up with your full quote, including print
-            cost, once it&apos;s ready. Want to nudge us sooner?
+            {book.quotation?.has_print_element ? (
+              <>
+                We&apos;ll follow up with your full quote, including print
+                cost, once it&apos;s ready. Want to nudge us sooner?
+              </>
+            ) : (
+              <>
+                That&apos;s already your final cost — no print costs to
+                add. Want to confirm and get started sooner?
+              </>
+            )}
           </p>
 
           <a

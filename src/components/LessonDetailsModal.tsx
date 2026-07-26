@@ -166,7 +166,10 @@ export default function LessonDetailModal({
           onClose();
         }}
       >
-        {lesson.status === "current" ? "Resume lesson" : "Close"}
+        {/* "current" always means not-yet-done here — lesson completion
+            is binary (no partial-progress tracking), so the next lesson
+            up is always genuinely unstarted, never actually resumable. */}
+        {lesson.status === "current" ? "Start lesson" : "Close"}
       </Button>
     </Modal>
   );

@@ -49,12 +49,25 @@ export function useBankAccount() {
 
 export interface WalletTransaction {
   id: string;
+  book_id: string | null;
   type: "credit" | "debit";
-  source: "book_sale" | "referral" | "withdrawal";
+  source: "book_sale" | "referral" | "withdrawal" | "quote_payment";
   title: string;
   amount: string;
   status: "confirmed" | "pending" | "failed";
+  // No real payment gateway yet — true only for a pending quote_payment
+  // debit, the frontend's cue to show the self-report "I've paid" action.
+  can_confirm_payment: boolean;
   created_at: string;
+}
+
+// Self-reported "I've made this payment" — trusts the user's word since
+// no real payment gateway exists yet (same effect as an admin manually
+// confirming it for a payment made outside the app).
+export function confirmTransactionPayment(id: string) {
+  return apiFetch<WalletTransaction>(`/wallet/transactions/${id}/confirm/`, {
+    method: "POST",
+  });
 }
 
 export function useTransactions() {
@@ -90,7 +103,9 @@ export function useTransactions() {
 }
 
 export interface ReferralSummary {
-  code: string;
+  // The referral identifier IS the user's own email — already unique
+  // per account, nothing separate generated/stored.
+  email: string;
   count: number;
   total_earned: string;
   pending_amount: string;

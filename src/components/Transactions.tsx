@@ -3,10 +3,17 @@
 "use client";
 
 import { useState } from "react";
-import { Users, BookOpen, RefreshCcw, type LucideIcon } from "lucide-react";
+import { Users, BookOpen, RefreshCcw, Receipt, type LucideIcon } from "lucide-react";
 import SectionLabel from "./SectionLabel";
 import Modal from "./Modal";
-import { useTransactions, type WalletTransaction } from "../hooks/useWallet";
+import Button from "./buttons/buttons";
+import { notify } from "../lib/snackbar";
+import { ApiError } from "../lib/api";
+import {
+  useTransactions,
+  confirmTransactionPayment,
+  type WalletTransaction,
+} from "../hooks/useWallet";
 
 type TxStatus = "confirmed" | "pending" | "failed";
 type TxType = "credit" | "debit";
@@ -18,6 +25,7 @@ interface Transaction {
   status: TxStatus;
   type: TxType;
   amount: number;
+  canConfirmPayment: boolean;
   Icon: LucideIcon;
 }
 
@@ -30,6 +38,7 @@ const SOURCE_ICON: Record<WalletTransaction["source"], LucideIcon> = {
   book_sale: BookOpen,
   referral: Users,
   withdrawal: RefreshCcw,
+  quote_payment: Receipt,
 };
 
 function formatDate(iso: string) {
@@ -61,11 +70,14 @@ function groupByMonth(items: WalletTransaction[]): TransactionGroup[] {
           ? "Book Sale"
           : tx.source === "referral"
             ? "Referral Reward"
-            : "Withdrawal"),
+            : tx.source === "quote_payment"
+              ? "Quote Payment"
+              : "Withdrawal"),
       date: formatDate(tx.created_at),
       status: tx.status,
       type: tx.type,
       amount: Number(tx.amount),
+      canConfirmPayment: tx.can_confirm_payment,
       Icon: SOURCE_ICON[tx.source],
     };
     if (!groups.has(month)) groups.set(month, []);
@@ -226,13 +238,33 @@ function DetailRow({
 function TransactionDetailsModal({
   tx,
   onClose,
+  onPaymentConfirmed,
 }: {
   tx: Transaction | null;
   onClose: () => void;
+  onPaymentConfirmed: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
   if (!tx) return null;
   const status = STATUS_STYLES[tx.status];
   const color = amountColorFor(tx);
+
+  const handleConfirmPayment = async () => {
+    setConfirming(true);
+    try {
+      await confirmTransactionPayment(tx.id);
+      onPaymentConfirmed();
+      onClose();
+    } catch (err) {
+      // apiFetch already fires an error snackbar for ApiError — only the
+      // network-level case needs a fallback here.
+      if (!(err instanceof ApiError)) {
+        notify("Could not confirm your payment. Please try again.", "error");
+      }
+    } finally {
+      setConfirming(false);
+    }
+  };
 
   return (
     <Modal open={!!tx} onClose={onClose}>
@@ -279,14 +311,48 @@ function TransactionDetailsModal({
           />
         </div>
 
+        {tx.canConfirmPayment && (
+          <div className="mt-6 flex w-full flex-col gap-2.5">
+            {/* No real payment gateway yet — visible now so the affordance
+                is in place, wired up once one is. */}
+            <button
+              type="button"
+              disabled
+              title="Card payments are coming soon"
+              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-sm font-bold text-white/35"
+            >
+              Pay with Card
+              <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-white/40">
+                Coming soon
+              </span>
+            </button>
+
+            <Button
+              variant="primary"
+              size="md"
+              className="w-full"
+              loading={confirming}
+              onClick={handleConfirmPayment}
+            >
+              {confirming ? "Confirming…" : "I've Made This Payment"}
+            </Button>
+
+            <p className="text-[0.66rem] leading-relaxed text-white/35">
+              Paid outside the app (e.g. bank transfer)? This still marks
+              it as paid — our team can also confirm it for you.
+            </p>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onClose}
-          className="mt-6 w-full rounded-2xl py-3 text-sm font-bold"
-          style={{
-            background: "rgb(var(--vp-accent-rgb))",
-            color: "#171100",
-          }}
+          className="mt-4 w-full rounded-2xl py-3 text-sm font-bold"
+          style={
+            tx.canConfirmPayment
+              ? { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }
+              : { background: "rgb(var(--vp-accent-rgb))", color: "#171100" }
+          }
         >
           Close
         </button>
@@ -297,7 +363,7 @@ function TransactionDetailsModal({
 
 export default function Transactions() {
   const [selected, setSelected] = useState<Transaction | null>(null);
-  const { transactions, loading } = useTransactions();
+  const { transactions, loading, refetch } = useTransactions();
   const groups = groupByMonth(transactions);
 
   return (
@@ -344,6 +410,7 @@ export default function Transactions() {
       <TransactionDetailsModal
         tx={selected}
         onClose={() => setSelected(null)}
+        onPaymentConfirmed={refetch}
       />
     </div>
   );

@@ -116,7 +116,40 @@ export function PublisherBookShelf() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
   const [selectedBook, setSelectedBook] = useState<MyBook | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
   const { books, loading } = useMyBooks();
+
+  // Edge shadows only make sense where there's actually more to scroll
+  // to — with just one book (nothing before it), the left shadow has no
+  // reason to show. Re-checked on scroll (including the auto-scroll pass
+  // below, which also fires native scroll events) and on resize.
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    let frame: number | null = null;
+    const updateShadows = () => {
+      if (frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        setCanScrollLeft(el.scrollLeft > 2);
+        setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+      });
+    };
+
+    updateShadows();
+    el.addEventListener("scroll", updateShadows, { passive: true });
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateShadows) : null;
+    resizeObserver?.observe(el);
+
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+      el.removeEventListener("scroll", updateShadows);
+      resizeObserver?.disconnect();
+    };
+  }, [books.length]);
 
   // Auto-advances scrollLeft a little every frame, once — unlike the
   // portfolio marquee (a duplicated CSS animation that loops forever),
@@ -170,6 +203,14 @@ export function PublisherBookShelf() {
         <EmptyBooksState onAddTitle={goToAddNewTitle} minHeight="14rem" />
       ) : (
         <div className="vp-shelf-marquee-shell">
+          <span
+            className="vp-shelf-edge-shadow vp-shelf-edge-shadow-left"
+            style={{ opacity: canScrollLeft ? 1 : 0 }}
+          />
+          <span
+            className="vp-shelf-edge-shadow vp-shelf-edge-shadow-right"
+            style={{ opacity: canScrollRight ? 1 : 0 }}
+          />
           <div
             ref={viewportRef}
             className="vp-shelf-marquee-viewport"

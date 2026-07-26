@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Header from "../../components/Header";
 import Sidebar from "../../components/Sidebar";
@@ -10,6 +10,7 @@ import MainTab from "../../components/MainTab";
 import { AppShellProvider, useAppShell, type Mode } from "./AppShellContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useStudentProfile, deriveLevel } from "../../hooks/useAcademy";
+import { MyBooksProvider } from "../../hooks/useMyBooks";
 import { VP_PAGE_BG } from "./GlassCard";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
@@ -35,20 +36,6 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       router.replace("/login");
     }
   }, [isLoading, isAuthenticated, router]);
-
-  // Lands a fresh session on the tab matching how the account was
-  // created — quote-first signups default to is_author (Publisher),
-  // direct signups default to is_student (Learner) — instead of always
-  // opening on Learner. Runs once per session, on the first successful
-  // user load, so it never fights a manual toggle afterward.
-  const didSetInitialMode = useRef(false);
-  useEffect(() => {
-    if (didSetInitialMode.current || !user) return;
-    didSetInitialMode.current = true;
-    if (user.is_author && !user.is_student) {
-      setMode("publisher");
-    }
-  }, [user, setMode]);
 
   // Switching mode from the sidebar/header toggle used to only re-theme
   // the accent color — if you were sitting on /app/learn and flipped to
@@ -198,7 +185,9 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppShellProvider>
-      <AppShellInner>{children}</AppShellInner>
+      <MyBooksProvider>
+        <AppShellInner>{children}</AppShellInner>
+      </MyBooksProvider>
     </AppShellProvider>
   );
 }

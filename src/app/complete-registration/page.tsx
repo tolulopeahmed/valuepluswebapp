@@ -160,8 +160,11 @@ function CompleteRegistrationForm() {
             type="button"
             onClick={handleResendCode}
             disabled={resending}
-            className="-mt-1 cursor-pointer self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
+            className="-mt-1 inline-flex cursor-pointer items-center gap-1.5 self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
           >
+            {resending && (
+              <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(239,199,0,0.25)] border-t-[rgb(239,199,0)]" />
+            )}
             {resending ? "Sending…" : "Resend code"}
           </button>
 
@@ -170,16 +173,9 @@ function CompleteRegistrationForm() {
             variant="primary"
             size="md"
             className="mt-1 w-full"
-            disabled={loading}
+            loading={loading}
           >
-            {loading ? (
-              <>
-                <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(23,17,0,0.3)] border-t-[#171100]" />
-                Please wait…
-              </>
-            ) : (
-              "Complete registration →"
-            )}
+            {loading ? "Please wait…" : "Complete registration →"}
           </Button>
         </form>
 

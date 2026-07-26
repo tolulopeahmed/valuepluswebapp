@@ -53,16 +53,19 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
               t.leaving ? "vp-snackbar-out" : "vp-snackbar-in"
             }`}
             style={{
-              background: t.type === "success" ? "#123524" : "#3a1414",
+              // Brighter, more saturated than the old near-black
+              // #123524/#3a1414 — the green/red reads at a glance now
+              // instead of the toast looking like a generic dark card.
+              background: t.type === "success" ? "#1c7a44" : "#a83232",
               borderColor:
-                t.type === "success" ? "rgba(74,222,128,0.45)" : "rgba(248,113,113,0.45)",
+                t.type === "success" ? "rgba(134,239,172,0.55)" : "rgba(252,165,165,0.55)",
             }}
           >
             <span
               className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full"
               style={{
-                background: t.type === "success" ? "rgba(74,222,128,0.2)" : "rgba(248,113,113,0.2)",
-                color: t.type === "success" ? "#4ade80" : "#f87171",
+                background: t.type === "success" ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.22)",
+                color: "#ffffff",
               }}
             >
               {t.type === "success" ? (
@@ -71,7 +74,7 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
                 <AlertTriangle size={11} strokeWidth={3} />
               )}
             </span>
-            <p className="text-[0.82rem] leading-snug text-white/95">{t.text}</p>
+            <p className="text-[0.82rem] font-medium leading-snug text-white">{t.text}</p>
           </div>
         ))}
       </div>

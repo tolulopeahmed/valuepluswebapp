@@ -10,6 +10,7 @@ import AutoFitText from "../../../components/AutoFitText";
 import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
 import AvatarCropModal from "../../../components/AvatarCropModal";
+import EditProfileModal from "../../../components/EditProfileModal";
 import { notify } from "../../../lib/snackbar";
 import { ApiError } from "../../../lib/api";
 
@@ -145,6 +146,7 @@ export default function Profile() {
   const [amountHidden, setAmountHidden] = useState(false);
   const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initial = user!.first_name.trim().charAt(0).toUpperCase() || "V";
   const totalEarnings = books.reduce((sum, b) => sum + Number(b.earned), 0);
@@ -194,6 +196,7 @@ export default function Profile() {
         <Button
           variant="primary"
           size="sm"
+          onClick={() => setEditProfileOpen(true)}
           className="shrink-0 items-center gap-1 whitespace-nowrap px-4 py-2 text-[0.78rem] font-bold"
           style={{
             minHeight: "1.85rem",
@@ -307,6 +310,11 @@ export default function Profile() {
       <AvatarUpdatedModal
         open={showSuccess}
         onClose={() => setShowSuccess(false)}
+      />
+
+      <EditProfileModal
+        open={editProfileOpen}
+        onClose={() => setEditProfileOpen(false)}
       />
     </div>
   );

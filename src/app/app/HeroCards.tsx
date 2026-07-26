@@ -105,25 +105,31 @@ function ModuleProgressCard({
 
       <div className="mt-2.5 flex items-end gap-3">
         <div className="min-w-0 flex-1">
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/15">
-            <div
-              className="h-full rounded-full bg-[rgb(var(--vp-accent-rgb))] shadow-[0_0_10px_rgba(var(--vp-accent-rgb),0.5)] transition-all duration-700"
-              style={{ width: `${data.progress}%` }}
-            />
-          </div>
-
           <p
-            className="mt-1.5 truncate text-[0.9rem] font-black text-white/45"
+            className={`truncate text-[0.9rem] font-black text-white/45 ${
+              data.progress === 0 ? "uppercase tracking-wide" : ""
+            }`}
             style={{
               fontFamily: "PP Telegraf",
               color: "rgb(var(--vp-accent-rgb))",
             }}
           >
-            {data.progress}% complete
+            {data.progress === 0 ? "0% · Yet to start" : `${data.progress}% complete`}
           </p>
+
+          <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-white/15">
+            <div
+              className="h-full rounded-full bg-[rgb(var(--vp-accent-rgb))] shadow-[0_0_10px_rgba(var(--vp-accent-rgb),0.5)] transition-all duration-700"
+              style={{ width: `${data.progress}%` }}
+            />
+          </div>
         </div>
 
-        <SlideCta label="Resume" onClick={onResume} compact />
+        <SlideCta
+          label={data.progress === 0 ? "Start" : "Resume"}
+          onClick={onResume}
+          compact
+        />
       </div>
     </GlassCard>
   );
