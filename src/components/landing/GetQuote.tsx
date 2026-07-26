@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -332,6 +332,7 @@ const bookSizes = [
   "A5 Slim (5.25 x 8.0 in)",
   "6 x 9 (Trimmed A4)",
   "5 x 8 (Amazon)",
+  "Other",
 ];
 
 const bookCategories = [
@@ -583,6 +584,10 @@ export default function GetQuote({
   const [bookTitle, setBookTitle] = useState("");
   const [category, setCategory] = useState("");
   const [bookSize, setBookSize] = useState("");
+  // Only used once "Other" is picked from the bookSizes dropdown — the
+  // actual value submitted/displayed then comes from this, not bookSize
+  // itself (see effectiveBookSize below).
+  const [customBookSize, setCustomBookSize] = useState("");
   const [copies, setCopies] = useState("");
   const [pages, setPages] = useState("");
   const [words, setWords] = useState("");
@@ -1063,7 +1068,9 @@ export default function GetQuote({
 
     return (
       <div className="vpgq-inline-field-shell">
-        <span className="vpgq-inline-word-label">Estimated word count</span>
+        <span className="vpgq-inline-word-label">
+          Estimated word count *
+        </span>
 
         <div
           className={getFieldClassName(
@@ -1098,7 +1105,7 @@ export default function GetQuote({
 
     return (
       <div className="vpgq-inline-field-shell">
-        <span className="vpgq-inline-word-label">Number of chapters</span>
+        <span className="vpgq-inline-word-label">Number of chapters *</span>
 
         <div
           className={getFieldClassName(
@@ -1144,7 +1151,9 @@ export default function GetQuote({
           whatsapp_number: whatsapp,
           book_title: bookTitle,
           category: category || undefined,
-          book_size: bookSize || undefined,
+          book_size:
+            (bookSize === "Other" ? customBookSize.trim() : bookSize) ||
+            undefined,
           pages: numberOrUndefined(pages),
           words: numberOrUndefined(words),
           chapters: numberOrUndefined(chapters),
@@ -1879,6 +1888,12 @@ export default function GetQuote({
                   </div>
                 </div>
 
+                <p className="mb-3 text-center text-[0.66rem] text-white/40">
+                  Fields marked{" "}
+                  <span className="font-black text-[#fbbf24]">*</span> are
+                  required — everything else is optional.
+                </p>
+
                 <div className="vpgq-sub-panel">
                   <span className="vpgq-label" style={{ color: "#60c8ff" }}>
                     Manuscript details
@@ -1897,7 +1912,7 @@ export default function GetQuote({
                         onChange={(event) => setBookTitle(event.target.value)}
                         onFocus={() => setFocusedField("title")}
                         onBlur={() => markFieldComplete("title", bookTitle)}
-                        placeholder="Book title"
+                        placeholder="Book title *"
                         autoComplete="off"
                       />
 
@@ -1919,7 +1934,7 @@ export default function GetQuote({
                         onFocus={() => setFocusedField("category")}
                         onBlur={() => markFieldComplete("category", category)}
                       >
-                        <option value="">Book category</option>
+                        <option value="">Book category (optional)</option>
 
                         {bookCategories.map((item) => (
                           <option key={item}>{item}</option>
@@ -1934,24 +1949,55 @@ export default function GetQuote({
                     <div
                       className={getFieldClassName(
                         "size",
-                        bookSize,
+                        bookSize === "Other" ? customBookSize : bookSize,
                         "vpgq-field-select",
                       )}
                     >
-                      <select
-                        value={bookSize}
-                        onChange={(event) => setBookSize(event.target.value)}
-                        onFocus={() => setFocusedField("size")}
-                        onBlur={() => markFieldComplete("size", bookSize)}
-                      >
-                        {bookSizes.map((size) => (
-                          <option key={size}>{size}</option>
-                        ))}
-                      </select>
+                      {bookSize === "Other" ? (
+                        <>
+                          <input
+                            value={customBookSize}
+                            onChange={(event) =>
+                              setCustomBookSize(event.target.value)
+                            }
+                            onFocus={() => setFocusedField("size")}
+                            onBlur={() =>
+                              markFieldComplete("size", customBookSize)
+                            }
+                            placeholder="Enter your preferred book size"
+                            autoComplete="off"
+                          />
 
-                      {shouldShowFieldTag("size", bookSize) && (
-                        <span className="vpgq-field-tag">Book Size</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBookSize("");
+                              setCustomBookSize("");
+                            }}
+                            aria-label="Choose from the size list instead"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[rgba(20,24,31,0.4)] transition-colors hover:bg-black/[0.06] hover:text-[rgba(20,24,31,0.8)]"
+                          >
+                            <X size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <select
+                          value={bookSize}
+                          onChange={(event) => setBookSize(event.target.value)}
+                          onFocus={() => setFocusedField("size")}
+                          onBlur={() => markFieldComplete("size", bookSize)}
+                        >
+                          <option value="">Book size (optional)</option>
+                          {bookSizes.map((size) => (
+                            <option key={size}>{size}</option>
+                          ))}
+                        </select>
                       )}
+
+                      {bookSize !== "Other" &&
+                        shouldShowFieldTag("size", bookSize) && (
+                          <span className="vpgq-field-tag">Book Size</span>
+                        )}
                     </div>
 
                     <div className={getFieldClassName("pages", pages)}>
@@ -1961,7 +2007,7 @@ export default function GetQuote({
                         onChange={(event) => updateNumeric(event, setPages)}
                         onFocus={() => setFocusedField("pages")}
                         onBlur={() => markFieldComplete("pages", pages)}
-                        placeholder="Estimated number of pages"
+                        placeholder="Estimated pages (optional)"
                         inputMode="numeric"
                         pattern="[0-9]*"
                       />
@@ -1978,7 +2024,7 @@ export default function GetQuote({
                         onChange={(event) => updateNumeric(event, setCopies)}
                         onFocus={() => setFocusedField("copies")}
                         onBlur={() => markFieldComplete("copies", copies)}
-                        placeholder="Total copies needed"
+                        placeholder="Copies (leave empty if not printing)"
                         inputMode="numeric"
                         pattern="[0-9]*"
                       />
@@ -2002,7 +2048,7 @@ export default function GetQuote({
                         onChange={(event) => setFullName(event.target.value)}
                         onFocus={() => setFocusedField("name")}
                         onBlur={() => markFieldComplete("name", fullName)}
-                        placeholder="Your full name"
+                        placeholder="Your full name *"
                         autoComplete="name"
                       />
 
@@ -2017,7 +2063,7 @@ export default function GetQuote({
                         onChange={(event) => setWhatsapp(event.target.value)}
                         onFocus={() => setFocusedField("number")}
                         onBlur={() => markFieldComplete("number", whatsapp)}
-                        placeholder="WhatsApp number"
+                        placeholder="WhatsApp number *"
                         inputMode="tel"
                       />
 
@@ -2034,7 +2080,7 @@ export default function GetQuote({
                         onChange={(event) => setEmail(event.target.value)}
                         onFocus={() => setFocusedField("email")}
                         onBlur={() => markFieldComplete("email", email)}
-                        placeholder="Email address"
+                        placeholder="Email address *"
                         type="email"
                         autoComplete="email"
                         readOnly={isAuthenticated}
