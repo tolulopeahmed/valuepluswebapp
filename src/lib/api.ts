@@ -3,6 +3,26 @@ import { notify } from "@/lib/snackbar";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
+// Loud, specific signal for exactly the failure mode that once took a
+// full diagnosis session to trace: NEXT_PUBLIC_API_BASE_URL not set for
+// a deployed environment silently falls back to the local-dev default
+// above, which is unreachable from a real visitor's browser — every API
+// call then fails at the network level with a generic error. This can't
+// happen on localhost itself (the condition requires the PAGE to be on
+// a real domain while the API target is still localhost), so it only
+// ever fires in exactly the misconfigured-deployment case.
+if (
+  typeof window !== "undefined" &&
+  !["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+  API_BASE_URL.includes("localhost")
+) {
+  console.error(
+    `[ValuePlus] NEXT_PUBLIC_API_BASE_URL is not set for this deployment — ` +
+      `API calls are targeting ${API_BASE_URL}, which is unreachable from here. ` +
+      `Set it in your hosting platform's environment variables and redeploy.`,
+  );
+}
+
 const ACCESS_KEY = "vp_access";
 const REFRESH_KEY = "vp_refresh";
 
