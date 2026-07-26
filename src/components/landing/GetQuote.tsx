@@ -2046,31 +2046,39 @@ export default function GetQuote({
                       )}
                     </div>
 
-                    <div
-                      className={getFieldClassName(
-                        "referral",
-                        referrerEmail,
-                        "vpgq-wide",
-                      )}
-                    >
-                      <input
-                        value={referrerEmail}
-                        onChange={(event) =>
-                          setReferrerEmail(event.target.value)
-                        }
-                        onFocus={() => setFocusedField("referral")}
-                        onBlur={() =>
-                          markFieldComplete("referral", referrerEmail)
-                        }
-                        placeholder="Referrer's email (optional)"
-                        type="email"
-                        autoComplete="off"
-                      />
+                    {/* Referral attribution only ever happens for a
+                        brand-new account (see the `created` guard in
+                        CreateQuotationSerializer) — an already-signed-in
+                        user adding another title has nothing for this
+                        field to do, so it's dropped entirely rather than
+                        shown empty/disabled with no purpose. */}
+                    {!isAuthenticated && (
+                      <div
+                        className={getFieldClassName(
+                          "referral",
+                          referrerEmail,
+                          "vpgq-wide",
+                        )}
+                      >
+                        <input
+                          value={referrerEmail}
+                          onChange={(event) =>
+                            setReferrerEmail(event.target.value)
+                          }
+                          onFocus={() => setFocusedField("referral")}
+                          onBlur={() =>
+                            markFieldComplete("referral", referrerEmail)
+                          }
+                          placeholder="Referrer's email (optional)"
+                          type="email"
+                          autoComplete="off"
+                        />
 
-                      {shouldShowFieldTag("referral", referrerEmail) && (
-                        <span className="vpgq-field-tag">Referral</span>
-                      )}
-                    </div>
+                        {shouldShowFieldTag("referral", referrerEmail) && (
+                          <span className="vpgq-field-tag">Referral</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
