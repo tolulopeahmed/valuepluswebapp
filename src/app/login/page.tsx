@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { Suspense, useState, type FormEvent } from "react";
 import Button from "@/components/buttons/buttons";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
@@ -55,8 +55,14 @@ function FieldTag({ label }: { label: string }) {
   );
 }
 
-export default function LoginPage() {
-  const [mode, setMode] = useState<AuthMode>("login" as const);
+function LoginPageInner() {
+  const searchParams = useSearchParams();
+  // Lets a CTA (e.g. "Create free account" on the landing page) send
+  // people straight to the signup form via /login?mode=signup instead
+  // of landing on login and requiring an extra click.
+  const [mode, setMode] = useState<AuthMode>(
+    searchParams.get("mode") === "signup" ? "signup" : "login",
+  );
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -573,5 +579,13 @@ export default function LoginPage() {
         Back to ValuePlus
       </Link>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

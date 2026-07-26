@@ -193,8 +193,8 @@ export default function Navbar() {
               <Button href="/login" variant="secondary" size="sm">
                 Log in
               </Button>
-              <Button href="/pricing" variant="primary" size="sm">
-                Start Publishing Course
+              <Button href="/login?mode=signup" variant="primary" size="sm">
+                Create free account
               </Button>
             </div>
 
@@ -297,13 +297,13 @@ export default function Navbar() {
             Log in
           </Button>
           <Button
-            href="/pricing"
+            href="/login?mode=signup"
             variant="primary"
             size="md"
             className="w-full"
             onClick={closeMenu}
           >
-            Start Publishing Course
+            Create free account
           </Button>
         </div>
 
