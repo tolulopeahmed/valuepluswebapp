@@ -14,7 +14,10 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
-import { getStoredReferrerEmail, clearStoredReferrerEmail } from "@/lib/referral";
+import {
+  getStoredReferrerEmail,
+  clearStoredReferrerEmail,
+} from "@/lib/referral";
 import Button from "../buttons/buttons";
 import Modal from "../Modal";
 
@@ -590,7 +593,9 @@ export default function GetQuote({
   // Lazy initializer — auto-fills from a `?ref=` link captured earlier
   // (see ReferralCapture), but stays a normal, editable field so someone
   // who was just told their referrer's email verbally can type it in too.
-  const [referrerEmail, setReferrerEmail] = useState(() => getStoredReferrerEmail());
+  const [referrerEmail, setReferrerEmail] = useState(() =>
+    getStoredReferrerEmail(),
+  );
   const [manualSelectedIds, setManualSelectedIds] = useState<string[]>([]);
   const [wordAnchorId, setWordAnchorId] = useState<string | null>(null);
   const [displayTotal, setDisplayTotal] = useState(0);
@@ -2042,14 +2047,22 @@ export default function GetQuote({
                     </div>
 
                     <div
-                      className={getFieldClassName("referral", referrerEmail, "vpgq-wide")}
+                      className={getFieldClassName(
+                        "referral",
+                        referrerEmail,
+                        "vpgq-wide",
+                      )}
                     >
                       <input
                         value={referrerEmail}
-                        onChange={(event) => setReferrerEmail(event.target.value)}
+                        onChange={(event) =>
+                          setReferrerEmail(event.target.value)
+                        }
                         onFocus={() => setFocusedField("referral")}
-                        onBlur={() => markFieldComplete("referral", referrerEmail)}
-                        placeholder="Referred by? Their email (optional)"
+                        onBlur={() =>
+                          markFieldComplete("referral", referrerEmail)
+                        }
+                        placeholder="Referrer's email (optional)"
                         type="email"
                         autoComplete="off"
                       />

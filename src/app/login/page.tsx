@@ -8,7 +8,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
-import { getStoredReferrerEmail, clearStoredReferrerEmail } from "@/lib/referral";
+import {
+  getStoredReferrerEmail,
+  clearStoredReferrerEmail,
+} from "@/lib/referral";
 
 type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
 
@@ -64,7 +67,9 @@ export default function LoginPage() {
   // Lazy initializer — auto-fills from a `?ref=` link captured earlier
   // (see ReferralCapture), but stays a normal, editable field so someone
   // who was just told their referrer's email verbally can type it in too.
-  const [referrerEmail, setReferrerEmail] = useState(() => getStoredReferrerEmail());
+  const [referrerEmail, setReferrerEmail] = useState(() =>
+    getStoredReferrerEmail(),
+  );
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -110,7 +115,10 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if ((mode === "signup" || mode === "reset") && password !== confirmPassword) {
+    if (
+      (mode === "signup" || mode === "reset") &&
+      password !== confirmPassword
+    ) {
       notify("Passwords do not match.", "error");
       return;
     }
@@ -265,286 +273,285 @@ export default function LoginPage() {
         </p>
 
         <>
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col gap-[0.6rem]"
-            >
-              {mode === "signup" && (
-                <div className="grid gap-[0.6rem] sm:grid-cols-2">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={firstName}
-                      placeholder="First name"
-                      autoComplete="given-name"
-                      onFocus={() => setFocused("firstName")}
-                      onBlur={() => markComplete("firstName", firstName)}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className={`${inputBase} ${
-                        isDone("firstName", firstName) ? inputDone : inputIdle
-                      }`}
-                    />
-
-                    {isDone("firstName", firstName) && (
-                      <FieldTag label="First" />
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={lastName}
-                      placeholder="Last name"
-                      autoComplete="family-name"
-                      onFocus={() => setFocused("lastName")}
-                      onBlur={() => markComplete("lastName", lastName)}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className={`${inputBase} ${
-                        isDone("lastName", lastName) ? inputDone : inputIdle
-                      }`}
-                    />
-
-                    {isDone("lastName", lastName) && <FieldTag label="Last" />}
-                  </div>
-                </div>
-              )}
-
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  placeholder="Email address"
-                  autoComplete="email"
-                  readOnly={mode === "reset"}
-                  onFocus={() => setFocused("email")}
-                  onBlur={() => markComplete("email", email)}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`${inputBase} ${
-                    isDone("email", email) ? inputDone : inputIdle
-                  }`}
-                />
-
-                {isDone("email", email) && <FieldTag label="Email" />}
-              </div>
-
-              {(mode === "otp" || mode === "reset") && (
+          <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
+            {mode === "signup" && (
+              <div className="grid gap-[0.6rem] sm:grid-cols-2">
                 <div className="relative">
                   <input
                     type="text"
-                    inputMode="numeric"
-                    value={otpCode}
-                    placeholder="6-digit code"
-                    maxLength={6}
-                    onFocus={() => setFocused("otp")}
-                    onBlur={() => markComplete("otp", otpCode)}
-                    onChange={(e) => setOtpCode(e.target.value)}
+                    value={firstName}
+                    placeholder="First name"
+                    autoComplete="given-name"
+                    onFocus={() => setFocused("firstName")}
+                    onBlur={() => markComplete("firstName", firstName)}
+                    onChange={(e) => setFirstName(e.target.value)}
                     className={`${inputBase} ${
-                      isDone("otp", otpCode) ? inputDone : inputIdle
-                    } text-center tracking-[0.4em]`}
-                  />
-                </div>
-              )}
-
-              {(mode === "login" || mode === "signup" || mode === "reset") && (
-                <div className="relative">
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={password}
-                    placeholder={
-                      mode === "signup"
-                        ? "Create a password"
-                        : mode === "reset"
-                          ? "Choose a new password"
-                          : "Password"
-                    }
-                    autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    onFocus={() => setFocused("pw")}
-                    onBlur={() => markComplete("pw", password)}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`${inputBase} ${
-                      isDone("pw", password) ? inputDone : inputIdle
+                      isDone("firstName", firstName) ? inputDone : inputIdle
                     }`}
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    aria-label={showPw ? "Hide password" : "Show password"}
-                    tabIndex={-1}
-                    className="absolute right-[0.55rem] top-1/2 z-10 grid h-[1.8rem] w-[1.8rem] -translate-y-1/2 cursor-pointer place-items-center rounded-[0.45rem] border-none bg-transparent p-0 text-[rgba(20,24,31,0.45)] transition-all hover:bg-black/[0.05] hover:text-[rgba(20,24,31,0.85)] active:scale-90"
-                  >
-                    <EyeIcon open={showPw} />
-                  </button>
+                  {isDone("firstName", firstName) && <FieldTag label="First" />}
                 </div>
-              )}
 
-              {(mode === "signup" || mode === "reset") && (
                 <div className="relative">
                   <input
-                    type={showPw ? "text" : "password"}
-                    value={confirmPassword}
-                    placeholder={
-                      mode === "reset" ? "Confirm new password" : "Confirm password"
-                    }
-                    autoComplete="new-password"
-                    onFocus={() => setFocused("pwConfirm")}
-                    onBlur={() => markComplete("pwConfirm", confirmPassword)}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    type="text"
+                    value={lastName}
+                    placeholder="Last name"
+                    autoComplete="family-name"
+                    onFocus={() => setFocused("lastName")}
+                    onBlur={() => markComplete("lastName", lastName)}
+                    onChange={(e) => setLastName(e.target.value)}
                     className={`${inputBase} ${
-                      isDone("pwConfirm", confirmPassword)
-                        ? inputDone
-                        : inputIdle
-                    }`}
-                  />
-                </div>
-              )}
-
-              {mode === "signup" && (
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={referrerEmail}
-                    placeholder="Referred by? Their email (optional)"
-                    autoComplete="off"
-                    onFocus={() => setFocused("referrerEmail")}
-                    onBlur={() => markComplete("referrerEmail", referrerEmail)}
-                    onChange={(e) => setReferrerEmail(e.target.value)}
-                    className={`${inputBase} ${
-                      isDone("referrerEmail", referrerEmail) ? inputDone : inputIdle
+                      isDone("lastName", lastName) ? inputDone : inputIdle
                     }`}
                   />
 
-                  {isDone("referrerEmail", referrerEmail) && <FieldTag label="Referral" />}
+                  {isDone("lastName", lastName) && <FieldTag label="Last" />}
                 </div>
-              )}
+              </div>
+            )}
 
-              {(mode === "otp" || mode === "reset") && (
+            <div className="relative">
+              <input
+                type="email"
+                value={email}
+                placeholder="Email address"
+                autoComplete="email"
+                readOnly={mode === "reset"}
+                onFocus={() => setFocused("email")}
+                onBlur={() => markComplete("email", email)}
+                onChange={(e) => setEmail(e.target.value)}
+                className={`${inputBase} ${
+                  isDone("email", email) ? inputDone : inputIdle
+                }`}
+              />
+
+              {isDone("email", email) && <FieldTag label="Email" />}
+            </div>
+
+            {(mode === "otp" || mode === "reset") && (
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otpCode}
+                  placeholder="6-digit code"
+                  maxLength={6}
+                  onFocus={() => setFocused("otp")}
+                  onBlur={() => markComplete("otp", otpCode)}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("otp", otpCode) ? inputDone : inputIdle
+                  } text-center tracking-[0.4em]`}
+                />
+              </div>
+            )}
+
+            {(mode === "login" || mode === "signup" || mode === "reset") && (
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  placeholder={
+                    mode === "signup"
+                      ? "Create a password"
+                      : mode === "reset"
+                        ? "Choose a new password"
+                        : "Password"
+                  }
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  onFocus={() => setFocused("pw")}
+                  onBlur={() => markComplete("pw", password)}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("pw", password) ? inputDone : inputIdle
+                  }`}
+                />
+
                 <button
                   type="button"
-                  onClick={handleResendCode}
-                  disabled={resending}
-                  className="-mt-1 inline-flex cursor-pointer items-center gap-1.5 self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  tabIndex={-1}
+                  className="absolute right-[0.55rem] top-1/2 z-10 grid h-[1.8rem] w-[1.8rem] -translate-y-1/2 cursor-pointer place-items-center rounded-[0.45rem] border-none bg-transparent p-0 text-[rgba(20,24,31,0.45)] transition-all hover:bg-black/[0.05] hover:text-[rgba(20,24,31,0.85)] active:scale-90"
                 >
-                  {resending && (
-                    <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(239,199,0,0.25)] border-t-[rgb(239,199,0)]" />
-                  )}
-                  {resending ? "Sending…" : "Resend code"}
+                  <EyeIcon open={showPw} />
                 </button>
-              )}
+              </div>
+            )}
 
-              {mode === "login" && (
+            {(mode === "signup" || mode === "reset") && (
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={confirmPassword}
+                  placeholder={
+                    mode === "reset"
+                      ? "Confirm new password"
+                      : "Confirm password"
+                  }
+                  autoComplete="new-password"
+                  onFocus={() => setFocused("pwConfirm")}
+                  onBlur={() => markComplete("pwConfirm", confirmPassword)}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("pwConfirm", confirmPassword) ? inputDone : inputIdle
+                  }`}
+                />
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <div className="relative">
+                <input
+                  type="email"
+                  value={referrerEmail}
+                  placeholder="Referrer's email (optional)"
+                  autoComplete="off"
+                  onFocus={() => setFocused("referrerEmail")}
+                  onBlur={() => markComplete("referrerEmail", referrerEmail)}
+                  onChange={(e) => setReferrerEmail(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("referrerEmail", referrerEmail)
+                      ? inputDone
+                      : inputIdle
+                  }`}
+                />
+
+                {isDone("referrerEmail", referrerEmail) && (
+                  <FieldTag label="Referral" />
+                )}
+              </div>
+            )}
+
+            {(mode === "otp" || mode === "reset") && (
+              <button
+                type="button"
+                onClick={handleResendCode}
+                disabled={resending}
+                className="-mt-1 inline-flex cursor-pointer items-center gap-1.5 self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)] disabled:opacity-50"
+              >
+                {resending && (
+                  <span className="h-3 w-3 flex-shrink-0 animate-spin rounded-full border-2 border-[rgba(239,199,0,0.25)] border-t-[rgb(239,199,0)]" />
+                )}
+                {resending ? "Sending…" : "Resend code"}
+              </button>
+            )}
+
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => switchMode("forgot")}
+                className="-mt-1 cursor-pointer self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)]"
+              >
+                Forgot password?
+              </button>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              className="mt-1 w-full"
+              loading={loading}
+              disabled={mode === "login" && (!email.trim() || !password.trim())}
+            >
+              {loading
+                ? "Please wait…"
+                : mode === "login"
+                  ? "Log in →"
+                  : mode === "signup"
+                    ? "Create account →"
+                    : mode === "otp"
+                      ? "Verify →"
+                      : mode === "reset"
+                        ? "Reset password →"
+                        : "Send code →"}
+            </Button>
+          </form>
+
+          <p className="mt-5 text-center text-[0.76rem] text-white/40">
+            {mode === "login" ? (
+              <>
+                Don&apos;t have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("signup")}
+                  className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
+                >
+                  Sign up free
+                </button>
+              </>
+            ) : mode === "signup" ? (
+              <>
+                Already have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("login")}
+                  className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
+                >
+                  Log in
+                </button>
+              </>
+            ) : mode === "otp" ? (
+              <>
+                Entered the wrong email?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("signup")}
+                  className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
+                >
+                  Go back
+                </button>
+              </>
+            ) : mode === "reset" ? (
+              <>
+                Entered the wrong email?{" "}
                 <button
                   type="button"
                   onClick={() => switchMode("forgot")}
-                  className="-mt-1 cursor-pointer self-end border-none bg-transparent p-0 text-[0.7rem] font-black text-[rgba(239,199,0,0.72)] transition-colors hover:text-[rgb(239,199,0)]"
+                  className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
                 >
-                  Forgot password?
+                  Go back
                 </button>
-              )}
-
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                className="mt-1 w-full"
-                loading={loading}
-                disabled={mode === "login" && (!email.trim() || !password.trim())}
-              >
-                {loading ? (
-                  "Please wait…"
-                ) : mode === "login" ? (
-                  "Log in →"
-                ) : mode === "signup" ? (
-                  "Create account →"
-                ) : mode === "otp" ? (
-                  "Verify →"
-                ) : mode === "reset" ? (
-                  "Reset password →"
-                ) : (
-                  "Send code →"
-                )}
-              </Button>
-            </form>
-
-            <p className="mt-5 text-center text-[0.76rem] text-white/40">
-              {mode === "login" ? (
-                <>
-                  Don&apos;t have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchMode("signup")}
-                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
-                  >
-                    Sign up free
-                  </button>
-                </>
-              ) : mode === "signup" ? (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchMode("login")}
-                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
-                  >
-                    Log in
-                  </button>
-                </>
-              ) : mode === "otp" ? (
-                <>
-                  Entered the wrong email?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchMode("signup")}
-                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
-                  >
-                    Go back
-                  </button>
-                </>
-              ) : mode === "reset" ? (
-                <>
-                  Entered the wrong email?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchMode("forgot")}
-                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
-                  >
-                    Go back
-                  </button>
-                </>
-              ) : (
-                <>
-                  Remembered it?{" "}
-                  <button
-                    type="button"
-                    onClick={() => switchMode("login")}
-                    className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
-                  >
-                    Back to log in
-                  </button>
-                </>
-              )}
-            </p>
-
-            {mode === "signup" && (
-              <p className="mt-4 text-center text-[0.64rem] leading-relaxed text-white/25">
-                By creating an account you agree to our{" "}
-                <Link
-                  href="/terms"
-                  className="text-white/40 underline underline-offset-2 hover:text-white/70"
+              </>
+            ) : (
+              <>
+                Remembered it?{" "}
+                <button
+                  type="button"
+                  onClick={() => switchMode("login")}
+                  className="cursor-pointer border-none bg-transparent p-0 font-black text-[rgba(239,199,0,0.82)] transition-colors hover:text-[rgb(239,199,0)]"
                 >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="/privacy"
-                  className="text-white/40 underline underline-offset-2 hover:text-white/70"
-                >
-                  Privacy Policy
-                </Link>
-                .
-              </p>
+                  Back to log in
+                </button>
+              </>
             )}
-          </>
+          </p>
+
+          {mode === "signup" && (
+            <p className="mt-4 text-center text-[0.64rem] leading-relaxed text-white/25">
+              By creating an account you agree to our{" "}
+              <Link
+                href="/terms"
+                className="text-white/40 underline underline-offset-2 hover:text-white/70"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                className="text-white/40 underline underline-offset-2 hover:text-white/70"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          )}
+        </>
       </div>
 
       <Link
