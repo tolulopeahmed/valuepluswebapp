@@ -102,6 +102,22 @@ export function useTransactions() {
   return { transactions, loading, refetch };
 }
 
+export interface ReferredUser {
+  first_name: string;
+  last_name: string;
+  email: string;
+  avatar: string | null;
+}
+
+export interface ReferralItem {
+  id: string;
+  referred_user: ReferredUser | null;
+  whatsapp_number: string | null;
+  amount_earned: string;
+  status: "confirmed" | "pending";
+  created_at: string;
+}
+
 export interface ReferralSummary {
   // The referral identifier IS the user's own email — already unique
   // per account, nothing separate generated/stored.
@@ -109,6 +125,7 @@ export interface ReferralSummary {
   count: number;
   total_earned: string;
   pending_amount: string;
+  referrals: ReferralItem[];
 }
 
 export function useReferrals() {

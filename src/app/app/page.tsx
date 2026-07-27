@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import SectionLabel from "../../components/SectionLabel";
 import QuickActions from "../../components/QuickActions";
 import Title from "../../components/Title";
@@ -71,6 +72,7 @@ function ProfileAvatar({
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { mode, setSidebarOpen } = useAppShell();
   // AppLayout only ever renders its children once the user is
   // authenticated, so `user` is guaranteed non-null here.
@@ -179,7 +181,9 @@ export default function HomeScreen() {
           <SectionLabel>Quick actions</SectionLabel>
           <QuickActions
             mode={mode}
-            onNavigate={(dest) => console.log("navigate:", dest)}
+            onNavigate={(dest) => {
+              if (dest === "refer") router.push("/app/referrals");
+            }}
           />
         </div>
 

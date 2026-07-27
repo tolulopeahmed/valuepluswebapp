@@ -197,6 +197,7 @@ function buildItems({
     label: `My Referrals (${referralCount})`,
     subtitle: "Invite friends so you both earn",
     Icon: UserPlus,
+    href: "/app/referrals",
     trailing: (
       <div className="flex flex-col items-end gap-0.5">
         <span
