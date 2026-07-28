@@ -224,21 +224,25 @@ function DetailRow({
   label,
   value,
   last = false,
+  valueClassName = "text-[0.78rem]",
 }: {
   label: string;
   value: string;
   last?: boolean;
+  valueClassName?: string;
 }) {
   return (
     <div
-      className={`flex items-center justify-between py-2.5 ${
+      className={`flex items-center justify-between gap-3 py-2.5 ${
         last ? "" : "border-b border-white/6"
       }`}
     >
-      <span className="text-[0.62rem] uppercase tracking-wide text-white/40">
+      <span className="shrink-0 text-[0.62rem] uppercase tracking-wide text-white/40">
         {label}
       </span>
-      <span className="text-[0.78rem] font-semibold text-white/85">
+      <span
+        className={`truncate whitespace-nowrap font-semibold text-white/85 ${valueClassName}`}
+      >
         {value}
       </span>
     </div>
@@ -288,7 +292,7 @@ function CopyField({ label, value, copyValue }: { label: string; value: string; 
 
 function PaymentDetailsPanel({ amount }: { amount: number }) {
   return (
-    <div className="mt-4 w-full rounded-2xl border border-white/10 bg-white/3 p-3.5">
+    <div className="mt-1.5 w-full rounded-2xl border border-white/10 bg-white/3 p-3.5">
       <div className="flex items-center gap-2.5">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white">
           <Image
@@ -336,7 +340,10 @@ function TransactionDetailsModal({
   const status = STATUS_STYLES[tx.status];
   const color = amountColorFor(tx);
 
-  const whatsappMessage = `Hi ValuePlus! I've made the payment for "${tx.title}" (₦${tx.amount.toLocaleString()}), reference TXN-${tx.id.padStart(6, "0")}. Kindly confirm. Thank you!`;
+  // Short and fixed-width so it never wraps to a second line — tx.id is
+  // a full UUID, not something meant to be shown in full here.
+  const reference = `TXN-${tx.id.slice(0, 8).toUpperCase()}`;
+  const whatsappMessage = `Hi ValuePlus! I've made the payment for "${tx.title}" (₦${tx.amount.toLocaleString()}), reference ${reference}. Kindly confirm. Thank you!`;
 
   return (
     <Modal open={!!tx} onClose={onClose}>
@@ -377,13 +384,21 @@ function TransactionDetailsModal({
           />
           <DetailRow
             label="Reference ID"
-            value={`TXN-${tx.id.padStart(6, "0")}`}
+            value={reference}
+            valueClassName="text-[0.7rem]"
             last
           />
         </div>
 
         {tx.needsPayment && (
           <>
+            <p
+              className="mt-4 w-full text-left text-[0.7rem] font-black uppercase tracking-wide"
+              style={{ color: "#FFD60A" }}
+            >
+              Please make payment to
+            </p>
+
             <PaymentDetailsPanel amount={tx.amount} />
 
             <a
@@ -402,19 +417,6 @@ function TransactionDetailsModal({
             </p>
           </>
         )}
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 w-full rounded-2xl py-3 text-sm font-bold"
-          style={
-            tx.needsPayment
-              ? { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }
-              : { background: "rgb(var(--vp-accent-rgb))", color: "#171100" }
-          }
-        >
-          Close
-        </button>
       </div>
     </Modal>
   );
