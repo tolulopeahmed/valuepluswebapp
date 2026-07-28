@@ -27,10 +27,12 @@ function maskAccountNumber(accountNumber: string) {
 // instead of the checkmark, and no accent bar.
 function BankAccountCard({
   account,
+  busy,
   onRemove,
   onSetDefault,
 }: {
   account: StoredBankAccount;
+  busy: boolean;
   onRemove: () => void;
   onSetDefault: () => void;
 }) {
@@ -45,6 +47,15 @@ function BankAccountCard({
           : "linear-gradient(155deg, #1a2036 0%, #12162a 55%, #0b0e1f 100%)",
       }}
     >
+      {busy && (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center rounded-3xl"
+          style={{ background: "rgba(6,8,18,0.55)", backdropFilter: "blur(1px)" }}
+        >
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/80" />
+        </div>
+      )}
+
       {logo && (
         <Image
           src={logo}
@@ -68,9 +79,10 @@ function BankAccountCard({
         <button
           type="button"
           onClick={onSetDefault}
+          disabled={busy}
           title="Set as default"
           aria-label="Set as default account"
-          className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-white/30 transition-colors hover:border-white/40 hover:text-white/60"
+          className="absolute right-4 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 text-white/30 transition-colors hover:border-white/40 hover:text-white/60 disabled:pointer-events-none"
         >
           <Check size={15} strokeWidth={3} />
         </button>
@@ -79,6 +91,7 @@ function BankAccountCard({
       <button
         type="button"
         onClick={onRemove}
+        disabled={busy}
         aria-label="Remove bank account"
         className="absolute bottom-6 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
         style={{ background: "rgba(248,113,113,0.2)" }}
@@ -155,17 +168,19 @@ function AddAccountCard({ onClick }: { onClick: () => void }) {
 
 function RemoveBankAccountModal({
   account,
+  removing,
   onClose,
   onConfirm,
 }: {
   account: StoredBankAccount | null;
+  removing: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }) {
   if (!account) return null;
 
   return (
-    <Modal open={!!account} onClose={onClose}>
+    <Modal open={!!account} onClose={removing ? () => {} : onClose}>
       <div className="flex flex-col items-center text-center">
         <span className="mb-4 grid h-14 w-14 place-items-center rounded-full border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.12)] text-[#f87171]">
           <Trash2 size={22} strokeWidth={1.8} />
@@ -180,7 +195,13 @@ function RemoveBankAccountModal({
         </p>
 
         <div className="flex w-full gap-3">
-          <Button variant="secondary" size="md" className="flex-1" onClick={onClose}>
+          <Button
+            variant="secondary"
+            size="md"
+            className="flex-1"
+            onClick={onClose}
+            disabled={removing}
+          >
             Cancel
           </Button>
           <Button
@@ -193,6 +214,7 @@ function RemoveBankAccountModal({
               boxShadow: "0 10px 24px rgba(248,113,113,0.3)",
             }}
             onClick={onConfirm}
+            loading={removing}
           >
             Remove
           </Button>
@@ -202,14 +224,40 @@ function RemoveBankAccountModal({
   );
 }
 
+// Both actions below are instant (plain localStorage writes), but a
+// state flip with zero visible transition reads as "did that even do
+// anything?" — so each is given a short, deliberate delay with a
+// spinner over the affected card, the same "let the user see it happen"
+// treatment AddBankAccountModal's own submit already uses.
+const ACTION_DELAY_MS = 500;
+
 function BankAccountsPageInner() {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<StoredBankAccount | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const { accounts, hydrated, addAccount, removeAccount, setDefault } =
     useLocalBankAccounts();
+
+  const handleSetDefault = async (id: string) => {
+    if (switchingId) return;
+    setSwitchingId(id);
+    await new Promise((resolve) => setTimeout(resolve, ACTION_DELAY_MS));
+    setDefault(id);
+    setSwitchingId(null);
+  };
+
+  const handleConfirmRemoval = async () => {
+    if (!pendingRemoval) return;
+    setRemoving(true);
+    await new Promise((resolve) => setTimeout(resolve, ACTION_DELAY_MS));
+    removeAccount(pendingRemoval.id);
+    setRemoving(false);
+    setPendingRemoval(null);
+  };
 
   // Quick Actions' "Add bank account" row (only shown when nothing's
   // linked yet) sends the user here with ?add=1 to jump straight into the
@@ -263,8 +311,9 @@ function BankAccountsPageInner() {
             <BankAccountCard
               key={account.id}
               account={account}
+              busy={switchingId === account.id}
               onRemove={() => setPendingRemoval(account)}
-              onSetDefault={() => setDefault(account.id)}
+              onSetDefault={() => handleSetDefault(account.id)}
             />
           ))}
           <button
@@ -288,11 +337,9 @@ function BankAccountsPageInner() {
 
       <RemoveBankAccountModal
         account={pendingRemoval}
+        removing={removing}
         onClose={() => setPendingRemoval(null)}
-        onConfirm={() => {
-          if (pendingRemoval) removeAccount(pendingRemoval.id);
-          setPendingRemoval(null);
-        }}
+        onConfirm={handleConfirmRemoval}
       />
     </div>
   );

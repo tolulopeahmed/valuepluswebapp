@@ -245,60 +245,82 @@ function DetailRow({
   );
 }
 
-function PaymentDetailsPanel() {
+// A tap-to-copy pill used for both the account number and the amount —
+// same compact shape so the two sit side by side instead of each taking
+// a full row.
+function CopyField({ label, value, copyValue }: { label: string; value: string; copyValue: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(VALUEPLUS_PAYMENT_ACCOUNT.accountNumber);
+      await navigator.clipboard.writeText(copyValue);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
       // Clipboard API can be unavailable (permissions, older browsers) —
-      // the number is still shown on screen either way.
+      // the value is still shown on screen either way.
     }
   };
 
   return (
-    <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/3 p-4">
-      <p className="text-[0.62rem] uppercase tracking-wide text-white/40">
-        Pay into this account
-      </p>
-
-      <div className="mt-2.5 flex items-center gap-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white">
-          <Image
-            src={VALUEPLUS_PAYMENT_ACCOUNT.logo}
-            alt={VALUEPLUS_PAYMENT_ACCOUNT.bankName}
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
-        </div>
-        <span className="text-[0.82rem] font-bold text-white/85">
-          {VALUEPLUS_PAYMENT_ACCOUNT.bankName}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="mt-3 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors active:bg-white/[0.07]"
-      >
-        <span className="text-lg font-black tracking-wide text-white">
-          {VALUEPLUS_PAYMENT_ACCOUNT.accountNumber}
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="flex min-w-0 flex-col items-start gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left transition-colors active:bg-white/[0.07]"
+    >
+      <span className="text-[0.55rem] uppercase tracking-wide text-white/35">
+        {label}
+      </span>
+      <span className="flex w-full items-center justify-between gap-2">
+        <span className="truncate text-[0.9rem] font-black tracking-wide text-white">
+          {value}
         </span>
         <span
-          className="text-[0.6rem] font-black uppercase tracking-wide"
+          className="shrink-0 text-[0.55rem] font-black uppercase tracking-wide"
           style={{ color: copied ? "#34D399" : "rgb(var(--vp-accent-rgb))" }}
         >
           {copied ? "Copied" : "Copy"}
         </span>
-      </button>
+      </span>
+    </button>
+  );
+}
 
-      <p className="mt-2 text-[0.72rem] font-semibold text-white/60">
-        {VALUEPLUS_PAYMENT_ACCOUNT.accountName}
-      </p>
+function PaymentDetailsPanel({ amount }: { amount: number }) {
+  return (
+    <div className="mt-4 w-full rounded-2xl border border-white/10 bg-white/3 p-3.5">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white">
+          <Image
+            src={VALUEPLUS_PAYMENT_ACCOUNT.logo}
+            alt={VALUEPLUS_PAYMENT_ACCOUNT.bankName}
+            width={32}
+            height={32}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="truncate text-[0.78rem] font-bold text-white/85">
+            {VALUEPLUS_PAYMENT_ACCOUNT.bankName}
+          </p>
+          <p className="truncate text-[0.62rem] text-white/45">
+            {VALUEPLUS_PAYMENT_ACCOUNT.accountName}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-2.5 grid grid-cols-2 gap-2">
+        <CopyField
+          label="Account no."
+          value={VALUEPLUS_PAYMENT_ACCOUNT.accountNumber}
+          copyValue={VALUEPLUS_PAYMENT_ACCOUNT.accountNumber}
+        />
+        <CopyField
+          label="Amount"
+          value={amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          copyValue={amount.toFixed(2)}
+        />
+      </div>
     </div>
   );
 }
@@ -332,13 +354,13 @@ function TransactionDetailsModal({
           className="text-4xl font-black leading-none"
         />
 
-        <p className="mt-3 text-[0.95rem] font-semibold text-white/90">
+        <p className="mt-2.5 text-[0.95rem] font-semibold text-white/90">
           {tx.title}
         </p>
         <p className="mt-1 text-[0.72rem] text-white/45">{tx.date}</p>
 
         <span
-          className="mt-3 inline-flex items-center rounded-full border px-3 py-1 text-[0.6rem] font-black uppercase tracking-wide"
+          className="mt-2.5 inline-flex items-center rounded-full border px-3 py-1 text-[0.6rem] font-black uppercase tracking-wide"
           style={{
             background: status.bg,
             borderColor: status.border,
@@ -348,12 +370,11 @@ function TransactionDetailsModal({
           {tx.status}
         </span>
 
-        <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/3 px-4">
+        <div className="mt-4 w-full rounded-2xl border border-white/10 bg-white/3 px-4">
           <DetailRow
             label="Type"
             value={tx.type === "credit" ? "Credit" : "Debit"}
           />
-          <DetailRow label="Date" value={tx.date} />
           <DetailRow
             label="Reference ID"
             value={`TXN-${tx.id.padStart(6, "0")}`}
@@ -363,22 +384,21 @@ function TransactionDetailsModal({
 
         {tx.needsPayment && (
           <>
-            <PaymentDetailsPanel />
+            <PaymentDetailsPanel amount={tx.amount} />
 
             <a
               href={`https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
               style={{ background: "#25D366" }}
             >
               <WhatsAppIcon size={18} />
               I&apos;ve Made This Payment
             </a>
 
-            <p className="mt-2.5 text-[0.66rem] leading-relaxed text-white/35">
-              Send proof of payment on WhatsApp — our team will confirm it
-              once received.
+            <p className="mt-2 text-[0.64rem] leading-snug text-white/35">
+              Click to send proof of payment on Whatsapp.
             </p>
           </>
         )}

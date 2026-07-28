@@ -181,7 +181,7 @@ export const bankOptions: BankOption[] = [
   { id: 167, name: "NUVION MFB", code: "51392", color: "#4C28BC", logo: null },
   { id: 168, name: "Olabisi Onabanjo University Microfinance Bank", code: "50689", color: "#4C28BC", logo: null },
   { id: 169, name: "OLUCHUKWU MICROFINANCE BANK LTD", code: "50697", color: "#4C28BC", logo: null },
-  { id: 170, name: "OPay Digital Services Limited (OPay)", code: "999992", color: "#08A67C", logo: "/images/banks/opay.jpeg" },
+  { id: 170, name: "Opay", code: "999992", color: "#08A67C", logo: "/images/banks/opay.jpeg" },
   { id: 171, name: "Optimus Bank Limited", code: "107", color: "#4C28BC", logo: "/images/banks/Optimus.jpeg" },
   { id: 172, name: "Pact Microfinance Bank", code: "51477", color: "#4C28BC", logo: null },
   { id: 173, name: "Paga", code: "100002", color: "#4C28BC", logo: "/images/banks/paga.jpg" },

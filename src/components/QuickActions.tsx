@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Landmark,
-  Trophy,
+  ShieldCheck,
   UserPlus,
   MessageCircle,
   Flame,
@@ -17,7 +17,14 @@ import {
   useLocalBankAccounts,
   useReferrals,
 } from "../hooks/useWallet";
+import { useKYCProfile, type KYCStatus } from "../hooks/useKYC";
 import { useMyBooks } from "../hooks/useMyBooks";
+
+const KYC_QUICK_ACTION_BADGE: Record<Exclude<KYCStatus, "approved">, string> = {
+  not_started: "NOT STARTED",
+  pending: "PENDING",
+  rejected: "REJECTED",
+};
 
 type Mode = "learner" | "publisher";
 
@@ -43,6 +50,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
   // backend account.
   const { accounts: bankAccounts } = useLocalBankAccounts();
   const { referrals } = useReferrals();
+  const { profile: kycProfile } = useKYCProfile();
   const { books } = useMyBooks();
 
   const isBankLinked = bankAccounts.length > 0 || isLinked;
@@ -55,6 +63,23 @@ function useQuickActions(mode: Mode): QuickAction[] {
     ? []
     : [{ id: "bank", label: "Add bank account", Icon: Landmark, badge: "NOT ADDED" }];
 
+  // Same idea as the bank row — once KYC is approved there's nothing
+  // left to nudge the user about here, so it drops out entirely rather
+  // than showing an "approved" badge; Settings' row stays green/verified
+  // permanently instead.
+  const kycStatus = kycProfile?.status ?? "not_started";
+  const kycAction: QuickAction[] =
+    kycStatus === "approved"
+      ? []
+      : [
+          {
+            id: "kyc",
+            label: "Update KYC",
+            Icon: ShieldCheck,
+            badge: KYC_QUICK_ACTION_BADGE[kycStatus],
+          },
+        ];
+
   if (mode === "publisher") {
     const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
     return [
@@ -65,7 +90,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
         badge: naira(totalEarned),
       },
       ...bankAction,
-      { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
+      ...kycAction,
       { id: "streaks", label: "Streaks", Icon: Flame },
       { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
     ];
@@ -79,7 +104,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
       badge: naira(Number(referrals?.total_earned ?? 0)),
     },
     ...bankAction,
-    { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
+    ...kycAction,
     { id: "streaks", label: "Streaks", Icon: Flame },
     { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
   ];

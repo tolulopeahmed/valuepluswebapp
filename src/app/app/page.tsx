@@ -196,6 +196,7 @@ export default function HomeScreen() {
               // linked yet (see QuickActions.tsx) — so landing here should
               // go straight into adding one, not just the list view.
               if (dest === "bank") router.push("/app/more/bank-accounts?add=1");
+              if (dest === "kyc") router.push("/app/more/kyc");
             }}
           />
         </div>

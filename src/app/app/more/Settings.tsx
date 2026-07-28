@@ -25,12 +25,38 @@ import {
   useLocalBankAccounts,
   useReferrals,
 } from "../../../hooks/useWallet";
+import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
+
+const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
+  not_started: "Not started",
+  pending: "Pending",
+  approved: "Verified",
+  rejected: "Rejected",
+};
+
+const KYC_STATUS_CHIP_TONE: Record<KYCStatus, "neutral" | "accent" | "warning" | "danger"> = {
+  not_started: "neutral",
+  pending: "warning",
+  approved: "accent",
+  rejected: "danger",
+};
 
 // Backend decimal fields arrive as strings.
 function naira(value: string) {
   const n = Number(value);
   return `₦${Number.isNaN(n) ? 0 : n.toLocaleString()}`;
+}
+
+// Trailing status chips sit in a fixed-width column at the row's flex
+// end — a long bank name ("First Bank of Nigeria") would otherwise wrap
+// or overflow there. Short labels (most KYC/status text) pass through
+// untouched; only ones long enough to actually risk that get clipped to
+// their first word.
+function shortLabel(text: string, maxLength = 14): string {
+  if (text.length <= maxLength) return text;
+  const [first] = text.trim().split(/\s+/);
+  return `${first}…`;
 }
 
 // Same admin line used by Sidebar's "Chat Admin" row and the public
@@ -125,31 +151,47 @@ function ToggleRow({
   );
 }
 
+const STATUS_CHIP_STYLE: Record<
+  "neutral" | "accent" | "warning" | "danger",
+  { background: string; borderColor: string; color: string }
+> = {
+  neutral: {
+    background: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.14)",
+    color: "rgba(255,255,255,0.65)",
+  },
+  accent: {
+    background: "rgba(52,211,153,0.14)",
+    borderColor: "rgba(52,211,153,0.35)",
+    color: "#34D399",
+  },
+  warning: {
+    background: "rgba(var(--vp-accent-rgb),0.14)",
+    borderColor: "rgba(var(--vp-accent-rgb),0.35)",
+    color: "rgb(var(--vp-accent-rgb))",
+  },
+  danger: {
+    background: "rgba(248,113,113,0.14)",
+    borderColor: "rgba(248,113,113,0.35)",
+    color: "#f87171",
+  },
+};
+
 function StatusChip({
   children,
   tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "neutral" | "accent";
+  tone?: "neutral" | "accent" | "warning" | "danger";
 }) {
+  const isText = typeof children === "string";
   return (
     <span
       className="inline-flex shrink-0 items-center whitespace-nowrap rounded-lg border px-2 py-1 text-[0.56rem] font-black uppercase tracking-wide"
-      style={
-        tone === "accent"
-          ? {
-              background: "rgba(52,211,153,0.14)",
-              borderColor: "rgba(52,211,153,0.35)",
-              color: "#34D399",
-            }
-          : {
-              background: "rgba(255,255,255,0.08)",
-              borderColor: "rgba(255,255,255,0.14)",
-              color: "rgba(255,255,255,0.65)",
-            }
-      }
+      style={STATUS_CHIP_STYLE[tone]}
+      title={isText ? children : undefined}
     >
-      {children}
+      {isText ? shortLabel(children) : children}
     </span>
   );
 }
@@ -177,12 +219,14 @@ function buildItems({
   referralCount,
   referralTotalEarned,
   referralPending,
+  kycStatus,
 }: {
   isBankLinked: boolean;
   bankName: string | null;
   referralCount: number;
   referralTotalEarned: string;
   referralPending: string;
+  kycStatus: KYCStatus;
 }): SettingItem[] {
   return [
   {
@@ -222,7 +266,12 @@ function buildItems({
     label: "Update KYC",
     subtitle: "Verify your identity to unlock full features",
     Icon: ShieldCheck,
-    trailing: <StatusChip>Not started</StatusChip>,
+    href: "/app/more/kyc",
+    trailing: (
+      <StatusChip tone={KYC_STATUS_CHIP_TONE[kycStatus]}>
+        {KYC_STATUS_LABEL[kycStatus]}
+      </StatusChip>
+    ),
   },
   {
     id: "pin",
@@ -358,6 +407,7 @@ export default function Settings() {
   // (still-empty) backend account.
   const { accounts: bankAccounts } = useLocalBankAccounts();
   const { referrals } = useReferrals();
+  const { profile: kycProfile } = useKYCProfile();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const defaultBankAccount = bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
@@ -370,6 +420,7 @@ export default function Settings() {
     referralCount: referrals?.count ?? 0,
     referralTotalEarned: referrals?.total_earned ?? "0",
     referralPending: referrals?.pending_amount ?? "0",
+    kycStatus: kycProfile?.status ?? "not_started",
   });
 
   const handleSelect = (id: string) => {
