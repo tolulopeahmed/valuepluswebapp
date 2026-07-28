@@ -367,7 +367,7 @@ export default function Transactions() {
   const groups = groupByMonth(transactions);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <SectionLabel>My recent transactions</SectionLabel>
 
       {loading ? (
@@ -379,16 +379,16 @@ export default function Transactions() {
           No transactions yet.
         </div>
       ) : (
-        <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
+        <div className="flex min-w-0 flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
           {groups.map((group) => (
-            <div key={group.month} className="flex flex-col gap-1.5">
+            <div key={group.month} className="flex min-w-0 flex-col gap-1.5">
               <p
                 className="px-1 pb-0.5 text-[0.78rem] font-bold"
                 style={{ color: "rgb(var(--vp-accent-rgb))" }}
               >
                 {group.month}
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 {group.items.map((tx) => (
                   <TransactionRow key={tx.id} tx={tx} onOpen={setSelected} />
                 ))}

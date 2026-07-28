@@ -176,8 +176,17 @@ export default function HomeScreen() {
         Quick actions and recent transactions share a row on desktop, where
         there's enough width for two columns — they stack on mobile instead.
       */}
-      <div className="grid gap-4 md:grid-cols-2 md:gap-6">
-        <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
+      <div className="grid min-w-0 gap-4 md:grid-cols-2 md:gap-6">
+        {/* min-w-0 on both grid items — without it, a grid item's
+            automatic minimum size is its content's max-content width, so
+            a non-shrinking child anywhere inside (e.g. QuickActions'
+            whitespace-nowrap status badges) silently grows the whole
+            track past the viewport instead of forcing the item's own
+            truncating text to actually truncate. The page wrapper's
+            overflow-x-hidden then just clips the excess instead of
+            scrolling to it, which is what read as buttons/badges
+            "running off the right edge" on mobile. */}
+        <div className="vp-card-in min-w-0" style={{ animationDelay: "100ms" }}>
           <SectionLabel>Quick actions</SectionLabel>
           <QuickActions
             mode={mode}
@@ -187,7 +196,7 @@ export default function HomeScreen() {
           />
         </div>
 
-        <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
+        <div className="vp-card-in min-w-0" style={{ animationDelay: "140ms" }}>
           <Transactions />
         </div>
       </div>

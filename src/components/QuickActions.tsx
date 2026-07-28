@@ -134,10 +134,10 @@ export default function QuickActions({
   const hiddenCount = actions.length - VISIBLE_COUNT;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-w-0 flex-col gap-2">
       <AnimatePresence initial={false}>
         {visible.map((action, i) => (
-          <div key={action.id} onClick={() => onNavigate(action.id)}>
+          <div key={action.id} className="min-w-0" onClick={() => onNavigate(action.id)}>
             <ActionRow action={action} index={i} />
           </div>
         ))}
