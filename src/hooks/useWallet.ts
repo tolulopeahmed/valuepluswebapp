@@ -47,6 +47,106 @@ export function useBankAccount() {
   return { bankAccount, isLinked, loading, refetch };
 }
 
+export interface LinkedBankAccount {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  isVerified: boolean;
+}
+
+export interface StoredBankAccount extends LinkedBankAccount {
+  id: string;
+  // Exactly one account is ever the default at a time — the one shown
+  // first, with the green accent bar, and the one a payout would use.
+  isDefault: boolean;
+}
+
+const LOCAL_BANK_ACCOUNTS_KEY = "vp_local_bank_accounts";
+
+function readStoredAccounts(): StoredBankAccount[] {
+  try {
+    const raw = window.localStorage.getItem(LOCAL_BANK_ACCOUNTS_KEY);
+    return raw ? (JSON.parse(raw) as StoredBankAccount[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function sortByDefaultFirst(accounts: StoredBankAccount[]): StoredBankAccount[] {
+  return [...accounts].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+}
+
+// No create/delete/list bank-account endpoint exists yet (see
+// MyBankAccountView — GET only, single account) — every account a user
+// adds or removes via AddBankAccountModal/Bank Accounts is tracked here
+// instead, in localStorage, so the Bank Accounts page, Settings' status
+// chip, and Quick Actions all agree on it. A real user can add several
+// accounts but only one is ever active/default at once — matches how a
+// real payout destination would work once a backend exists.
+export function useLocalBankAccounts() {
+  const [accounts, setAccounts] = useState<StoredBankAccount[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAccounts(readStoredAccounts());
+    setHydrated(true);
+  }, []);
+
+  const persist = (next: StoredBankAccount[]) => {
+    window.localStorage.setItem(LOCAL_BANK_ACCOUNTS_KEY, JSON.stringify(next));
+    setAccounts(next);
+  };
+
+  const addAccount = (account: LinkedBankAccount) => {
+    const rest = accounts.map((a) => ({ ...a, isDefault: false }));
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    persist([{ ...account, id, isDefault: true }, ...rest]);
+  };
+
+  const removeAccount = (id: string) => {
+    const remaining = accounts.filter((a) => a.id !== id);
+    const removedWasDefault = accounts.find((a) => a.id === id)?.isDefault;
+    if (removedWasDefault && remaining.length > 0 && !remaining.some((a) => a.isDefault)) {
+      remaining[0] = { ...remaining[0], isDefault: true };
+    }
+    persist(remaining);
+  };
+
+  const setDefault = (id: string) => {
+    persist(accounts.map((a) => ({ ...a, isDefault: a.id === id })));
+  };
+
+  return {
+    accounts: sortByDefaultFirst(accounts),
+    hydrated,
+    addAccount,
+    removeAccount,
+    setDefault,
+  };
+}
+
+export interface ResolvedBankAccount {
+  resolved: boolean;
+  account_name: string | null;
+}
+
+// Always 200s (see ResolveBankAccountView's docstring) — a not-yet-valid
+// account number is expected and frequent while the user is still typing,
+// not something apiFetch's error toast should fire for.
+export function resolveBankAccount(accountNumber: string, bankCode: string) {
+  const params = new URLSearchParams({
+    account_number: accountNumber,
+    bank_code: bankCode,
+  });
+  return apiFetch<ResolvedBankAccount>(
+    `/wallet/bank-account/resolve/?${params.toString()}`,
+  );
+}
+
 export interface WalletTransaction {
   id: string;
   book_id: string | null;
@@ -59,15 +159,6 @@ export interface WalletTransaction {
   // debit, the frontend's cue to show the self-report "I've paid" action.
   can_confirm_payment: boolean;
   created_at: string;
-}
-
-// Self-reported "I've made this payment" — trusts the user's word since
-// no real payment gateway exists yet (same effect as an admin manually
-// confirming it for a payment made outside the app).
-export function confirmTransactionPayment(id: string) {
-  return apiFetch<WalletTransaction>(`/wallet/transactions/${id}/confirm/`, {
-    method: "POST",
-  });
 }
 
 export function useTransactions() {

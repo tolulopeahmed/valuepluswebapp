@@ -20,7 +20,11 @@ import {
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useBankAccount, useReferrals } from "../../../hooks/useWallet";
+import {
+  useBankAccount,
+  useLocalBankAccounts,
+  useReferrals,
+} from "../../../hooks/useWallet";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
 
 // Backend decimal fields arrive as strings.
@@ -186,6 +190,7 @@ function buildItems({
     label: "My Bank Accounts",
     subtitle: "Set up accounts for faster withdrawals",
     Icon: Landmark,
+    href: "/app/more/bank-accounts",
     trailing: (
       <StatusChip tone={isBankLinked ? "accent" : "neutral"}>
         {isBankLinked ? bankName : "Not added"}
@@ -197,7 +202,7 @@ function buildItems({
     label: `My Referrals (${referralCount})`,
     subtitle: "Invite friends so you both earn",
     Icon: UserPlus,
-    href: "/app/referrals",
+    href: "/app/more/referrals",
     trailing: (
       <div className="flex flex-col items-end gap-0.5">
         <span
@@ -231,6 +236,7 @@ function buildItems({
     label: "FAQ",
     subtitle: "Get answers to common questions",
     Icon: HelpCircle,
+    href: "/app/more/faq",
   },
   {
     id: "message-admin",
@@ -346,12 +352,21 @@ export default function Settings() {
   const { logout } = useAuth();
   const router = useRouter();
   const { bankAccount, isLinked } = useBankAccount();
+  // Same local accounts list Bank Accounts reads/writes — no create/
+  // delete/list endpoint exists yet, so this is how this row's status
+  // chip agrees with that page instead of only ever reflecting the real
+  // (still-empty) backend account.
+  const { accounts: bankAccounts } = useLocalBankAccounts();
   const { referrals } = useReferrals();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  const defaultBankAccount = bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
+  const isBankLinked = bankAccounts.length > 0 || isLinked;
+  const linkedBankName = defaultBankAccount?.bankName ?? bankAccount?.bank_name ?? null;
+
   const items = buildItems({
-    isBankLinked: isLinked,
-    bankName: bankAccount?.bank_name ?? null,
+    isBankLinked,
+    bankName: linkedBankName,
     referralCount: referrals?.count ?? 0,
     referralTotalEarned: referrals?.total_earned ?? "0",
     referralPending: referrals?.pending_amount ?? "0",

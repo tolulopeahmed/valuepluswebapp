@@ -12,7 +12,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { useBankAccount, useReferrals } from "../hooks/useWallet";
+import {
+  useBankAccount,
+  useLocalBankAccounts,
+  useReferrals,
+} from "../hooks/useWallet";
 import { useMyBooks } from "../hooks/useMyBooks";
 
 type Mode = "learner" | "publisher";
@@ -28,18 +32,28 @@ function naira(n: number) {
   return `₦${n.toLocaleString()}`;
 }
 
-// Real per-user badges (referral earnings, bank-link status, publisher
-// royalties) instead of the fixed ₦10,000/GTBank/₦186,000 this used to
-// show for every account — a fresh account now genuinely reads "Not
-// added"/₦0 here too, matching Settings and the Earn page.
+// Real per-user badges (referral earnings, publisher royalties) instead
+// of the fixed ₦10,000/₦186,000 this used to show for every account — a
+// fresh account now genuinely reads ₦0 here too, matching the Earn page.
 function useQuickActions(mode: Mode): QuickAction[] {
-  const { isLinked, bankAccount } = useBankAccount();
+  const { isLinked } = useBankAccount();
+  // Same local accounts list Bank Accounts/Settings read — no create/
+  // delete/list endpoint exists yet, so this is how "at least one bank
+  // account added" is known here too, not just the real (still-empty)
+  // backend account.
+  const { accounts: bankAccounts } = useLocalBankAccounts();
   const { referrals } = useReferrals();
   const { books } = useMyBooks();
 
-  const bankBadge = isLinked
-    ? (bankAccount?.bank_name ?? "LINKED").toUpperCase()
-    : "NOT ADDED";
+  const isBankLinked = bankAccounts.length > 0 || isLinked;
+
+  // Once a bank account exists, there's nothing left to "add" — this row
+  // drops out of Quick Actions entirely rather than switching to a
+  // "linked" badge; Settings' "My Bank Accounts" row already shows that
+  // status permanently.
+  const bankAction: QuickAction[] = isBankLinked
+    ? []
+    : [{ id: "bank", label: "Add bank account", Icon: Landmark, badge: "NOT ADDED" }];
 
   if (mode === "publisher") {
     const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
@@ -50,7 +64,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
         Icon: UserPlus,
         badge: naira(totalEarned),
       },
-      { id: "bank", label: "Add bank account", Icon: Landmark, badge: bankBadge },
+      ...bankAction,
       { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
       { id: "streaks", label: "Streaks", Icon: Flame },
       { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
@@ -64,7 +78,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
       Icon: UserPlus,
       badge: naira(Number(referrals?.total_earned ?? 0)),
     },
-    { id: "bank", label: "Add bank account", Icon: Landmark, badge: bankBadge },
+    ...bankAction,
     { id: "kyc", label: "Update KYC", Icon: Trophy, badge: "NOT YET STARTED" },
     { id: "streaks", label: "Streaks", Icon: Flame },
     { id: "message-admin", label: "Message Admin", Icon: MessageCircle },

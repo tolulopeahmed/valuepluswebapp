@@ -3,17 +3,27 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Users, BookOpen, RefreshCcw, Receipt, type LucideIcon } from "lucide-react";
 import SectionLabel from "./SectionLabel";
 import Modal from "./Modal";
-import Button from "./buttons/buttons";
-import { notify } from "../lib/snackbar";
-import { ApiError } from "../lib/api";
-import {
-  useTransactions,
-  confirmTransactionPayment,
-  type WalletTransaction,
-} from "../hooks/useWallet";
+import { VALUEPLUS_PAYMENT_ACCOUNT } from "../lib/bankOptions";
+import { useTransactions, type WalletTransaction } from "../hooks/useWallet";
+
+// Same admin line used elsewhere (Sidebar.tsx, BookDetailsModal.tsx,
+// more/Settings.tsx): 09024312689 in wa.me international format.
+const ADMIN_WHATSAPP_NUMBER = "2349024312689";
+
+// lucide has no WhatsApp glyph — same local fill-based SVG duplicated in
+// Sidebar.tsx/Settings.tsx/BookDetailsModal.tsx for the same reason.
+function WhatsAppIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
+      <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
 
 type TxStatus = "confirmed" | "pending" | "failed";
 type TxType = "credit" | "debit";
@@ -25,7 +35,7 @@ interface Transaction {
   status: TxStatus;
   type: TxType;
   amount: number;
-  canConfirmPayment: boolean;
+  needsPayment: boolean;
   Icon: LucideIcon;
 }
 
@@ -77,7 +87,7 @@ function groupByMonth(items: WalletTransaction[]): TransactionGroup[] {
       status: tx.status,
       type: tx.type,
       amount: Number(tx.amount),
-      canConfirmPayment: tx.can_confirm_payment,
+      needsPayment: tx.can_confirm_payment,
       Icon: SOURCE_ICON[tx.source],
     };
     if (!groups.has(month)) groups.set(month, []);
@@ -181,7 +191,7 @@ function TransactionRow({
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <p
-          className="truncate text-[1.12rem] font-bold leading-tight text-white/75"
+          className="truncate text-[0.92rem] font-bold leading-tight text-white/75"
           style={{ marginBottom: -5 }}
         >
           {tx.title}
@@ -235,36 +245,76 @@ function DetailRow({
   );
 }
 
+function PaymentDetailsPanel() {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(VALUEPLUS_PAYMENT_ACCOUNT.accountNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard API can be unavailable (permissions, older browsers) —
+      // the number is still shown on screen either way.
+    }
+  };
+
+  return (
+    <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/3 p-4">
+      <p className="text-[0.62rem] uppercase tracking-wide text-white/40">
+        Pay into this account
+      </p>
+
+      <div className="mt-2.5 flex items-center gap-2.5">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white">
+          <Image
+            src={VALUEPLUS_PAYMENT_ACCOUNT.logo}
+            alt={VALUEPLUS_PAYMENT_ACCOUNT.bankName}
+            width={36}
+            height={36}
+            className="h-full w-full object-cover"
+          />
+        </div>
+        <span className="text-[0.82rem] font-bold text-white/85">
+          {VALUEPLUS_PAYMENT_ACCOUNT.bankName}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="mt-3 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left transition-colors active:bg-white/[0.07]"
+      >
+        <span className="text-lg font-black tracking-wide text-white">
+          {VALUEPLUS_PAYMENT_ACCOUNT.accountNumber}
+        </span>
+        <span
+          className="text-[0.6rem] font-black uppercase tracking-wide"
+          style={{ color: copied ? "#34D399" : "rgb(var(--vp-accent-rgb))" }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </span>
+      </button>
+
+      <p className="mt-2 text-[0.72rem] font-semibold text-white/60">
+        {VALUEPLUS_PAYMENT_ACCOUNT.accountName}
+      </p>
+    </div>
+  );
+}
+
 function TransactionDetailsModal({
   tx,
   onClose,
-  onPaymentConfirmed,
 }: {
   tx: Transaction | null;
   onClose: () => void;
-  onPaymentConfirmed: () => void;
 }) {
-  const [confirming, setConfirming] = useState(false);
   if (!tx) return null;
   const status = STATUS_STYLES[tx.status];
   const color = amountColorFor(tx);
 
-  const handleConfirmPayment = async () => {
-    setConfirming(true);
-    try {
-      await confirmTransactionPayment(tx.id);
-      onPaymentConfirmed();
-      onClose();
-    } catch (err) {
-      // apiFetch already fires an error snackbar for ApiError — only the
-      // network-level case needs a fallback here.
-      if (!(err instanceof ApiError)) {
-        notify("Could not confirm your payment. Please try again.", "error");
-      }
-    } finally {
-      setConfirming(false);
-    }
-  };
+  const whatsappMessage = `Hi ValuePlus! I've made the payment for "${tx.title}" (₦${tx.amount.toLocaleString()}), reference TXN-${tx.id.padStart(6, "0")}. Kindly confirm. Thank you!`;
 
   return (
     <Modal open={!!tx} onClose={onClose}>
@@ -311,37 +361,26 @@ function TransactionDetailsModal({
           />
         </div>
 
-        {tx.canConfirmPayment && (
-          <div className="mt-6 flex w-full flex-col gap-2.5">
-            {/* No real payment gateway yet — visible now so the affordance
-                is in place, wired up once one is. */}
-            <button
-              type="button"
-              disabled
-              title="Card payments are coming soon"
-              className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-3 text-sm font-bold text-white/35"
-            >
-              Pay with Card
-              <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide text-white/40">
-                Coming soon
-              </span>
-            </button>
+        {tx.needsPayment && (
+          <>
+            <PaymentDetailsPanel />
 
-            <Button
-              variant="primary"
-              size="md"
-              className="w-full"
-              loading={confirming}
-              onClick={handleConfirmPayment}
+            <a
+              href={`https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+              style={{ background: "#25D366" }}
             >
-              {confirming ? "Confirming…" : "I've Made This Payment"}
-            </Button>
+              <WhatsAppIcon size={18} />
+              I&apos;ve Made This Payment
+            </a>
 
-            <p className="text-[0.66rem] leading-relaxed text-white/35">
-              Paid outside the app (e.g. bank transfer)? This still marks
-              it as paid — our team can also confirm it for you.
+            <p className="mt-2.5 text-[0.66rem] leading-relaxed text-white/35">
+              Send proof of payment on WhatsApp — our team will confirm it
+              once received.
             </p>
-          </div>
+          </>
         )}
 
         <button
@@ -349,7 +388,7 @@ function TransactionDetailsModal({
           onClick={onClose}
           className="mt-4 w-full rounded-2xl py-3 text-sm font-bold"
           style={
-            tx.canConfirmPayment
+            tx.needsPayment
               ? { background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }
               : { background: "rgb(var(--vp-accent-rgb))", color: "#171100" }
           }
@@ -363,7 +402,7 @@ function TransactionDetailsModal({
 
 export default function Transactions() {
   const [selected, setSelected] = useState<Transaction | null>(null);
-  const { transactions, loading, refetch } = useTransactions();
+  const { transactions, loading } = useTransactions();
   const groups = groupByMonth(transactions);
 
   return (
@@ -407,11 +446,7 @@ export default function Transactions() {
         </button>
       )}
 
-      <TransactionDetailsModal
-        tx={selected}
-        onClose={() => setSelected(null)}
-        onPaymentConfirmed={refetch}
-      />
+      <TransactionDetailsModal tx={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

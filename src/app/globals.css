@@ -575,6 +575,24 @@ header {
   transform: translateY(-3px);
 }
 
+/* No button anywhere previously dimmed on disabled — a `disabled` submit
+   button (e.g. AddBankAccountModal's, gated on Paystack resolution) still
+   read as fully active until this. */
+.btn-base:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-base:disabled:hover {
+  transform: none;
+}
+
+.btn-base:disabled .btn-shimmer {
+  display: none;
+}
+
 .btn-sm {
   min-height: 2.75rem;
   padding: 0.75rem 1rem;

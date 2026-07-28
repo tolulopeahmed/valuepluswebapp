@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Copy, Check, UserPlus } from "lucide-react";
-import Title from "../../../components/Title";
-import Subtitle from "../../../components/Subtitle";
-import SectionLabel from "../../../components/SectionLabel";
-import ReferralDetailsModal from "../../../components/ReferralDetailsModal";
-import { notify } from "../../../lib/snackbar";
-import { useReferrals, type ReferralItem } from "../../../hooks/useWallet";
+import Title from "../../../../components/Title";
+import Subtitle from "../../../../components/Subtitle";
+import SectionLabel from "../../../../components/SectionLabel";
+import ReferralDetailsModal from "../../../../components/ReferralDetailsModal";
+import { notify } from "../../../../lib/snackbar";
+import { useReferrals, type ReferralItem } from "../../../../hooks/useWallet";
 
 const COMMISSION_PERCENT = 5;
 
@@ -60,7 +60,9 @@ function ReferralRow({
   onOpen: (item: ReferralItem) => void;
 }) {
   const user = item.referred_user;
-  const name = user ? `${user.first_name} ${user.last_name}`.trim() : "Deleted account";
+  const name = user
+    ? `${user.first_name} ${user.last_name}`.trim()
+    : "Deleted account";
   const initial = (user?.first_name.trim().charAt(0) || "?").toUpperCase();
   const isConfirmed = item.status === "confirmed";
 
@@ -157,7 +159,7 @@ export default function ReferralsPage() {
       <div className="vp-card-in mb-6">
         <Title className="block">Refer &amp; Earn</Title>
         <Subtitle>
-          Share your email — when someone signs up with it, you both earn.
+          Earn from every author who signs up with your email.
         </Subtitle>
       </div>
 
@@ -184,8 +186,7 @@ export default function ReferralsPage() {
         </p>
         <p className="mx-auto mt-3 max-w-sm text-[0.78rem] leading-relaxed text-white/55">
           Earn {COMMISSION_PERCENT}% of the service cost for every author you
-          refer, credited to your wallet the moment their payment is
-          confirmed.
+          refer, credited to your wallet the moment their payment is confirmed.
         </p>
       </div>
 
@@ -254,7 +255,11 @@ export default function ReferralsPage() {
                 </p>
                 <div className="flex flex-col gap-1.5">
                   {group.items.map((item) => (
-                    <ReferralRow key={item.id} item={item} onOpen={setSelected} />
+                    <ReferralRow
+                      key={item.id}
+                      item={item}
+                      onOpen={setSelected}
+                    />
                   ))}
                 </div>
               </div>
@@ -273,7 +278,10 @@ export default function ReferralsPage() {
             <p className="text-[0.62rem] font-black uppercase tracking-wide text-white/40">
               Earned
             </p>
-            <p className="mt-0.5 text-xl font-black" style={{ color: "#34D399" }}>
+            <p
+              className="mt-0.5 text-xl font-black"
+              style={{ color: "#34D399" }}
+            >
               {naira(referrals.total_earned)}
             </p>
           </div>
@@ -288,7 +296,10 @@ export default function ReferralsPage() {
         </div>
       )}
 
-      <ReferralDetailsModal referral={selected} onClose={() => setSelected(null)} />
+      <ReferralDetailsModal
+        referral={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }
