@@ -3,9 +3,11 @@
 
 import { useState } from "react";
 import GetQuote from "../../../../components/landing/GetQuote";
+import { useMyBooks } from "../../../../hooks/useMyBooks";
 
 export default function AddNewTitlePage() {
   const [showExtras, setShowExtras] = useState(false);
+  const { refetch } = useMyBooks();
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -20,6 +22,7 @@ export default function AddNewTitlePage() {
         <GetQuote
           showExtras={showExtras}
           onToggleExtras={() => setShowExtras((v) => !v)}
+          onSubmitted={refetch}
         />
       </div>
     </div>

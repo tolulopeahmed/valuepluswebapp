@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
   UserRound,
@@ -18,11 +19,16 @@ import {
   Phone,
   ChevronDown,
   Upload,
+  FileText,
+  Trash2,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../../components/Title";
 import Subtitle from "../../../../components/Subtitle";
+import Modal from "../../../../components/Modal";
 import Button from "../../../../components/buttons/buttons";
+import IDDocumentCropModal from "../../../../components/IDDocumentCropModal";
 import { notify } from "../../../../lib/snackbar";
 import { ApiError } from "../../../../lib/api";
 import {
@@ -70,9 +76,12 @@ function KYCRow({ icon: Icon, children }: { icon: LucideIcon; children: ReactNod
   );
 }
 
+// Every field in this form is required — set as the default here rather
+// than repeated at each of the ~14 call sites below.
 function TextField(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
+      required
       {...props}
       className={inputClass}
       style={{ borderColor: "rgba(255,255,255,0.1)" }}
@@ -91,6 +100,7 @@ function SelectField({
   return (
     <div className="relative">
       <select
+        required
         {...props}
         className={`${inputClass} appearance-none pr-9`}
         style={{ borderColor: "rgba(255,255,255,0.1)" }}
@@ -116,10 +126,58 @@ function SelectField({
   );
 }
 
+// Shown once per visit when KYC is already approved, before the form —
+// re-submitting can't be done silently since a genuine identity change
+// (new ID, next of kin, etc.) is a real enough reason to still want the
+// form, but tapping straight into "Update KYC" from Settings shouldn't
+// look like nothing happened.
+function AlreadyVerifiedModal({
+  open,
+  onUpdateAnyway,
+  onGoBack,
+}: {
+  open: boolean;
+  onUpdateAnyway: () => void;
+  onGoBack: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onGoBack}>
+      <div className="flex flex-col items-center text-center">
+        <span
+          className="mb-4 grid h-14 w-14 place-items-center rounded-full border"
+          style={{ borderColor: "rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.12)" }}
+        >
+          <ShieldCheck size={22} strokeWidth={1.8} style={{ color: "#34D399" }} />
+        </span>
+
+        <h3 className="mb-2 text-[1.05rem] font-black text-white">
+          Your KYC is already verified
+        </h3>
+        <p className="mb-6 max-w-[20rem] text-[0.82rem] leading-relaxed text-white/50">
+          You&apos;re all set — no need to redo this. You can still update
+          details like your next of kin or address if something&apos;s
+          changed.
+        </p>
+
+        <div className="flex w-full gap-3">
+          <Button variant="secondary" size="md" className="flex-1" onClick={onGoBack}>
+            Go back
+          </Button>
+          <Button variant="primary" size="md" className="flex-1" onClick={onUpdateAnyway}>
+            Update anyway
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export default function KYCPage() {
+  const router = useRouter();
   const { profile, loading, refetch } = useKYCProfile();
 
   const [seeded, setSeeded] = useState(false);
+  const [approvedGateDismissed, setApprovedGateDismissed] = useState(false);
   const [gender, setGender] = useState("");
   const [relationshipStatus, setRelationshipStatus] = useState("");
   const [employmentStatus, setEmploymentStatus] = useState("");
@@ -130,7 +188,21 @@ export default function KYCPage() {
   const [stateOfResidence, setStateOfResidence] = useState("");
   const [countryOfResidence, setCountryOfResidence] = useState("");
   const [identificationType, setIdentificationType] = useState("");
-  const [idDocument, setIdDocument] = useState<File | null>(null);
+  // The file/blob that will actually upload, its display name (image or
+  // PDF), and — only for images — an object URL to preview it. Cropping
+  // happens between "file picked" and "file accepted": cropSrc holds the
+  // picked image while IDDocumentCropModal is open; nothing here changes
+  // until the user confirms the crop.
+  const [idDocument, setIdDocument] = useState<Blob | null>(null);
+  const [idDocumentName, setIdDocumentName] = useState<string | null>(null);
+  const [idDocumentPreview, setIdDocumentPreview] = useState<string | null>(null);
+  // Tapping the trash icon on the existing (already-uploaded) ID hides
+  // it locally so the box goes back to the empty "Upload ID" state —
+  // there's no delete-on-the-backend call for this, it's just "stop
+  // showing what's already there until a new one is picked."
+  const [existingCleared, setExistingCleared] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [nextOfKinName, setNextOfKinName] = useState("");
   const [nextOfKinRelationship, setNextOfKinRelationship] = useState("");
   const [nextOfKinPhone, setNextOfKinPhone] = useState("");
@@ -159,8 +231,79 @@ export default function KYCPage() {
 
   const status = profile?.status ?? "not_started";
 
+  // PDFs can't be cropped (no canvas to draw a document viewer onto) —
+  // only an image goes through IDDocumentCropModal; a picked PDF is
+  // accepted as-is.
+  const handleFileSelected = (file: File | undefined) => {
+    if (!file) return;
+    if (file.type.startsWith("image/")) {
+      setCropSrc(URL.createObjectURL(file));
+      return;
+    }
+    setIdDocument(file);
+    setIdDocumentName(file.name);
+    if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+    setIdDocumentPreview(null);
+  };
+
+  const handleCropSave = (blob: Blob) => {
+    setIdDocument(blob);
+    setIdDocumentName("Cropped photo");
+    if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+    setIdDocumentPreview(URL.createObjectURL(blob));
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  };
+
+  // Trash icon (pre-approval): drop whatever's currently shown — a
+  // pending pick or the existing uploaded one — back to the empty
+  // "Upload ID" prompt. Replace icon (post-approval): skip straight to
+  // the file picker instead, no clearing step.
+  const handleClearDocument = () => {
+    if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
+    setIdDocument(null);
+    setIdDocumentName(null);
+    setIdDocumentPreview(null);
+    setExistingCleared(true);
+  };
+
+  const handleReplaceClick = () => fileInputRef.current?.click();
+
+  // Every field is required (the backend enforces this too — see
+  // KYCUpdateSerializer) — checked here first so a missing field is a
+  // clear, named error instead of a generic one from the network
+  // round-trip. id_document alone also passes if one's already on file
+  // and hasn't been cleared, matching the backend's own validate().
+  const hasIdDocument = idDocument !== null || (!existingCleared && Boolean(profile?.id_document));
+  const missingField =
+    (!gender && "Gender") ||
+    (!relationshipStatus && "Relationship status") ||
+    (!employmentStatus && "Employment status") ||
+    (!yearlyIncome && "Yearly income") ||
+    (!dateOfBirth && "Date of birth") ||
+    (!address && "Address") ||
+    (!mothersMaidenName && "Mother's maiden name") ||
+    (!stateOfResidence && "State of residence") ||
+    (!countryOfResidence && "Country of residence") ||
+    (!identificationType && "Identification type") ||
+    (!hasIdDocument && "ID document") ||
+    (!nextOfKinName && "Name of next of kin") ||
+    (!nextOfKinRelationship && "Relationship with next of kin") ||
+    (!nextOfKinPhone && "Next of kin's phone number") ||
+    null;
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    if (missingField) {
+      notify(`${missingField} is required.`, "error");
+      return;
+    }
 
     if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
       notify("Date of birth must be in YYYY-MM-DD format.", "error");
@@ -186,7 +329,11 @@ export default function KYCPage() {
         next_of_kin_phone: nextOfKinPhone,
       });
       notify("KYC details submitted for review!", "success");
+      if (idDocumentPreview) URL.revokeObjectURL(idDocumentPreview);
       setIdDocument(null);
+      setIdDocumentName(null);
+      setIdDocumentPreview(null);
+      setExistingCleared(false);
       refetch();
     } catch (err) {
       if (!(err instanceof ApiError)) {
@@ -338,28 +485,90 @@ export default function KYCPage() {
             />
           </KYCRow>
 
-          <label
-            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-5 py-8 text-center transition-colors active:bg-white/[0.03]"
-            style={{ borderColor: "rgba(var(--vp-accent-rgb),0.35)" }}
-          >
-            <input
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              onChange={(e) => setIdDocument(e.target.files?.[0] ?? null)}
-            />
-            <span className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-[0.78rem] font-bold text-white/70">
-              <Upload size={15} />
-              Upload ID
-            </span>
-            <p className="max-w-[16rem] text-[0.68rem] leading-relaxed text-white/40">
-              {idDocument
-                ? idDocument.name
-                : profile?.id_document
-                  ? "ID already uploaded — choose a file to replace it."
-                  : "JPG, PNG or PDF"}
-            </p>
-          </label>
+          {(() => {
+            const showExisting = !idDocumentName && !existingCleared && profile?.id_document;
+            const hasDocument = Boolean(idDocumentPreview || idDocumentName || showExisting);
+            const isApproved = status === "approved";
+
+            return (
+              <div
+                className="relative w-full overflow-hidden rounded-2xl border-2 border-dashed"
+                style={{
+                  borderColor: "rgba(var(--vp-accent-rgb),0.5)",
+                  background: hasDocument ? "transparent" : "rgba(var(--vp-accent-rgb),0.06)",
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleFileSelected(e.target.files?.[0])}
+                />
+
+                {!hasDocument && (
+                  <div className="flex h-44 items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleReplaceClick}
+                      className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-[0.8rem] font-bold text-white/80 transition-colors active:bg-white/15"
+                    >
+                      <Upload size={16} />
+                      Upload ID
+                    </button>
+                  </div>
+                )}
+
+                {idDocumentPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={idDocumentPreview}
+                    alt="ID document preview"
+                    className="h-44 w-full object-cover"
+                  />
+                )}
+
+                {!idDocumentPreview && showExisting && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={profile!.id_document!}
+                    alt="Current ID on file"
+                    className="h-44 w-full object-cover"
+                  />
+                )}
+
+                {!idDocumentPreview && !showExisting && idDocumentName && (
+                  <div className="flex h-44 items-center justify-center">
+                    <span className="flex items-center gap-2 rounded-xl border border-white/15 bg-black/30 px-3.5 py-2.5 text-[0.74rem] font-semibold text-white/80">
+                      <FileText size={15} />
+                      {idDocumentName}
+                    </span>
+                  </div>
+                )}
+
+                {hasDocument && (
+                  <button
+                    type="button"
+                    onClick={isApproved ? handleReplaceClick : handleClearDocument}
+                    aria-label={isApproved ? "Replace ID" : "Remove ID"}
+                    title={isApproved ? "Replace ID" : "Remove ID"}
+                    className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-lg transition-transform active:scale-90"
+                    style={
+                      isApproved
+                        ? { background: "rgb(var(--vp-accent-rgb))" }
+                        : { background: "#F87171" }
+                    }
+                  >
+                    {isApproved ? (
+                      <RefreshCw size={16} color="#171100" />
+                    ) : (
+                      <Trash2 size={16} color="#2a0a0a" />
+                    )}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
 
           <KYCRow icon={UserPlus}>
             <TextField
@@ -399,6 +608,19 @@ export default function KYCPage() {
           </Button>
         </form>
       )}
+
+      <AlreadyVerifiedModal
+        open={!loading && status === "approved" && !approvedGateDismissed}
+        onUpdateAnyway={() => setApprovedGateDismissed(true)}
+        onGoBack={() => router.push("/app/more")}
+      />
+
+      <IDDocumentCropModal
+        open={cropSrc !== null}
+        imageSrc={cropSrc}
+        onClose={handleCropCancel}
+        onSave={handleCropSave}
+      />
     </div>
   );
 }

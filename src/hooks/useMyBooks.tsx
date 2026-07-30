@@ -117,7 +117,15 @@ export function MyBooksProvider({ children }: { children: ReactNode }) {
     setError(null);
     try {
       const data = await apiFetch<MyBook[]>("/books/mine/");
-      setBooks(data);
+      // The backend already orders by -created_at (see Book.Meta), but
+      // sorting again here guarantees newest-first regardless of that —
+      // status (pending/draft/published/...) never factors into it, so
+      // a brand-new draft always sits above an older published title.
+      setBooks(
+        [...data].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        ),
+      );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not load your books.");
     } finally {
@@ -156,6 +164,54 @@ export function useMyBooks() {
     throw new Error("useMyBooks must be used within MyBooksProvider (i.e. inside src/app/app)");
   }
   return ctx;
+}
+
+// Whoever saves last simply wins — staff can also set/replace a book's
+// cover directly in Django admin, and neither side needs to know about
+// the other. Callers should follow a successful call with the shared
+// MyBooksProvider's refetch() so every consumer (home shelf, Publish
+// page, this same modal) picks up the new image at once.
+export function uploadBookCover(bookId: string, blob: Blob) {
+  const formData = new FormData();
+  formData.append("cover", blob, "cover.jpg");
+  return apiFetch<MyBook>(`/books/mine/${bookId}/cover/`, {
+    method: "PATCH",
+    body: formData,
+  });
+}
+
+// Reverts to the generated placeholder cover (see BookCover below).
+export function deleteBookCover(bookId: string) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/cover/`, {
+    method: "DELETE",
+  });
+}
+
+// Whoever saves last wins here too — staff can also set `price` directly
+// on the Book change form in Django admin. Follow with the shared
+// MyBooksProvider's refetch() so every consumer picks up the new price.
+export function updateBookPrice(bookId: string, price: number) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/price/`, {
+    method: "PATCH",
+    body: JSON.stringify({ price }),
+  });
+}
+
+// The default sale price a book is offered at until the author sets
+// their own: ~2.5x the physical unit print cost (quotation.print_cost —
+// staff's own manual entry for "what one copy costs to actually print",
+// see QuotationRequest.print_cost's help_text). Null when there's
+// nothing to base a suggestion on yet (no print element in the quote,
+// e.g. an ebook-only title, or staff haven't entered a print cost yet)
+// — the price field falls back to plain manual entry in that case
+// rather than suggesting a number pulled out of thin air.
+const SUGGESTED_PRICE_MULTIPLIER = 2.5;
+
+export function suggestedPrice(quotation: BookQuotationSummary | null): number | null {
+  if (!quotation || quotation.print_cost === null) return null;
+  const printCost = Number(quotation.print_cost);
+  if (!Number.isFinite(printCost) || printCost <= 0) return null;
+  return Math.round(printCost * SUGGESTED_PRICE_MULTIPLIER);
 }
 
 // Backend decimal fields (price/earned) arrive as strings; price is also

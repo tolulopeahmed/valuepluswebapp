@@ -49,6 +49,9 @@ export function useBankAccount() {
 
 export interface LinkedBankAccount {
   bankName: string;
+  // Paystack's own bank code (bankOptions[].code) — needed to create a
+  // transfer recipient at withdrawal time.
+  bankCode?: string;
   accountNumber: string;
   accountName: string;
   isVerified: boolean;
@@ -61,64 +64,116 @@ export interface StoredBankAccount extends LinkedBankAccount {
   isDefault: boolean;
 }
 
-const LOCAL_BANK_ACCOUNTS_KEY = "vp_local_bank_accounts";
+interface BankAccountApiRecord {
+  id: string;
+  bank_name: string;
+  bank_code: string;
+  account_number: string;
+  account_name: string;
+  is_verified: boolean;
+  is_default: boolean;
+}
 
-function readStoredAccounts(): StoredBankAccount[] {
-  try {
-    const raw = window.localStorage.getItem(LOCAL_BANK_ACCOUNTS_KEY);
-    return raw ? (JSON.parse(raw) as StoredBankAccount[]) : [];
-  } catch {
-    return [];
-  }
+function fromApiRecord(record: BankAccountApiRecord): StoredBankAccount {
+  return {
+    id: record.id,
+    bankName: record.bank_name,
+    bankCode: record.bank_code,
+    accountNumber: record.account_number,
+    accountName: record.account_name,
+    isVerified: record.is_verified,
+    isDefault: record.is_default,
+  };
 }
 
 function sortByDefaultFirst(accounts: StoredBankAccount[]): StoredBankAccount[] {
   return [...accounts].sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
 }
 
-// No create/delete/list bank-account endpoint exists yet (see
-// MyBankAccountView — GET only, single account) — every account a user
-// adds or removes via AddBankAccountModal/Bank Accounts is tracked here
-// instead, in localStorage, so the Bank Accounts page, Settings' status
-// chip, and Quick Actions all agree on it. A real user can add several
-// accounts but only one is ever active/default at once — matches how a
-// real payout destination would work once a backend exists.
-export function useLocalBankAccounts() {
+// Every bank account a user adds lives on the backend now, scoped
+// strictly to their own account (GET/POST /wallet/bank-accounts/mine/,
+// DELETE/set-default by id) — this used to be a single shared
+// localStorage key with no per-user scoping at all, so logging out and
+// into a different account on the same browser showed the PREVIOUS
+// user's saved bank accounts. A real payout destination can never be
+// browser-shared state, so this is the actual source of truth now.
+// The old shared-across-every-account key this hook used to read/write —
+// removed once, on mount, purely so stale cross-user bank data can't
+// linger in a browser's storage or confuse anyone poking at devtools.
+// Nothing reads from this key anymore; the backend is the only source
+// of truth now.
+const LEGACY_LOCAL_BANK_ACCOUNTS_KEY = "vp_local_bank_accounts";
+
+export function useBankAccounts() {
+  const { isAuthenticated } = useAuth();
   const [accounts, setAccounts] = useState<StoredBankAccount[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAccounts(readStoredAccounts());
-    setHydrated(true);
+    try {
+      window.localStorage.removeItem(LEGACY_LOCAL_BANK_ACCOUNTS_KEY);
+    } catch {
+      // localStorage can be unavailable (privacy mode, disabled) — the
+      // key just won't exist to worry about in that case either.
+    }
   }, []);
 
-  const persist = (next: StoredBankAccount[]) => {
-    window.localStorage.setItem(LOCAL_BANK_ACCOUNTS_KEY, JSON.stringify(next));
-    setAccounts(next);
-  };
-
-  const addAccount = (account: LinkedBankAccount) => {
-    const rest = accounts.map((a) => ({ ...a, isDefault: false }));
-    const id =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    persist([{ ...account, id, isDefault: true }, ...rest]);
-  };
-
-  const removeAccount = (id: string) => {
-    const remaining = accounts.filter((a) => a.id !== id);
-    const removedWasDefault = accounts.find((a) => a.id === id)?.isDefault;
-    if (removedWasDefault && remaining.length > 0 && !remaining.some((a) => a.isDefault)) {
-      remaining[0] = { ...remaining[0], isDefault: true };
+  const refetch = useCallback(async () => {
+    if (!isAuthenticated) {
+      setAccounts([]);
+      setHydrated(true);
+      return;
     }
-    persist(remaining);
-  };
+    try {
+      const data = await apiFetch<BankAccountApiRecord[]>(
+        "/wallet/bank-accounts/mine/",
+      );
+      setAccounts(data.map(fromApiRecord));
+    } catch {
+      setAccounts([]);
+    } finally {
+      setHydrated(true);
+    }
+  }, [isAuthenticated]);
 
-  const setDefault = (id: string) => {
-    persist(accounts.map((a) => ({ ...a, isDefault: a.id === id })));
-  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refetch();
+  }, [refetch]);
+
+  const addAccount = useCallback(
+    async (account: LinkedBankAccount) => {
+      await apiFetch<BankAccountApiRecord>("/wallet/bank-accounts/mine/", {
+        method: "POST",
+        body: JSON.stringify({
+          bank_name: account.bankName,
+          bank_code: account.bankCode ?? "",
+          account_number: account.accountNumber,
+          account_name: account.accountName,
+        }),
+      });
+      await refetch();
+    },
+    [refetch],
+  );
+
+  const removeAccount = useCallback(
+    async (id: string) => {
+      await apiFetch(`/wallet/bank-accounts/${id}/`, { method: "DELETE" });
+      await refetch();
+    },
+    [refetch],
+  );
+
+  const setDefault = useCallback(
+    async (id: string) => {
+      await apiFetch(`/wallet/bank-accounts/${id}/set-default/`, {
+        method: "POST",
+      });
+      await refetch();
+    },
+    [refetch],
+  );
 
   return {
     accounts: sortByDefaultFirst(accounts),
@@ -126,6 +181,7 @@ export function useLocalBankAccounts() {
     addAccount,
     removeAccount,
     setDefault,
+    refetch,
   };
 }
 
@@ -151,13 +207,25 @@ export interface WalletTransaction {
   id: string;
   book_id: string | null;
   type: "credit" | "debit";
-  source: "book_sale" | "referral" | "withdrawal" | "quote_payment";
+  source:
+    | "book_sale"
+    | "referral"
+    | "withdrawal"
+    | "quote_payment"
+    | "transfer"
+    | "deposit";
   title: string;
   amount: string;
   status: "confirmed" | "pending" | "failed";
   // No real payment gateway yet — true only for a pending quote_payment
   // debit, the frontend's cue to show the self-report "I've paid" action.
   can_confirm_payment: boolean;
+  // The real Wallet.balance this transaction moved from/to (see
+  // apps.wallet.services.apply_to_wallet) — null for a QUOTE_PAYMENT
+  // (never touches the wallet) or a still-pending withdrawal (nothing's
+  // moved yet, only reserved).
+  balance_before: string | null;
+  balance_after: string | null;
   created_at: string;
 }
 
@@ -191,6 +259,113 @@ export function useTransactions() {
   }, [refetch]);
 
   return { transactions, loading, refetch };
+}
+
+// The real, backend-computed balance — GET /wallet/mine/ returns
+// Wallet.balance (see apps.wallet.models.Wallet / apply_to_wallet) minus
+// whatever a still-pending withdrawal/transfer already has a hold on
+// (apps.wallet.views._available_balance). This used to be recomputed
+// client-side from the raw transaction list; now the backend is the one
+// source of truth, so this and the actual submit-time check can never
+// disagree.
+export function useWalletBalance() {
+  const { isAuthenticated } = useAuth();
+  const [balance, setBalance] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const refetch = useCallback(async () => {
+    if (!isAuthenticated) {
+      setBalance(0);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await apiFetch<{ balance: string }>("/wallet/mine/");
+      setBalance(Number(data.balance));
+    } catch {
+      setBalance(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refetch();
+  }, [refetch]);
+
+  return { balance, loading, refetch };
+}
+
+export interface WithdrawalRequest {
+  amount: number;
+  bankName: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+}
+
+// POST /wallet/withdrawals/initiate/ — `amount` is the total debited
+// from the user's balance; the backend deducts Paystack's own transfer
+// fee from it before the money moves, so the recipient gets less than
+// `amount` (see apps.wallet.paystack.calculate_transfer_fee). Returns
+// the created (pending) transaction.
+export function requestWithdrawal(request: WithdrawalRequest) {
+  return apiFetch<WalletTransaction>("/wallet/withdrawals/initiate/", {
+    method: "POST",
+    body: JSON.stringify({
+      amount: request.amount,
+      bank_name: request.bankName,
+      bank_code: request.bankCode,
+      account_number: request.accountNumber,
+      account_name: request.accountName,
+    }),
+  });
+}
+
+// POST /wallet/deposits/initiate/ — "I've sent the payment" in the Add
+// Funds modal. Creates a pending deposit transaction and emails admin a
+// Django admin review link; the wallet is only actually credited once
+// an admin approves it there (see server's TransactionAdmin.
+// approve_deposit_requests) — never user self-confirmable, since that
+// would let anyone credit their own wallet for free.
+export function requestDeposit(amount: number) {
+  return apiFetch<WalletTransaction>("/wallet/deposits/initiate/", {
+    method: "POST",
+    body: JSON.stringify({ amount }),
+  });
+}
+
+export interface LookedUpUser {
+  found: boolean;
+  full_name: string | null;
+}
+
+// Always 200s (see LookupUserByEmailView's docstring) — an incomplete or
+// unmatched email is expected and frequent while the user is still
+// typing, not something apiFetch's error toast should fire for.
+export function lookupUserByEmail(email: string) {
+  const params = new URLSearchParams({ email });
+  return apiFetch<LookedUpUser>(`/wallet/lookup-user/?${params.toString()}`);
+}
+
+export interface TransferRequest {
+  recipientEmail: string;
+  amount: number;
+}
+
+// POST /wallet/transfer/ — a peer-to-peer wallet transfer by email
+// instead of a bank withdrawal; resolved instantly (both sides confirmed
+// server-side), no Paystack transfer/fee involved.
+export function transferToUser(request: TransferRequest) {
+  return apiFetch<WalletTransaction>("/wallet/transfer/", {
+    method: "POST",
+    body: JSON.stringify({
+      recipient_email: request.recipientEmail,
+      amount: request.amount,
+    }),
+  });
 }
 
 export interface ReferredUser {

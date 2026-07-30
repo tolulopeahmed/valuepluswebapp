@@ -1,10 +1,19 @@
 "use client";
 
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Pencil, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import Button from "./buttons/buttons";
+import BookCoverCropModal from "./BookCoverCropModal";
+import { notify } from "../lib/snackbar";
+import { ApiError } from "../lib/api";
 import {
   naira,
   BookCover,
+  uploadBookCover,
+  deleteBookCover,
+  useMyBooks,
   MY_BOOK_STATUS_LABEL,
   MY_BOOK_STATUS_BADGE_CLASS,
   type MyBook,
@@ -142,18 +151,110 @@ export default function BookDetailsModal({
   onChangePrice,
   book,
 }: BookDetailsModalProps) {
+  const { refetch } = useMyBooks();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
+  const [removingCover, setRemovingCover] = useState(false);
+
+  // Fresh cover-edit state every time the modal closes, rather than
+  // carrying over whatever was left from a previous book/session.
+  useEffect(() => {
+    if (open) return;
+    if (pendingImageSrc) URL.revokeObjectURL(pendingImageSrc);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingImageSrc(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   if (!book) return null;
 
   // Still awaiting a real quote — no price has been set yet.
   const isAwaitingQuote = book.price === null && book.quotation !== null;
 
+  const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets picking the same file again re-trigger onChange
+    if (!file) return;
+    setPendingImageSrc(URL.createObjectURL(file));
+  };
+
+  const closeCropModal = () => {
+    if (pendingImageSrc) URL.revokeObjectURL(pendingImageSrc);
+    setPendingImageSrc(null);
+  };
+
+  const handleCropSave = async (blob: Blob) => {
+    try {
+      await uploadBookCover(book.id, blob);
+      await refetch();
+      closeCropModal();
+    } catch (err) {
+      // apiFetch already fires an error snackbar for ApiError — only the
+      // network-level case needs a fallback here.
+      if (!(err instanceof ApiError)) {
+        notify("Could not update the cover. Please try again.", "error");
+      }
+    }
+  };
+
+  const handleRemoveCover = async () => {
+    setRemovingCover(true);
+    try {
+      await deleteBookCover(book.id);
+      await refetch();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not remove the cover. Please try again.", "error");
+      }
+    } finally {
+      setRemovingCover(false);
+    }
+  };
+
   return (
-    <Modal open={open} onClose={onClose}>
+    <>
+    <Modal open={open && pendingImageSrc === null} onClose={onClose}>
       {/* Cover on the left, details on the right — pricing/buttons stay
           full-width at the bottom regardless. */}
       <div className="flex gap-4">
         <div className="relative aspect-[3/4.4] w-40 shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.5)]">
           <BookCover book={book} sizes="160px" />
+
+          {/* Edit always available; Remove only once a real cover exists
+              — reverting to the generated placeholder isn't meaningful
+              when that's already all there is. */}
+          <div className="absolute right-1.5 top-1.5 z-10 flex gap-1">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Change book cover"
+              className="flex h-6 w-6 items-center justify-center rounded-full transition-transform active:scale-90"
+              style={{ background: "rgb(var(--vp-accent-rgb))" }}
+            >
+              <Pencil size={11} strokeWidth={2.5} color="#171100" />
+            </button>
+
+            {book.cover && (
+              <button
+                type="button"
+                onClick={handleRemoveCover}
+                disabled={removingCover}
+                aria-label="Remove book cover"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-red-300 backdrop-blur-sm transition-colors hover:bg-red-500/80 hover:text-white disabled:opacity-50"
+              >
+                <Trash2 size={11} strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
         </div>
 
         <div className="min-w-0 flex-1">
@@ -197,7 +298,35 @@ export default function BookDetailsModal({
 
       <div className="my-5 h-px bg-white/10" />
 
-      {isAwaitingQuote ? (
+      {book.status === "published" ? (
+        <>
+          <div>
+            <p className="text-[0.6rem] font-black uppercase tracking-[0.14em] text-white/35">
+              Price
+            </p>
+            <p className="mt-1 text-3xl font-black text-white">
+              {naira(book.price)}
+            </p>
+          </div>
+
+          {/* Live now — Change Price/Order Reprint/WhatsApp follow-up
+              are all superseded by the dedicated book page, which has
+              its own price editor plus real Assets/Reprint/Public Link
+              actions. */}
+          <Button
+            variant="primary"
+            size="md"
+            className="mt-6 w-full"
+            onClick={() => {
+              router.push(`/app/publish/book/${book.id}`);
+              onClose();
+            }}
+          >
+            View Details
+            <ArrowRight size={16} className="ml-1.5" />
+          </Button>
+        </>
+      ) : isAwaitingQuote ? (
         <>
           <p className="text-[0.72rem] leading-relaxed text-white/40">
             {book.quotation?.has_print_element ? (
@@ -260,5 +389,13 @@ export default function BookDetailsModal({
         </>
       )}
     </Modal>
+
+    <BookCoverCropModal
+      open={pendingImageSrc !== null}
+      imageSrc={pendingImageSrc}
+      onClose={closeCropModal}
+      onSave={handleCropSave}
+    />
+    </>
   );
 }

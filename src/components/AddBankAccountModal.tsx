@@ -6,6 +6,7 @@ import { Check, ChevronDown, Landmark } from "lucide-react";
 import Modal from "./Modal";
 import Button from "./buttons/buttons";
 import { notify } from "../lib/snackbar";
+import { ApiError } from "../lib/api";
 import { bankOptions, type BankOption } from "../lib/bankOptions";
 import { resolveBankAccount, type LinkedBankAccount } from "../hooks/useWallet";
 
@@ -188,7 +189,7 @@ export default function AddBankAccountModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onAdd: (account: LinkedBankAccount) => void;
+  onAdd: (account: LinkedBankAccount) => Promise<unknown>;
 }) {
   const [bvn, setBvn] = useState("");
   const [bank, setBank] = useState<BankOption | null>(null);
@@ -253,20 +254,25 @@ export default function AddBankAccountModal({
     if (!bank || !canSubmit || !resolvedName) return;
 
     setSubmitting(true);
-    // No bank-linking endpoint exists yet (see MyBankAccountView — GET
-    // only) — this just hands the new account to the page's local state
-    // so the flow can be reviewed end to end. Swap for a real POST once
-    // that endpoint lands.
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    onAdd({
-      bankName: bank.name,
-      accountNumber,
-      accountName: resolvedName,
-      isVerified: true,
-    });
-    notify("Bank account added!", "success");
-    setSubmitting(false);
-    onClose();
+    try {
+      await onAdd({
+        bankName: bank.name,
+        bankCode: bank.code,
+        accountNumber,
+        accountName: resolvedName,
+        isVerified: true,
+      });
+      onClose();
+    } catch (err) {
+      // apiFetch already fires its own error toast for an ApiError —
+      // only the network-level case needs a fallback here. Either way,
+      // keep the modal open so the user can retry without retyping.
+      if (!(err instanceof ApiError)) {
+        notify("Could not add this bank account. Please try again.", "error");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (

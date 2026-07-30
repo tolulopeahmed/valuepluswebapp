@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import ManageAccountModal from "./ManageAccountModal";
 
 type Mode = "learner" | "publisher";
 
@@ -95,6 +96,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showManageAccount, setShowManageAccount] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { logout } = useAuth();
@@ -405,7 +407,11 @@ export default function Sidebar({
         </nav>
 
         <div className="px-5 pb-7">
-          <button className="group flex w-full items-center justify-center gap-3 rounded-[0.95rem] border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]">
+          <button
+            type="button"
+            onClick={() => setShowManageAccount(true)}
+            className="group flex w-full items-center justify-center gap-3 rounded-[0.95rem] border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]"
+          >
             <span className="transition-transform duration-300 group-hover:rotate-45">
               <Icon path={ICONS.settings} size={19} />
             </span>
@@ -418,6 +424,11 @@ export default function Sidebar({
         open={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={confirmLogout}
+      />
+
+      <ManageAccountModal
+        open={showManageAccount}
+        onClose={() => setShowManageAccount(false)}
       />
     </>
   );

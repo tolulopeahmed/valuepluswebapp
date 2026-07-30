@@ -4,7 +4,16 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Users, BookOpen, RefreshCcw, Receipt, type LucideIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Users,
+  BookOpen,
+  RefreshCcw,
+  Receipt,
+  Send,
+  PlusCircle,
+  type LucideIcon,
+} from "lucide-react";
 import SectionLabel from "./SectionLabel";
 import Modal from "./Modal";
 import { VALUEPLUS_PAYMENT_ACCOUNT } from "../lib/bankOptions";
@@ -18,7 +27,13 @@ const ADMIN_WHATSAPP_NUMBER = "2349024312689";
 // Sidebar.tsx/Settings.tsx/BookDetailsModal.tsx for the same reason.
 function WhatsAppIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
       <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
     </svg>
@@ -36,6 +51,8 @@ interface Transaction {
   type: TxType;
   amount: number;
   needsPayment: boolean;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   Icon: LucideIcon;
 }
 
@@ -49,6 +66,8 @@ const SOURCE_ICON: Record<WalletTransaction["source"], LucideIcon> = {
   referral: Users,
   withdrawal: RefreshCcw,
   quote_payment: Receipt,
+  transfer: Send,
+  deposit: PlusCircle,
 };
 
 function formatDate(iso: string) {
@@ -82,12 +101,18 @@ function groupByMonth(items: WalletTransaction[]): TransactionGroup[] {
             ? "Referral Reward"
             : tx.source === "quote_payment"
               ? "Quote Payment"
-              : "Withdrawal"),
+              : tx.source === "transfer"
+                ? "Wallet Transfer"
+                : tx.source === "deposit"
+                  ? "Wallet Deposit"
+                  : "Withdrawal"),
       date: formatDate(tx.created_at),
       status: tx.status,
       type: tx.type,
       amount: Number(tx.amount),
       needsPayment: tx.can_confirm_payment,
+      balanceBefore: tx.balance_before !== null ? Number(tx.balance_before) : null,
+      balanceAfter: tx.balance_after !== null ? Number(tx.balance_after) : null,
       Icon: SOURCE_ICON[tx.source],
     };
     if (!groups.has(month)) groups.set(month, []);
@@ -252,7 +277,15 @@ function DetailRow({
 // A tap-to-copy pill used for both the account number and the amount —
 // same compact shape so the two sit side by side instead of each taking
 // a full row.
-function CopyField({ label, value, copyValue }: { label: string; value: string; copyValue: string }) {
+function CopyField({
+  label,
+  value,
+  copyValue,
+}: {
+  label: string;
+  value: string;
+  copyValue: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -382,6 +415,18 @@ function TransactionDetailsModal({
             label="Type"
             value={tx.type === "credit" ? "Credit" : "Debit"}
           />
+          {tx.balanceBefore !== null && (
+            <DetailRow
+              label="Balance before"
+              value={`₦${tx.balanceBefore.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            />
+          )}
+          {tx.balanceAfter !== null && (
+            <DetailRow
+              label="Balance after"
+              value={`₦${tx.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            />
+          )}
           <DetailRow
             label="Reference ID"
             value={reference}
@@ -409,7 +454,7 @@ function TransactionDetailsModal({
               style={{ background: "#25D366" }}
             >
               <WhatsAppIcon size={18} />
-              I&apos;ve Made This Payment
+              I&apos;ve Completed This Payment
             </a>
 
             <p className="mt-2 text-[0.64rem] leading-snug text-white/35">
@@ -423,6 +468,7 @@ function TransactionDetailsModal({
 }
 
 export default function Transactions() {
+  const router = useRouter();
   const [selected, setSelected] = useState<Transaction | null>(null);
   const { transactions, loading } = useTransactions();
   const groups = groupByMonth(transactions);
@@ -462,13 +508,17 @@ export default function Transactions() {
       {groups.length > 0 && (
         <button
           type="button"
+          onClick={() => router.push("/app/transactions")}
           className="mx-auto mt-1 text-[0.68rem] font-semibold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60"
         >
           View all transactions...
         </button>
       )}
 
-      <TransactionDetailsModal tx={selected} onClose={() => setSelected(null)} />
+      <TransactionDetailsModal
+        tx={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 }

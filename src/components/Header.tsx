@@ -168,7 +168,12 @@ export default function Header({
           <button
             onClick={isSubPage ? () => router.back() : onMenuPress}
             aria-label={isSubPage ? "Go back" : "Open menu"}
-            className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-xl border border-white/[0.1] bg-white/[0.05] text-white/60 transition-colors hover:text-white active:scale-95 md:hidden"
+            // The hamburger only makes sense on mobile (md:hidden) — desktop
+            // already has the persistent Sidebar for that. The back arrow
+            // on a sub-page is different: desktop has no other way back
+            // (Sidebar doesn't track sub-page history), so it stays visible
+            // there too instead of being hidden alongside the hamburger.
+            className={`grid h-8 w-8 flex-shrink-0 place-items-center rounded-xl border border-white/[0.1] bg-white/[0.05] text-white/60 transition-colors hover:text-white active:scale-95 ${isSubPage ? "" : "md:hidden"}`}
           >
             <Icon path={isSubPage ? ICONS.back : ICONS.menu} size={15} />
           </button>

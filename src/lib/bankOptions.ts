@@ -276,11 +276,122 @@ export const bankOptions: BankOption[] = [
   { id: 262, name: "Zitra MFB", code: "51373", color: "#4C28BC", logo: null },
 ];
 
-export function getBankLogo(bankName: string): string | null {
-  const bank = bankOptions.find(
-    (b) => b.name.toLowerCase() === bankName.toLowerCase(),
-  );
-  return bank?.logo ?? null;
+// Bank code is the stable identifier — a stored account's `bankName` is
+// a snapshot from whenever it was added, so if the canonical name in
+// this list is ever renamed later (e.g. Opay's Paystack name used to be
+// "OPay Digital Services Limited (OPay)"), older accounts would
+// otherwise keep showing the stale name/no logo forever. Code lookup
+// is tried first and wins when available. Name-matching is the fallback
+// for accounts added before bankCode existed — exact match first, then
+// a substring check either direction, since a legacy stored name may be
+// a longer/older variant of today's shorter canonical one (or vice
+// versa) rather than identical text.
+function findBankOption(bankName: string, bankCode?: string): BankOption | undefined {
+  if (bankCode) {
+    const byCode = bankOptions.find((b) => b.code === bankCode);
+    if (byCode) return byCode;
+  }
+
+  const normalized = bankName.toLowerCase().trim();
+  const exact = bankOptions.find((b) => b.name.toLowerCase() === normalized);
+  if (exact) return exact;
+
+  return bankOptions.find((b) => {
+    const candidate = b.name.toLowerCase();
+    return normalized.includes(candidate) || candidate.includes(normalized);
+  });
+}
+
+export function getBankLogo(bankName: string, bankCode?: string): string | null {
+  return findBankOption(bankName, bankCode)?.logo ?? null;
+}
+
+export function getCanonicalBankName(bankName: string, bankCode?: string): string {
+  return findBankOption(bankName, bankCode)?.name ?? bankName;
+}
+
+// The everyday-Nigerian short form of a bank's name, keyed by Paystack's
+// bank code (the same stable identifier findBankOption prefers) — for
+// tight spaces like Settings' status chip, where "Guaranty Trust Bank"
+// wraps/truncates but "GTBank" fits on one line. Only the banks common
+// enough that a shortened form is actually recognizable get an entry;
+// anything else falls back to its full canonical name unchanged.
+const SHORT_BANK_NAME_BY_CODE: Record<string, string> = {
+  "044": "Access",
+  "063": "Access (Diamond)",
+  "011": "FirstBank",
+  "214": "FCMB",
+  "058": "GTBank",
+  "057": "Zenith",
+  "033": "UBA",
+  "032": "Union Bank",
+  "221": "Stanbic IBTC",
+  "232": "Sterling",
+  "035": "Wema",
+  "035A": "ALAT",
+  "076": "Polaris",
+  "082": "Keystone",
+  "070": "Fidelity",
+  "050": "Ecobank",
+  "101": "Providus",
+  "50211": "Kuda",
+  "999991": "PalmPay",
+  "999992": "Opay",
+  "50515": "Moniepoint",
+  "565": "Carbon",
+  "100002": "Paga",
+  "068": "StanChart",
+  "023": "Citibank",
+  "301": "Jaiz",
+  "215": "Unity",
+  "102": "Titan",
+  "566": "VFD",
+  "125": "Rubies",
+  "104": "Parallex",
+  "107": "Optimus",
+  "105": "PremiumTrust",
+  "100": "Suntrust",
+  "120003": "MoMo PSB",
+  "120004": "Smartcash",
+  "120001": "9PSB",
+  "120002": "Hope PSB",
+};
+
+export function getShortBankName(bankName: string, bankCode?: string): string {
+  const option = findBankOption(bankName, bankCode);
+  if (option && SHORT_BANK_NAME_BY_CODE[option.code]) {
+    return SHORT_BANK_NAME_BY_CODE[option.code];
+  }
+  return option?.name ?? bankName;
+}
+
+function hexToRgbTuple(hex: string): [number, number, number] {
+  const clean = hex.replace("#", "");
+  const value = parseInt(clean, 16);
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+function darken(hex: string, amount: number): string {
+  const [r, g, b] = hexToRgbTuple(hex);
+  const mix = (channel: number) => Math.round(channel * (1 - amount));
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+// Each bank card takes on that bank's own brand color (bankOptions[].color)
+// instead of one fixed navy for every card — fades to near-black so white
+// text stays readable regardless of how bright the brand color itself is.
+// `muted` is for a non-selected/non-default card that should still hint
+// at the bank's color without competing with whichever one IS active.
+export function getBankCardGradient(
+  bankName: string,
+  bankCode?: string,
+  muted = false,
+): string {
+  const color = findBankOption(bankName, bankCode)?.color ?? "#2b3568";
+  const start = muted ? darken(color, 0.75) : color;
+  const mid = darken(color, muted ? 0.85 : 0.6);
+  const end = darken(color, 0.94);
+  return `linear-gradient(155deg, ${start} 0%, ${mid} 55%, ${end} 100%)`;
 }
 
 // The account users pay into — shown in the transaction details modal so

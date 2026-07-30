@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Button from "@/components/buttons/buttons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -192,6 +192,37 @@ function LoginPageInner() {
     }
   }
 
+  // Auto-submits the moment the 6th digit lands — the code is the only
+  // thing this step needs (no password), unlike the reset flow's own OTP
+  // field, which still needs a new password typed in before it can go
+  // anywhere. Guarded on `loading` so it can't double-fire while the
+  // request from typing the 6th digit is still in flight; Button already
+  // disables itself while `loading` is true, so a stray click on "Verify
+  // →" in that window can't send a second request either.
+  useEffect(() => {
+    if (mode !== "otp" || otpCode.length !== 6 || loading) return;
+
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        await verifyEmail({ email, code: otpCode });
+        if (!cancelled) router.push("/app");
+      } catch (err) {
+        if (!cancelled && !(err instanceof ApiError)) {
+          notify("Something went wrong. Please try again.", "error");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpCode, mode]);
+
   async function handleResendCode() {
     setResending(true);
     try {
@@ -274,9 +305,21 @@ function LoginPageInner() {
           {h}
         </h1>
 
-        <p className="mb-6 text-center text-[0.78rem] leading-relaxed text-white/40">
-          {sub}
-        </p>
+        {mode === "otp" ? (
+          <>
+            <p className="mb-1 text-center text-[0.78rem] leading-relaxed text-white/40">
+              Enter the code we sent to{" "}
+              <strong className="font-black text-white">{email}</strong>.
+            </p>
+            <p className="mb-6 text-center text-[0.72rem] leading-relaxed text-white/30">
+              Don&apos;t see it? Check your spam or trash folder too.
+            </p>
+          </>
+        ) : (
+          <p className="mb-6 text-center text-[0.78rem] leading-relaxed text-white/40">
+            {sub}
+          </p>
+        )}
 
         <>
           <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
@@ -318,23 +361,25 @@ function LoginPageInner() {
               </div>
             )}
 
-            <div className="relative">
-              <input
-                type="email"
-                value={email}
-                placeholder="Email address"
-                autoComplete="email"
-                readOnly={mode === "reset"}
-                onFocus={() => setFocused("email")}
-                onBlur={() => markComplete("email", email)}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`${inputBase} ${
-                  isDone("email", email) ? inputDone : inputIdle
-                }`}
-              />
+            {mode !== "otp" && (
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  placeholder="Email address"
+                  autoComplete="email"
+                  readOnly={mode === "reset"}
+                  onFocus={() => setFocused("email")}
+                  onBlur={() => markComplete("email", email)}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("email", email) ? inputDone : inputIdle
+                  }`}
+                />
 
-              {isDone("email", email) && <FieldTag label="Email" />}
-            </div>
+                {isDone("email", email) && <FieldTag label="Email" />}
+              </div>
+            )}
 
             {(mode === "otp" || mode === "reset") && (
               <div className="relative">
@@ -346,7 +391,9 @@ function LoginPageInner() {
                   maxLength={6}
                   onFocus={() => setFocused("otp")}
                   onBlur={() => markComplete("otp", otpCode)}
-                  onChange={(e) => setOtpCode(e.target.value)}
+                  onChange={(e) =>
+                    setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
                   className={`${inputBase} ${
                     isDone("otp", otpCode) ? inputDone : inputIdle
                   } text-center tracking-[0.4em]`}

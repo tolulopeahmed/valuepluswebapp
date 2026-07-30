@@ -3,9 +3,11 @@
 import { useState } from "react";
 import {
   Gift,
-  Share2,
   Wallet,
   DollarSign,
+  PlusCircle,
+  BookOpen,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -13,12 +15,19 @@ import Subtitle from "../../../components/Subtitle";
 import SectionLabel from "../../../components/SectionLabel";
 import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
+import WithdrawModal from "../../../components/WithdrawModal";
+import AddFundsModal from "../../../components/AddFundsModal";
 import GlassCard from "../GlassCard";
 import { useAppShell } from "../AppShellContext";
 import { useMyBooks } from "../../../hooks/useMyBooks";
+import {
+  useTransactions,
+  useWalletBalance,
+  type WalletTransaction,
+} from "../../../hooks/useWallet";
 
-type EarningStatus = "confirmed" | "pending";
-type EarningSource = "referral" | "book-sale";
+type EarningStatus = "confirmed" | "pending" | "failed";
+type EarningSource = "referral" | "book-sale" | "transfer";
 
 interface Earning {
   id: string;
@@ -28,6 +37,8 @@ interface Earning {
   date: string;
   status: EarningStatus;
   amount: number;
+  balanceBefore: number | null;
+  balanceAfter: number | null;
   Icon: LucideIcon;
 }
 
@@ -36,11 +47,59 @@ interface EarningGroup {
   items: Earning[];
 }
 
-// No transactions endpoint exists yet (real payouts/referral rewards are
-// a separate feature — see apps/wallet in the plan), so this starts
-// genuinely empty rather than showing fabricated history. Once that
-// endpoint exists, group its response by month into this same shape.
-const EARNINGS: EarningGroup[] = [];
+const SOURCE_ICON: Record<EarningSource, LucideIcon> = {
+  referral: Gift,
+  "book-sale": BookOpen,
+  transfer: Send,
+};
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+// Only CREDIT transactions — this page is specifically about money
+// coming *in* (referral commissions, book-sale royalties, an incoming
+// peer transfer), not the full ledger (that's app/app/transactions).
+// Real transactions already arrive newest-first (Transaction.Meta.
+// ordering server-side), so grouping preserves that order.
+function groupEarnings(transactions: WalletTransaction[]): EarningGroup[] {
+  const groups = new Map<string, Earning[]>();
+
+  for (const tx of transactions) {
+    if (tx.type !== "credit") continue;
+
+    const month = new Date(tx.created_at).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+    const source: EarningSource = tx.source === "book_sale" ? "book-sale" : tx.source === "transfer" ? "transfer" : "referral";
+    const date = formatDate(tx.created_at);
+
+    const earning: Earning = {
+      id: tx.id,
+      source,
+      title: tx.title,
+      subtitle: date,
+      date,
+      status: tx.status,
+      amount: Number(tx.amount),
+      balanceBefore: tx.balance_before !== null ? Number(tx.balance_before) : null,
+      balanceAfter: tx.balance_after !== null ? Number(tx.balance_after) : null,
+      Icon: SOURCE_ICON[source],
+    };
+
+    if (!groups.has(month)) groups.set(month, []);
+    groups.get(month)!.push(earning);
+  }
+
+  return Array.from(groups.entries()).map(([month, items]) => ({ month, items }));
+}
 
 const STATUS_STYLES: Record<
   EarningStatus,
@@ -55,6 +114,11 @@ const STATUS_STYLES: Record<
     bg: "rgba(255,255,255,0.06)",
     border: "rgba(255,255,255,0.14)",
     text: "rgba(255,255,255,0.55)",
+  },
+  failed: {
+    bg: "rgba(248,113,113,0.12)",
+    border: "rgba(248,113,113,0.35)",
+    text: "#F87171",
   },
 };
 
@@ -91,11 +155,11 @@ function NairaAmount({
 function EarningsHero({
   totalEarned,
   titleCount,
-  onWithdraw,
+  onAddFunds,
 }: {
   totalEarned: number;
   titleCount: number;
-  onWithdraw?: () => void;
+  onAddFunds?: () => void;
 }) {
   return (
     <GlassCard accent className="flex min-h-[9.5rem] flex-col p-3.5">
@@ -109,7 +173,7 @@ function EarningsHero({
         >
           <Wallet size={14} strokeWidth={2} />
         </span>
-        <SectionLabel style={{ marginBottom: 0 }}>Total earned</SectionLabel>
+        <SectionLabel style={{ marginBottom: 0 }}>Wallet</SectionLabel>
       </div>
 
       <p
@@ -119,7 +183,7 @@ function EarningsHero({
         <NairaAmount value={totalEarned} />
       </p>
 
-      {/* Bottom row — stats left, Withdraw pill right, both sitting on
+      {/* Bottom row — stats left, Add Funds pill right, both sitting on
           the card's own padding so the inset feels deliberate like the
           reference's QuickSave corner. */}
       <div className="mt-2 flex items-end justify-between gap-3">
@@ -130,7 +194,7 @@ function EarningsHero({
         <Button
           variant="primary"
           size="sm"
-          onClick={onWithdraw}
+          onClick={onAddFunds}
           className="shrink-0 items-center gap-1 whitespace-nowrap px-4 py-2 text-[0.78rem] font-bold"
           style={{
             // Solid accent fill, same as Resume on the learner home card
@@ -145,8 +209,8 @@ function EarningsHero({
             borderRadius: "var(--r-sm)",
           }}
         >
-          <DollarSign size={13} strokeWidth={2.5} />
-          Withdraw
+          <PlusCircle size={13} strokeWidth={2.5} />
+          Add Funds
         </Button>
       </div>
     </GlassCard>
@@ -154,21 +218,26 @@ function EarningsHero({
 }
 
 // ── Refer & Earn CTA — sits between the hero and the transactions list.
-// In Publisher mode it becomes a "Share Page Link" CTA (sharing their
-// bookshelf/product links matters more than referrals there). ──
-function ReferAndEarnButton() {
+// In Publisher mode it becomes the Withdraw CTA instead (Add Funds
+// already covers "get money in" up in the hero, so this slot covers
+// "get money out" for publishers rather than referrals). ──
+function ReferAndEarnButton({ onWithdraw }: { onWithdraw?: () => void }) {
   const { mode } = useAppShell();
   const isPublisher = mode === "publisher";
 
   return (
     <div className="flex justify-center">
-      <Button variant="primary" size="md">
+      <Button
+        variant="primary"
+        size="md"
+        onClick={isPublisher ? onWithdraw : undefined}
+      >
         {isPublisher ? (
-          <Share2 size={16} strokeWidth={2.25} />
+          <DollarSign size={16} strokeWidth={2.25} />
         ) : (
           <Gift size={16} strokeWidth={2.25} />
         )}
-        {isPublisher ? "Share Page Link" : <>Refer &amp; Earn</>}
+        {isPublisher ? "Withdraw" : <>Refer &amp; Earn</>}
       </Button>
     </div>
   );
@@ -312,12 +381,29 @@ function EarningDetailsModal({
         <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/3 px-4">
           <DetailRow
             label="Source"
-            value={earning.source === "referral" ? "Referral" : "Book sale"}
+            value={
+              earning.source === "referral"
+                ? "Referral"
+                : earning.source === "book-sale"
+                  ? "Book sale"
+                  : "Wallet transfer"
+            }
           />
-          <DetailRow label="Date" value={earning.date} />
+          {earning.balanceBefore !== null && (
+            <DetailRow
+              label="Balance before"
+              value={`₦${earning.balanceBefore.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            />
+          )}
+          {earning.balanceAfter !== null && (
+            <DetailRow
+              label="Balance after"
+              value={`₦${earning.balanceAfter.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            />
+          )}
           <DetailRow
             label="Reference ID"
-            value={`ERN-${earning.id.replace(/\D/g, "").padStart(6, "0")}`}
+            value={`ERN-${earning.id.slice(0, 8).toUpperCase()}`}
             last
           />
         </div>
@@ -338,9 +424,29 @@ function EarningDetailsModal({
   );
 }
 
-// ── All earnings — every referral reward and book sale, grouped by month ─
-function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
-  if (EARNINGS.length === 0) {
+// ── All earnings — every referral reward, book sale, and incoming
+// transfer, grouped by month ─
+function AllEarningsSection({
+  groups,
+  loading,
+  onSelect,
+}: {
+  groups: EarningGroup[];
+  loading: boolean;
+  onSelect: (e: Earning) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2">
+        <SectionLabel>All earnings</SectionLabel>
+        <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
+          Loading your earnings…
+        </div>
+      </div>
+    );
+  }
+
+  if (groups.length === 0) {
     return (
       <div className="flex flex-col gap-2">
         <SectionLabel>All earnings</SectionLabel>
@@ -357,7 +463,7 @@ function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
       <SectionLabel>All earnings</SectionLabel>
 
       <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
-        {EARNINGS.map((group) => (
+        {groups.map((group) => (
           <div key={group.month} className="flex flex-col gap-1.5">
             <p
               className="px-1 pb-0.5 text-[0.78rem] font-bold"
@@ -383,12 +489,18 @@ function AllEarningsSection({ onSelect }: { onSelect: (e: Earning) => void }) {
 
 export default function EarnPage() {
   const [selected, setSelected] = useState<Earning | null>(null);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [addFundsOpen, setAddFundsOpen] = useState(false);
   const { books } = useMyBooks();
-  // `earned` defaults to "0.00" per book (see apps/books.Book), so this
-  // is correctly ₦0 for a new account with zero backend work — no real
-  // book-sale event exists yet to make it anything else (see apps/wallet
-  // in the plan for that next step).
-  const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
+  // The real, backend-computed wallet balance (see useWalletBalance's own
+  // docstring) — this used to be a books.earned sum with no relationship
+  // to the actual Transaction ledger at all, so a withdrawal or an
+  // incoming transfer never moved it. Now it's the same number Withdraw
+  // itself checks against.
+  const { balance, loading: balanceLoading, refetch: refetchBalance } = useWalletBalance();
+  const { transactions, loading: transactionsLoading, refetch: refetchTransactions } =
+    useTransactions();
+  const earningGroups = groupEarnings(transactions);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
@@ -399,23 +511,44 @@ export default function EarnPage() {
 
       <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
         <EarningsHero
-          totalEarned={totalEarned}
+          totalEarned={balanceLoading ? 0 : balance}
           titleCount={books.length}
-          onWithdraw={() => console.log("Withdraw clicked")}
+          onAddFunds={() => setAddFundsOpen(true)}
         />
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "100ms" }}>
-        <ReferAndEarnButton />
+        <ReferAndEarnButton onWithdraw={() => setWithdrawOpen(true)} />
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "140ms" }}>
-        <AllEarningsSection onSelect={setSelected} />
+        <AllEarningsSection
+          groups={earningGroups}
+          loading={transactionsLoading}
+          onSelect={setSelected}
+        />
       </div>
 
       <EarningDetailsModal
         earning={selected}
         onClose={() => setSelected(null)}
+      />
+
+      <WithdrawModal
+        open={withdrawOpen}
+        onClose={() => {
+          setWithdrawOpen(false);
+          refetchBalance();
+          refetchTransactions();
+        }}
+      />
+
+      <AddFundsModal
+        open={addFundsOpen}
+        onClose={() => {
+          setAddFundsOpen(false);
+          refetchTransactions();
+        }}
       />
     </div>
   );

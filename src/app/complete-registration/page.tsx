@@ -17,7 +17,7 @@ function CompleteRegistrationForm() {
   const router = useRouter();
   const { verifyEmail, resendVerification } = useAuth();
 
-  const [email, setEmail] = useState(searchParams.get("email") ?? "");
+  const email = searchParams.get("email") ?? "";
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -111,21 +111,22 @@ function CompleteRegistrationForm() {
         </h1>
 
         <p className="mb-6 text-center text-[0.78rem] leading-relaxed text-white/40">
-          {showCodeField
-            ? "Choose a password and enter the code we emailed you to see your full quote and unlock your dashboard."
-            : "Just choose a password to see your full quote and unlock your dashboard."}
+          {showCodeField ? (
+            <>
+              Choose a password and enter the code we emailed to{" "}
+              <strong className="font-black text-white">{email}</strong> to
+              see your full quote and unlock your dashboard.
+            </>
+          ) : (
+            <>
+              Just choose a password for{" "}
+              <strong className="font-black text-white">{email}</strong> to
+              see your full quote and unlock your dashboard.
+            </>
+          )}
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
-          <input
-            type="email"
-            value={email}
-            placeholder="Email address"
-            autoComplete="email"
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputBase}
-          />
-
           {showCodeField && (
             <input
               type="text"

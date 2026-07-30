@@ -5,7 +5,6 @@ import {
   Landmark,
   ShieldCheck,
   UserPlus,
-  MessageCircle,
   Flame,
   ChevronDown,
   ChevronRight,
@@ -14,11 +13,14 @@ import {
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   useBankAccount,
-  useLocalBankAccounts,
+  useBankAccounts,
   useReferrals,
+  useWalletBalance,
 } from "../hooks/useWallet";
 import { useKYCProfile, type KYCStatus } from "../hooks/useKYC";
-import { useMyBooks } from "../hooks/useMyBooks";
+
+type Mode = "learner" | "publisher";
+type BadgeTone = "neutral" | "warning" | "danger";
 
 const KYC_QUICK_ACTION_BADGE: Record<Exclude<KYCStatus, "approved">, string> = {
   not_started: "NOT STARTED",
@@ -26,13 +28,49 @@ const KYC_QUICK_ACTION_BADGE: Record<Exclude<KYCStatus, "approved">, string> = {
   rejected: "REJECTED",
 };
 
-type Mode = "learner" | "publisher";
+// Same tone Settings' StatusChip uses for this same status, so "Update
+// KYC" reads consistently whether it's seen here or on the Settings row.
+const KYC_QUICK_ACTION_TONE: Record<Exclude<KYCStatus, "approved">, BadgeTone> = {
+  not_started: "neutral",
+  pending: "warning",
+  rejected: "danger",
+};
+
+const BADGE_TONE_STYLE: Record<BadgeTone, { background: string; borderColor: string; color: string }> = {
+  neutral: {
+    background: "rgba(255,255,255,0.1)",
+    borderColor: "rgba(255,255,255,0.1)",
+    color: "rgba(255,255,255,0.8)",
+  },
+  warning: {
+    background: "rgba(var(--vp-accent-rgb),0.14)",
+    borderColor: "rgba(var(--vp-accent-rgb),0.35)",
+    color: "rgb(var(--vp-accent-rgb))",
+  },
+  danger: {
+    background: "rgba(248,113,113,0.14)",
+    borderColor: "rgba(248,113,113,0.35)",
+    color: "#f87171",
+  },
+};
+
+// lucide has no WhatsApp glyph — same local fill-based SVG duplicated in
+// Sidebar.tsx/Settings.tsx/Transactions.tsx for the same reason.
+function WhatsAppIcon({ size = 17 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
+      <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
 
 interface QuickAction {
   id: string;
   label: string;
-  Icon: LucideIcon;
+  Icon: LucideIcon | typeof WhatsAppIcon;
   badge?: string;
+  badgeTone?: BadgeTone;
 }
 
 function naira(n: number) {
@@ -48,10 +86,14 @@ function useQuickActions(mode: Mode): QuickAction[] {
   // delete/list endpoint exists yet, so this is how "at least one bank
   // account added" is known here too, not just the real (still-empty)
   // backend account.
-  const { accounts: bankAccounts } = useLocalBankAccounts();
+  const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
   const { profile: kycProfile } = useKYCProfile();
-  const { books } = useMyBooks();
+  // The real wallet balance (see useWalletBalance's own docstring) — the
+  // "Withdraw Earnings" badge used to sum books.earned, which had no
+  // relationship to the actual Transaction ledger at all (same stale
+  // number the Earn page's hero used to show before that got fixed too).
+  const { balance: walletBalance } = useWalletBalance();
 
   const isBankLinked = bankAccounts.length > 0 || isLinked;
 
@@ -61,7 +103,14 @@ function useQuickActions(mode: Mode): QuickAction[] {
   // status permanently.
   const bankAction: QuickAction[] = isBankLinked
     ? []
-    : [{ id: "bank", label: "Add bank account", Icon: Landmark, badge: "NOT ADDED" }];
+    : [
+        {
+          id: "bank",
+          label: "Add Bank Account",
+          Icon: Landmark,
+          badge: "NOT ADDED",
+        },
+      ];
 
   // Same idea as the bank row — once KYC is approved there's nothing
   // left to nudge the user about here, so it drops out entirely rather
@@ -77,22 +126,23 @@ function useQuickActions(mode: Mode): QuickAction[] {
             label: "Update KYC",
             Icon: ShieldCheck,
             badge: KYC_QUICK_ACTION_BADGE[kycStatus],
+            badgeTone: KYC_QUICK_ACTION_TONE[kycStatus],
           },
         ];
 
   if (mode === "publisher") {
-    const totalEarned = books.reduce((sum, b) => sum + Number(b.earned), 0);
     return [
       {
         id: "royalty",
-        label: "Withdraw royalties",
+        label: "Withdraw Earnings",
         Icon: UserPlus,
-        badge: naira(totalEarned),
+        badge: naira(walletBalance),
       },
       ...bankAction,
       ...kycAction,
-      { id: "streaks", label: "Streaks", Icon: Flame },
-      { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
+      // No Streaks row here — streaks/XP are a learner-progress concept,
+      // not relevant to the publisher dashboard.
+      { id: "message-admin", label: "Message Admin", Icon: WhatsAppIcon },
     ];
   }
 
@@ -106,7 +156,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
     ...bankAction,
     ...kycAction,
     { id: "streaks", label: "Streaks", Icon: Flame },
-    { id: "message-admin", label: "Message Admin", Icon: MessageCircle },
+    { id: "message-admin", label: "Message Admin", Icon: WhatsAppIcon },
   ];
 }
 
@@ -147,7 +197,10 @@ function ActionRow({ action, index }: { action: QuickAction; index: number }) {
       </span>
 
       {action.badge ? (
-        <span className="shrink-0 whitespace-nowrap rounded-lg border border-white/10 bg-white/10 px-2.5 py-0.5 text-[0.6rem] font-black uppercase tracking-wide text-white/80">
+        <span
+          className="shrink-0 whitespace-nowrap rounded-lg border px-2.5 py-0.5 text-[0.6rem] font-black uppercase tracking-wide"
+          style={BADGE_TONE_STYLE[action.badgeTone ?? "neutral"]}
+        >
           {action.badge}
         </span>
       ) : (
@@ -176,7 +229,11 @@ export default function QuickActions({
     <div className="flex min-w-0 flex-col gap-2">
       <AnimatePresence initial={false}>
         {visible.map((action, i) => (
-          <div key={action.id} className="min-w-0" onClick={() => onNavigate(action.id)}>
+          <div
+            key={action.id}
+            className="min-w-0"
+            onClick={() => onNavigate(action.id)}
+          >
             <ActionRow action={action} index={i} />
           </div>
         ))}

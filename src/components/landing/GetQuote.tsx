@@ -559,18 +559,22 @@ function QuoteSuccessPanel({
   );
 }
 
-// showExtras/onToggleExtras are optional so the public /getQuote page's
-// <GetQuote /> (no props) renders byte-identical to before — the Print
-// Quantity Guide + POD Plans section always shows there. The app's
-// "Add New Title" page passes both, to tuck that section behind a
-// "View more" toggle that sits right after the request button instead
-// of an arbitrary height-based cutoff partway through the form.
+// showExtras/onToggleExtras/onSubmitted are all optional so the public
+// /getQuote page's <GetQuote /> (no props) renders byte-identical to
+// before. The app's "Add New Title" page passes showExtras/onToggleExtras
+// to tuck the Print Quantity Guide/POD Plans section behind a "View more"
+// toggle, and onSubmitted so it can refetch the shared MyBooksProvider
+// list right after a successful submission — otherwise the freshly
+// created (pending) book wouldn't show up on Publish/the home shelf
+// until something else happened to trigger a refetch.
 export default function GetQuote({
   showExtras = true,
   onToggleExtras,
+  onSubmitted,
 }: {
   showExtras?: boolean;
   onToggleExtras?: () => void;
+  onSubmitted?: () => void;
 } = {}) {
   const estimateCardRef = useRef<HTMLDivElement | null>(null);
   const pagesInputRef = useRef<HTMLInputElement | null>(null);
@@ -1165,6 +1169,7 @@ export default function GetQuote({
       clearStoredReferrerEmail();
       setSubmitState("success");
       setModalOpen(true);
+      onSubmitted?.();
     } catch (err) {
       // apiFetch already fires an error snackbar for ApiError — only the
       // network-level case needs a fallback here.

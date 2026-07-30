@@ -20,7 +20,12 @@ import { PublisherBookShelf } from "./PublisherBooks";
 import LessonDetailModal, {
   type LessonDetail,
 } from "../../components/LessonDetailsModal";
+import WithdrawModal from "../../components/WithdrawModal";
 import Image from "next/image";
+
+// Same admin line used everywhere else (Transactions.tsx, Sidebar.tsx,
+// Settings.tsx, BookDetailsModal.tsx): 09024312689 in wa.me international format.
+const ADMIN_WHATSAPP_URL = "https://wa.me/2349024312689";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -73,13 +78,14 @@ function ProfileAvatar({
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { mode, setSidebarOpen } = useAppShell();
+  const { mode } = useAppShell();
   // AppLayout only ever renders its children once the user is
   // authenticated, so `user` is guaranteed non-null here.
   const { user } = useAuth();
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
   );
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const {
     modules,
     current: currentModule,
@@ -125,7 +131,7 @@ export default function HomeScreen() {
           <ProfileAvatar
             name={user!.first_name}
             avatar={user!.avatar}
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => router.push("/app/more")}
           />
         </div>
       </div>
@@ -197,6 +203,10 @@ export default function HomeScreen() {
               // go straight into adding one, not just the list view.
               if (dest === "bank") router.push("/app/more/bank-accounts?add=1");
               if (dest === "kyc") router.push("/app/more/kyc");
+              if (dest === "royalty") setWithdrawOpen(true);
+              if (dest === "message-admin") {
+                window.open(ADMIN_WHATSAPP_URL, "_blank", "noopener,noreferrer");
+              }
             }}
           />
         </div>
@@ -214,6 +224,8 @@ export default function HomeScreen() {
         }}
         lesson={selectedLesson}
       />
+
+      <WithdrawModal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
     </>
   );
 }

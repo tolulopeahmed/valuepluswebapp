@@ -115,10 +115,15 @@ export function PublisherBookShelf() {
   const goToAddNewTitle = () => router.push("/app/publish/new");
   const viewportRef = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(false);
-  const [selectedBook, setSelectedBook] = useState<MyBook | null>(null);
+  // Tracked by id, not a snapshot of the book object itself, so the
+  // modal keeps showing live data (e.g. a just-updated cover) after
+  // useMyBooks()'s shared refetch() runs — a raw object reference
+  // wouldn't pick that up until the modal was closed and reopened.
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const { books, loading } = useMyBooks();
+  const selectedBook = books.find((b) => b.id === selectedBookId) ?? null;
 
   // Edge shadows only make sense where there's actually more to scroll
   // to — with just one book (nothing before it), the left shadow has no
@@ -228,7 +233,7 @@ export function PublisherBookShelf() {
                   key={book.id}
                   book={book}
                   index={i}
-                  onSelect={setSelectedBook}
+                  onSelect={(b) => setSelectedBookId(b.id)}
                 />
               ))}
               <ShelfAddTile onClick={goToAddNewTitle} />
@@ -239,7 +244,7 @@ export function PublisherBookShelf() {
 
       <BookDetailsModal
         open={selectedBook !== null}
-        onClose={() => setSelectedBook(null)}
+        onClose={() => setSelectedBookId(null)}
         book={selectedBook}
         onOrderReprint={(book) =>
           console.log("publish: order reprint", book.id)

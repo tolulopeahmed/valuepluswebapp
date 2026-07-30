@@ -69,7 +69,15 @@ export function updateKYCProfile(payload: KYCUpdatePayload) {
   const formData = new FormData();
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined || value === null || value === "") continue;
-    formData.append(key, value as string | Blob);
+    if (key === "id_document" && value instanceof Blob) {
+      // A cropped ID photo arrives as a bare Blob (no filename) — a
+      // picked PDF/File already carries its own real name, so only
+      // fall back to a synthetic one when there isn't one already.
+      const filename = value instanceof File ? value.name : "id-document.jpg";
+      formData.append(key, value, filename);
+    } else {
+      formData.append(key, value as string);
+    }
   }
   return apiFetch<KYCProfile>("/auth/kyc/mine/", {
     method: "PATCH",

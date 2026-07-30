@@ -4,7 +4,7 @@ import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import Image from "next/image";
 import { Camera, Check, Landmark, Pencil, TrendingUp } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useMyBooks } from "../../../hooks/useMyBooks";
+import { useWalletBalance } from "../../../hooks/useWallet";
 import MarqueeName from "../../../components/MarqueeName";
 import AutoFitText from "../../../components/AutoFitText";
 import Button from "../../../components/buttons/buttons";
@@ -28,6 +28,7 @@ function StatTile({
   maskable = false,
   hidden = false,
   onToggleHidden,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
@@ -37,6 +38,7 @@ function StatTile({
   maskable?: boolean;
   hidden?: boolean;
   onToggleHidden?: () => void;
+  onClick?: () => void;
 }) {
   const className =
     "flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-2 text-left";
@@ -98,6 +100,19 @@ function StatTile({
     );
   }
 
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${className} transition-transform active:scale-[0.97]`}
+        style={style}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <div className={className} style={style}>
       {content}
@@ -134,6 +149,44 @@ function AvatarUpdatedModal({
   );
 }
 
+function NubanComingSoonModal({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div className="flex flex-col items-center text-center">
+        <span
+          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
+          style={{
+            borderColor: "rgba(var(--vp-accent-rgb),0.3)",
+            background: "rgba(var(--vp-accent-rgb),0.12)",
+            color: "rgb(var(--vp-accent-rgb))",
+          }}
+        >
+          <Landmark size={24} strokeWidth={2} />
+        </span>
+
+        <h3 className="mb-2 text-[1.05rem] font-black text-white">
+          Coming soon
+        </h3>
+        <p className="mb-6 max-w-[20rem] text-[0.82rem] leading-relaxed text-white/50">
+          A dedicated virtual account number (NUBAN) is on the way — you&apos;ll
+          be able to receive payments by direct bank transfer, confirmed
+          instantly, no manual proof of payment needed.
+        </p>
+
+        <Button variant="primary" size="md" className="w-full" onClick={onClose}>
+          Got it
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 // No rounded corners/border of its own — renders full-bleed directly on
 // the page (more/page.tsx no longer wraps this in its own bordered card).
 // Settings' own rounded "shelf" overlaps this section's bottom edge.
@@ -141,15 +194,15 @@ export default function Profile() {
   // AppLayout only ever renders its children once the user is
   // authenticated, so `user` is guaranteed non-null here.
   const { user, updateAvatar } = useAuth();
-  const { books } = useMyBooks();
+  const { balance: totalEarnings } = useWalletBalance();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [amountHidden, setAmountHidden] = useState(false);
   const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [nubanModalOpen, setNubanModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initial = user!.first_name.trim().charAt(0).toUpperCase() || "V";
-  const totalEarnings = books.reduce((sum, b) => sum + Number(b.earned), 0);
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -297,6 +350,7 @@ export default function Profile() {
           label="Virtual account"
           value="Get NUBAN"
           badge="New"
+          onClick={() => setNubanModalOpen(true)}
         />
       </div>
 
@@ -315,6 +369,11 @@ export default function Profile() {
       <EditProfileModal
         open={editProfileOpen}
         onClose={() => setEditProfileOpen(false)}
+      />
+
+      <NubanComingSoonModal
+        open={nubanModalOpen}
+        onClose={() => setNubanModalOpen(false)}
       />
     </div>
   );

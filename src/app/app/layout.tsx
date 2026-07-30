@@ -10,6 +10,7 @@ import MainTab from "../../components/MainTab";
 import { AppShellProvider, useAppShell, type Mode } from "./AppShellContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useStudentProfile, deriveLevel } from "../../hooks/useAcademy";
+import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { MyBooksProvider } from "../../hooks/useMyBooks";
 import { VP_PAGE_BG } from "./GlassCard";
 
@@ -30,6 +31,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { profile } = useStudentProfile();
   const { level } = deriveLevel(profile?.total_xp ?? 0);
+  const { count: unreadNotificationCount } = useUnreadNotificationCount();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -101,11 +103,11 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
       <div className="min-w-0 flex-1">
         <Header
           streak={profile?.current_streak_days ?? 0}
-          notificationCount={2}
+          notificationCount={unreadNotificationCount}
           mode={mode}
           onModeChange={handleModeChange}
           onMenuPress={() => setSidebarOpen(true)}
-          onBellPress={() => {}}
+          onBellPress={() => router.push("/app/transactions")}
         />
 
         {/* Header is now `fixed`, so it no longer reserves space in

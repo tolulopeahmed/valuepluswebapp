@@ -11,7 +11,7 @@ import {
   Landmark,
   UserPlus,
   ShieldCheck,
-  KeyRound,
+  // KeyRound, — only used by the commented-out Transaction PIN row below
   HelpCircle,
   LogOut,
   ChevronRight,
@@ -20,9 +20,10 @@ import {
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
 import { useAuth } from "../../../contexts/AuthContext";
+import { getShortBankName } from "../../../lib/bankOptions";
 import {
   useBankAccount,
-  useLocalBankAccounts,
+  useBankAccounts,
   useReferrals,
 } from "../../../hooks/useWallet";
 import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
@@ -273,13 +274,16 @@ function buildItems({
       </StatusChip>
     ),
   },
-  {
-    id: "pin",
-    label: "Transaction PIN",
-    subtitle: "Secure withdrawals with a 4-digit PIN",
-    Icon: KeyRound,
-    trailing: <StatusChip tone="accent">Set</StatusChip>,
-  },
+  // Transaction PIN — hidden until PIN unlock actually exists on mobile;
+  // showing "Set" here right now would be a lie (nothing sets or checks
+  // a PIN anywhere yet). Re-enable once that ships.
+  // {
+  //   id: "pin",
+  //   label: "Transaction PIN",
+  //   subtitle: "Secure withdrawals with a 4-digit PIN",
+  //   Icon: KeyRound,
+  //   trailing: <StatusChip tone="accent">Set</StatusChip>,
+  // },
   {
     id: "faq",
     label: "FAQ",
@@ -401,18 +405,23 @@ export default function Settings() {
   const { logout } = useAuth();
   const router = useRouter();
   const { bankAccount, isLinked } = useBankAccount();
-  // Same local accounts list Bank Accounts reads/writes — no create/
-  // delete/list endpoint exists yet, so this is how this row's status
-  // chip agrees with that page instead of only ever reflecting the real
-  // (still-empty) backend account.
-  const { accounts: bankAccounts } = useLocalBankAccounts();
+  // Same backend-persisted accounts list the Bank Accounts page reads/
+  // writes, so this row's status chip always agrees with that page.
+  const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
   const { profile: kycProfile } = useKYCProfile();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const defaultBankAccount = bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
   const isBankLinked = bankAccounts.length > 0 || isLinked;
-  const linkedBankName = defaultBankAccount?.bankName ?? bankAccount?.bank_name ?? null;
+  // Short, everyday form ("GTBank", "FCMB", "Opay"...) — this chip is
+  // tight on space, and the full legal name either wraps or gets
+  // truncated mid-word by shortLabel() below.
+  const linkedBankName = defaultBankAccount
+    ? getShortBankName(defaultBankAccount.bankName, defaultBankAccount.bankCode)
+    : bankAccount?.bank_name
+      ? getShortBankName(bankAccount.bank_name)
+      : null;
 
   const items = buildItems({
     isBankLinked,

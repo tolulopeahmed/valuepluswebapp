@@ -10,8 +10,12 @@ import SectionLabel from "../../../../components/SectionLabel";
 import Modal from "../../../../components/Modal";
 import Button from "../../../../components/buttons/buttons";
 import AddBankAccountModal from "../../../../components/AddBankAccountModal";
-import { getBankLogo } from "../../../../lib/bankOptions";
-import { useLocalBankAccounts, type StoredBankAccount } from "../../../../hooks/useWallet";
+import {
+  getBankLogo,
+  getCanonicalBankName,
+  getBankCardGradient,
+} from "../../../../lib/bankOptions";
+import { useBankAccounts, type StoredBankAccount } from "../../../../hooks/useWallet";
 
 function maskAccountNumber(accountNumber: string) {
   const last4 = accountNumber.slice(-4);
@@ -36,15 +40,18 @@ function BankAccountCard({
   onRemove: () => void;
   onSetDefault: () => void;
 }) {
-  const logo = getBankLogo(account.bankName);
+  const logo = getBankLogo(account.bankName, account.bankCode);
+  const bankName = getCanonicalBankName(account.bankName, account.bankCode);
 
   return (
     <div
       className="vp-card-in relative overflow-hidden rounded-3xl p-5 pb-7"
       style={{
-        background: account.isDefault
-          ? "linear-gradient(155deg, #1D2B6B 0%, #141D4A 55%, #0B1230 100%)"
-          : "linear-gradient(155deg, #1a2036 0%, #12162a 55%, #0b0e1f 100%)",
+        background: getBankCardGradient(
+          account.bankName,
+          account.bankCode,
+          !account.isDefault,
+        ),
       }}
     >
       {busy && (
@@ -104,7 +111,7 @@ function BankAccountCard({
           {logo ? (
             <Image
               src={logo}
-              alt={account.bankName}
+              alt={bankName}
               width={56}
               height={56}
               className="h-full w-full object-cover"
@@ -116,7 +123,7 @@ function BankAccountCard({
 
         <div className="min-w-0 flex-1 pt-0.5">
           <p className="truncate text-[1rem] font-black text-white">
-            {account.bankName}
+            {bankName}
           </p>
           <p className="mt-1.5 text-[1.3rem] font-black tracking-[0.12em] text-white/90">
             {maskAccountNumber(account.accountNumber)}
@@ -190,8 +197,9 @@ function RemoveBankAccountModal({
           Remove this bank account?
         </h3>
         <p className="mb-6 max-w-[20rem] text-[0.82rem] leading-relaxed text-white/50">
-          {account.bankName} •••• {account.accountNumber.slice(-4)} will be
-          removed from your account. This can&apos;t be undone.
+          {getCanonicalBankName(account.bankName, account.bankCode)} ••••{" "}
+          {account.accountNumber.slice(-4)} will be removed from your account.
+          This can&apos;t be undone.
         </p>
 
         <div className="flex w-full gap-3">
@@ -224,13 +232,6 @@ function RemoveBankAccountModal({
   );
 }
 
-// Both actions below are instant (plain localStorage writes), but a
-// state flip with zero visible transition reads as "did that even do
-// anything?" — so each is given a short, deliberate delay with a
-// spinner over the affected card, the same "let the user see it happen"
-// treatment AddBankAccountModal's own submit already uses.
-const ACTION_DELAY_MS = 500;
-
 function BankAccountsPageInner() {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<StoredBankAccount | null>(null);
@@ -240,23 +241,32 @@ function BankAccountsPageInner() {
   const searchParams = useSearchParams();
 
   const { accounts, hydrated, addAccount, removeAccount, setDefault } =
-    useLocalBankAccounts();
+    useBankAccounts();
 
   const handleSetDefault = async (id: string) => {
     if (switchingId) return;
     setSwitchingId(id);
-    await new Promise((resolve) => setTimeout(resolve, ACTION_DELAY_MS));
-    setDefault(id);
-    setSwitchingId(null);
+    try {
+      await setDefault(id);
+    } catch {
+      // apiFetch already fires its own error toast.
+    } finally {
+      setSwitchingId(null);
+    }
   };
 
   const handleConfirmRemoval = async () => {
     if (!pendingRemoval) return;
     setRemoving(true);
-    await new Promise((resolve) => setTimeout(resolve, ACTION_DELAY_MS));
-    removeAccount(pendingRemoval.id);
-    setRemoving(false);
-    setPendingRemoval(null);
+    try {
+      await removeAccount(pendingRemoval.id);
+      setPendingRemoval(null);
+    } catch {
+      // apiFetch already fires its own error toast — keep the confirm
+      // modal open so the user can retry.
+    } finally {
+      setRemoving(false);
+    }
   };
 
   // Quick Actions' "Add bank account" row (only shown when nothing's

@@ -303,10 +303,30 @@ function AddNewTitleListRow({ onClick }: { onClick: () => void }) {
 
 export default function PublishPage() {
   const [view, setView] = useState<View>("grid");
-  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  // Tracked by id, not a snapshot of the book object itself, so the
+  // modal keeps showing live data (e.g. a just-updated cover) after
+  // useMyBooks()'s shared refetch() runs — a raw object reference
+  // wouldn't pick that up until the modal was closed and reopened.
+  const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
   const router = useRouter();
   const goToAddNewTitle = () => router.push("/app/publish/new");
   const { books, loading, error } = useMyBooks();
+  const selectedBook = books.find((b) => b.id === selectedBookId) ?? null;
+
+  // Publish is the management surface — once a title is actually live,
+  // tapping it should go straight to the full details page (price,
+  // assets, reprint, public link) instead of the intermediate modal.
+  // A not-yet-published book still opens the modal (WhatsApp follow-up
+  // or the Change Price/Order Reprint panel), same as before. The
+  // homepage shelf (PublisherBooks.tsx) keeps opening the modal either
+  // way — that's a quick-glance surface, not where you'd manage a book.
+  const handleSelectBook = (book: Book) => {
+    if (book.status === "published") {
+      router.push(`/app/publish/book/${book.id}`);
+      return;
+    }
+    setSelectedBookId(book.id);
+  };
 
   return (
     <div className="mx-auto w-full max-w-4xl">
@@ -376,7 +396,7 @@ export default function PublishPage() {
               key={book.id}
               book={book}
               index={i}
-              onSelect={setSelectedBook}
+              onSelect={handleSelectBook}
             />
           ))}
           <AddNewTitleGridTile onClick={goToAddNewTitle} />
@@ -391,7 +411,7 @@ export default function PublishPage() {
               key={book.id}
               book={book}
               index={i}
-              onSelect={setSelectedBook}
+              onSelect={handleSelectBook}
             />
           ))}
           <AddNewTitleListRow onClick={goToAddNewTitle} />
@@ -400,7 +420,7 @@ export default function PublishPage() {
 
       <BookDetailsModal
         open={selectedBook !== null}
-        onClose={() => setSelectedBook(null)}
+        onClose={() => setSelectedBookId(null)}
         book={selectedBook}
         onOrderReprint={(book) =>
           console.log("publish: order reprint", book.id)
