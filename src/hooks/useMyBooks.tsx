@@ -27,9 +27,21 @@ export interface BookQuotationSummary {
   words: number | null;
   chapters: number | null;
   copies: number | null;
-  selected_services: { id: string; label: string; type: string; amount: string }[];
+  selected_services: {
+    id: string;
+    label: string;
+    type: string;
+    amount: string;
+    quantity?: number | null;
+    unit?: string | null;
+  }[];
   services_total: string;
   print_cost: string | null;
+  // services_total + any staff-added custom items + print_cost — the
+  // real final amount owed, once staff have priced everything (see
+  // QuotationRequest.total_cost on the backend). Prefer this over
+  // services_total for display once it's known to be final.
+  total_cost: string;
   // Whether anything from the "Print Finish" group was requested — if
   // not, services_total is already the final cost, not a partial one.
   has_print_element: boolean;
