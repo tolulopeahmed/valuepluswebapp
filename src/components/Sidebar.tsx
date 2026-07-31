@@ -337,7 +337,7 @@ export default function Sidebar({
 
           {!LEARNER_MODE_ENABLED && (
             <p className="mt-1.5 pl-1 text-[0.62rem] leading-relaxed text-white/35">
-              Learner mode is coming soon — ready in {LEARNER_MODE_ETA}.
+              Learner mode is coming in {LEARNER_MODE_ETA}.
             </p>
           )}
         </div>

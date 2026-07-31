@@ -482,7 +482,7 @@ export default function Settings() {
           sublabel={
             LEARNER_MODE_ENABLED
               ? undefined
-              : `Learner mode is coming soon — ready in ${LEARNER_MODE_ETA}`
+              : `Learner mode is coming in ${LEARNER_MODE_ETA}`
           }
           checked={mode === "publisher"}
           onChange={(v) => setMode(v ? "publisher" : "learner")}

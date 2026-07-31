@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../lib/api";
 import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../../lib/featureFlags";
@@ -62,7 +68,7 @@ export function AppShellProvider({ children }: { children: ReactNode }) {
   // by any other path either, e.g. a direct /app/learn visit.
   const setMode = useCallback((m: Mode) => {
     if (m === "learner" && !LEARNER_MODE_ENABLED) {
-      notify(`Learner mode is coming soon — ready in ${LEARNER_MODE_ETA}.`, "error");
+      notify(`Learner mode is coming in ${LEARNER_MODE_ETA}.`, "error");
       return;
     }
     setModeState(m);
