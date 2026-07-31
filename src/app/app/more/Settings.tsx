@@ -471,6 +471,7 @@ export default function Settings() {
         <ToggleRow
           Icon={Moon}
           label="Dark Mode"
+          sublabel="Coming soon"
           checked={darkMode}
           onChange={setDarkMode}
           disabled
