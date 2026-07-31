@@ -1,7 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronDown, X } from "lucide-react";
+import {
+  BookOpen,
+  Check,
+  ChevronDown,
+  Copy,
+  FileText,
+  Gift,
+  Images,
+  Mail,
+  Phone,
+  Ruler,
+  Tag,
+  Type,
+  User,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -9,6 +24,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -559,6 +575,14 @@ function QuoteSuccessPanel({
   );
 }
 
+// Left-inset field icon — every .vpgq-field/.vpgq-field-select/
+// .vpgq-inline-input-wrap reserves matching left padding (see the
+// .vpgq-card input/select rule in the <style> block below) so the icon
+// never sits under the typed text.
+function FieldIcon({ children }: { children: ReactNode }) {
+  return <span className="vpgq-field-icon">{children}</span>;
+}
+
 // showExtras/onToggleExtras/onSubmitted are all optional so the public
 // /getQuote page's <GetQuote /> (no props) renders byte-identical to
 // before. The app's "Add New Title" page passes showExtras/onToggleExtras
@@ -1083,6 +1107,9 @@ export default function GetQuote({
             "vpgq-inline-input-wrap",
           )}
         >
+          <FieldIcon>
+            <Type size={16} strokeWidth={2} />
+          </FieldIcon>
           <input
             ref={wordsInputRef}
             value={words}
@@ -1118,6 +1145,9 @@ export default function GetQuote({
             "vpgq-inline-input-wrap vpgq-inline-input-wrap-long",
           )}
         >
+          <FieldIcon>
+            <Images size={16} strokeWidth={2} />
+          </FieldIcon>
           <input
             ref={chaptersInputRef}
             value={chapters}
@@ -1397,6 +1427,19 @@ export default function GetQuote({
               right: 2.75rem;
             }
 
+            .vpgq-field-icon {
+              position: absolute;
+              left: .85rem;
+              top: 50%;
+              transform: translateY(-50%);
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              color: rgba(20,24,31,.42);
+              pointer-events: none;
+              z-index: 1;
+            }
+
             /* Main fields (text/select inputs) are light with dark text —
                selection fields (.vpgq-chip, further down) stay as they
                were, untouched. */
@@ -1407,7 +1450,7 @@ export default function GetQuote({
               border: 1px solid rgba(15,20,32,.14);
               border-radius: .8rem;
               background-color: #f4f5f7;
-              padding: .75rem .9rem;
+              padding: .75rem .9rem .75rem 2.4rem;
               color: #14181f;
               font-size: .86rem;
               outline: none;
@@ -1912,6 +1955,9 @@ export default function GetQuote({
                         "vpgq-wide",
                       )}
                     >
+                      <FieldIcon>
+                        <BookOpen size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         value={bookTitle}
                         onChange={(event) => setBookTitle(event.target.value)}
@@ -1933,6 +1979,9 @@ export default function GetQuote({
                         "vpgq-field-select vpgq-wide",
                       )}
                     >
+                      <FieldIcon>
+                        <Tag size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <select
                         value={category}
                         onChange={(event) => setCategory(event.target.value)}
@@ -1958,6 +2007,9 @@ export default function GetQuote({
                         "vpgq-field-select",
                       )}
                     >
+                      <FieldIcon>
+                        <Ruler size={16} strokeWidth={2} />
+                      </FieldIcon>
                       {bookSize === "Other" ? (
                         <>
                           <input
@@ -2006,6 +2058,9 @@ export default function GetQuote({
                     </div>
 
                     <div className={getFieldClassName("pages", pages)}>
+                      <FieldIcon>
+                        <FileText size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         ref={pagesInputRef}
                         value={pages}
@@ -2023,6 +2078,9 @@ export default function GetQuote({
                     </div>
 
                     <div className={getFieldClassName("copies", copies)}>
+                      <FieldIcon>
+                        <Copy size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         ref={copiesInputRef}
                         value={copies}
@@ -2048,6 +2106,9 @@ export default function GetQuote({
 
                   <div className="vpgq-grid">
                     <div className={getFieldClassName("name", fullName)}>
+                      <FieldIcon>
+                        <User size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         value={fullName}
                         onChange={(event) => setFullName(event.target.value)}
@@ -2063,6 +2124,9 @@ export default function GetQuote({
                     </div>
 
                     <div className={getFieldClassName("number", whatsapp)}>
+                      <FieldIcon>
+                        <Phone size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         value={whatsapp}
                         onChange={(event) => setWhatsapp(event.target.value)}
@@ -2080,6 +2144,9 @@ export default function GetQuote({
                     <div
                       className={getFieldClassName("email", email, "vpgq-wide")}
                     >
+                      <FieldIcon>
+                        <Mail size={16} strokeWidth={2} />
+                      </FieldIcon>
                       <input
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
@@ -2111,6 +2178,9 @@ export default function GetQuote({
                           "vpgq-wide",
                         )}
                       >
+                        <FieldIcon>
+                          <Gift size={16} strokeWidth={2} />
+                        </FieldIcon>
                         <input
                           value={referrerEmail}
                           onChange={(event) =>

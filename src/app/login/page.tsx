@@ -2,7 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { Gift, KeyRound, Lock, Mail, User } from "lucide-react";
 import Button from "@/components/buttons/buttons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +58,16 @@ function FieldTag({ label }: { label: string }) {
   return (
     <span className="pointer-events-none absolute right-[0.6rem] top-1/2 inline-flex -translate-y-1/2 items-center whitespace-nowrap rounded-full border border-[rgba(239,199,0,0.35)] bg-[rgba(20,20,30,0.88)] px-[0.42rem] py-[0.18rem] text-[0.46rem] font-black uppercase tracking-[0.12em] text-[rgb(239,199,0)]">
       {label}
+    </span>
+  );
+}
+
+// Every field icon sits at this same left inset — inputBase reserves
+// matching left padding (pl-[2.5rem]) so text never runs under it.
+function FieldIcon({ icon }: { icon: ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-[0.9rem] top-1/2 -translate-y-1/2 text-[rgba(20,24,31,0.4)]">
+      {icon}
     </span>
   );
 }
@@ -266,7 +283,7 @@ function LoginPageInner() {
   const { h, sub } = titles[mode];
 
   const inputBase =
-    "w-full min-h-[2.85rem] rounded-[0.8rem] border bg-[#f4f5f7] px-[0.9rem] pr-[2.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
+    "w-full min-h-[2.85rem] rounded-[0.8rem] border bg-[#f4f5f7] pl-[2.5rem] pr-[2.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
 
   const inputIdle = "border-[rgba(15,20,32,0.14)]";
   const inputDone = "border-[rgba(239,199,0,0.45)] bg-[#fdf6e7]";
@@ -326,6 +343,7 @@ function LoginPageInner() {
             {mode === "signup" && (
               <div className="grid gap-[0.6rem] sm:grid-cols-2">
                 <div className="relative">
+                  <FieldIcon icon={<User size={16} strokeWidth={2} />} />
                   <input
                     type="text"
                     value={firstName}
@@ -343,6 +361,7 @@ function LoginPageInner() {
                 </div>
 
                 <div className="relative">
+                  <FieldIcon icon={<User size={16} strokeWidth={2} />} />
                   <input
                     type="text"
                     value={lastName}
@@ -363,6 +382,7 @@ function LoginPageInner() {
 
             {mode !== "otp" && (
               <div className="relative">
+                <FieldIcon icon={<Mail size={16} strokeWidth={2} />} />
                 <input
                   type="email"
                   value={email}
@@ -383,6 +403,7 @@ function LoginPageInner() {
 
             {(mode === "otp" || mode === "reset") && (
               <div className="relative">
+                <FieldIcon icon={<KeyRound size={16} strokeWidth={2} />} />
                 <input
                   type="text"
                   inputMode="numeric"
@@ -403,6 +424,7 @@ function LoginPageInner() {
 
             {(mode === "login" || mode === "signup" || mode === "reset") && (
               <div className="relative">
+                <FieldIcon icon={<Lock size={16} strokeWidth={2} />} />
                 <input
                   type={showPw ? "text" : "password"}
                   value={password}
@@ -438,6 +460,7 @@ function LoginPageInner() {
 
             {(mode === "signup" || mode === "reset") && (
               <div className="relative">
+                <FieldIcon icon={<Lock size={16} strokeWidth={2} />} />
                 <input
                   type={showPw ? "text" : "password"}
                   value={confirmPassword}
@@ -459,6 +482,7 @@ function LoginPageInner() {
 
             {mode === "signup" && (
               <div className="relative">
+                <FieldIcon icon={<Gift size={16} strokeWidth={2} />} />
                 <input
                   type="email"
                   value={referrerEmail}

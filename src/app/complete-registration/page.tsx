@@ -2,7 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { KeyRound, Lock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/buttons/buttons";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +16,16 @@ import { ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 
 const inputBase =
-  "w-full min-h-[2.85rem] rounded-[0.8rem] border border-[rgba(15,20,32,0.14)] bg-[#f4f5f7] px-[0.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
+  "w-full min-h-[2.85rem] rounded-[0.8rem] border border-[rgba(15,20,32,0.14)] bg-[#f4f5f7] pl-[2.5rem] pr-[0.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
+
+// Same left-inset icon treatment as app/login/page.tsx's FieldIcon.
+function FieldIcon({ icon }: { icon: ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-[0.9rem] top-1/2 -translate-y-1/2 text-[rgba(20,24,31,0.4)]">
+      {icon}
+    </span>
+  );
+}
 
 function CompleteRegistrationForm() {
   const searchParams = useSearchParams();
@@ -128,34 +143,43 @@ function CompleteRegistrationForm() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
           {showCodeField && (
-            <input
-              type="text"
-              inputMode="numeric"
-              value={code}
-              placeholder="6-digit code"
-              maxLength={6}
-              onChange={(e) => setCode(e.target.value)}
-              className={`${inputBase} text-center tracking-[0.4em]`}
-            />
+            <div className="relative">
+              <FieldIcon icon={<KeyRound size={16} strokeWidth={2} />} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={code}
+                placeholder="6-digit code"
+                maxLength={6}
+                onChange={(e) => setCode(e.target.value)}
+                className={`${inputBase} text-center tracking-[0.4em]`}
+              />
+            </div>
           )}
 
-          <input
-            type="password"
-            value={password}
-            placeholder="Choose a password"
-            autoComplete="new-password"
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputBase}
-          />
+          <div className="relative">
+            <FieldIcon icon={<Lock size={16} strokeWidth={2} />} />
+            <input
+              type="password"
+              value={password}
+              placeholder="Choose a password"
+              autoComplete="new-password"
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputBase}
+            />
+          </div>
 
-          <input
-            type="password"
-            value={confirmPassword}
-            placeholder="Confirm password"
-            autoComplete="new-password"
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className={inputBase}
-          />
+          <div className="relative">
+            <FieldIcon icon={<Lock size={16} strokeWidth={2} />} />
+            <input
+              type="password"
+              value={confirmPassword}
+              placeholder="Confirm password"
+              autoComplete="new-password"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={inputBase}
+            />
+          </div>
 
           <button
             type="button"

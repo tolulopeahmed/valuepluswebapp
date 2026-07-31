@@ -70,6 +70,9 @@ export interface MyBook {
   date_published: string | null;
   price: string | null;
   description: string;
+  // Google Drive link to production files — blank until staff set it in
+  // Django admin, generally once publishing is complete.
+  assets_link: string;
   created_at: string;
   quotation: BookQuotationSummary | null;
 }

@@ -8,6 +8,7 @@ import {
   Check,
   ExternalLink,
   FileStack,
+  FolderOpen,
   Layers,
   Pencil,
   Printer,
@@ -173,10 +174,31 @@ function AssetsModal({
         </div>
       )}
 
-      <p className="mt-4 text-[0.68rem] leading-relaxed text-white/35">
-        Manuscript files, ISBN certificates, and other production files are shared directly by
-        our team via email.
-      </p>
+      {book.assets_link ? (
+        <a
+          href={book.assets_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex items-center justify-center gap-2 rounded-2xl py-3 text-sm font-bold transition-transform active:scale-[0.98]"
+          style={{ background: "rgb(var(--vp-accent-rgb))", color: "#171100" }}
+        >
+          <FolderOpen size={16} strokeWidth={2} />
+          Open in Google Drive
+        </a>
+      ) : (
+        <div
+          className="mt-4 rounded-2xl border px-4 py-3 text-center"
+          style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}
+        >
+          <p className="text-[0.78rem] font-bold text-white/70">
+            Your assets aren&apos;t ready yet
+          </p>
+          <p className="mt-1 text-[0.7rem] leading-relaxed text-white/40">
+            Manuscript files, ISBN certificates, and other production files will be available
+            here once publishing is complete.
+          </p>
+        </div>
+      )}
     </Modal>
   );
 }
