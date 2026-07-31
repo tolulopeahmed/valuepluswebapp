@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import ManageAccountModal from "./ManageAccountModal";
+import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../lib/featureFlags";
 
 type Mode = "learner" | "publisher";
 
@@ -296,15 +297,24 @@ export default function Sidebar({
               role="switch"
               aria-checked={mode === "publisher"}
               aria-label={
-                mode === "learner"
-                  ? "Switch to publisher view"
-                  : "Switch to learner view"
+                !LEARNER_MODE_ENABLED
+                  ? "Learner mode — coming soon"
+                  : mode === "learner"
+                    ? "Switch to publisher view"
+                    : "Switch to learner view"
               }
+              disabled={!LEARNER_MODE_ENABLED}
               onClick={() =>
                 onModeChange(mode === "learner" ? "publisher" : "learner")
               }
-              className="relative h-6 w-11 shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95"
-              title={mode === "learner" ? "Learner mode" : "Publisher mode"}
+              className={`relative h-6 w-11 shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95 ${!LEARNER_MODE_ENABLED ? "cursor-not-allowed opacity-40" : ""}`}
+              title={
+                !LEARNER_MODE_ENABLED
+                  ? `Learner mode — coming soon, ready in ${LEARNER_MODE_ETA}`
+                  : mode === "learner"
+                    ? "Learner mode"
+                    : "Publisher mode"
+              }
             >
               <span
                 className="absolute top-0.5 grid h-5 w-5 place-items-center rounded-full text-[#171100] transition-transform duration-200"
@@ -324,6 +334,12 @@ export default function Sidebar({
               </span>
             </button>
           </div>
+
+          {!LEARNER_MODE_ENABLED && (
+            <p className="mt-1.5 pl-1 text-[0.62rem] leading-relaxed text-white/35">
+              Learner mode is coming soon — ready in {LEARNER_MODE_ETA}.
+            </p>
+          )}
         </div>
 
         <nav className="mt-12 flex-1 overflow-y-auto px-3 pb-4">

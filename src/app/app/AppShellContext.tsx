@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../lib/api";
+import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../../lib/featureFlags";
+import { notify } from "../../lib/snackbar";
 
 export type Mode = "learner" | "publisher";
 
@@ -27,7 +29,12 @@ export function useAppShell() {
 
 export function AppShellProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [mode, setModeState] = useState<Mode>("learner");
+  // Starts straight on "publisher" when Learner mode is disabled, so
+  // there's never even a flash of Learner-mode UI before the load effect
+  // below runs.
+  const [mode, setModeState] = useState<Mode>(
+    LEARNER_MODE_ENABLED ? "learner" : "publisher",
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Loads the user's saved dashboard preference exactly once, the first
@@ -40,15 +47,24 @@ export function AppShellProvider({ children }: { children: ReactNode }) {
   );
   if (user && loadedModeForUserId !== user.id) {
     setLoadedModeForUserId(user.id);
-    if (user.preferred_mode === "publisher") {
+    // Direct signups default to Learner server-side (see RegisterSerializer)
+    // — with the mode disabled, that saved preference is ignored and
+    // everyone lands on Publisher until it ships.
+    if (LEARNER_MODE_ENABLED && user.preferred_mode === "publisher") {
       setModeState("publisher");
     }
   }
 
   // Persists every toggle so it survives logout/login — best-effort;
   // the UI already updated optimistically above, this just keeps the
-  // account's saved preference in sync in the background.
+  // account's saved preference in sync in the background. Blocked
+  // centrally here (not just at each toggle's UI) so it can't be reached
+  // by any other path either, e.g. a direct /app/learn visit.
   const setMode = useCallback((m: Mode) => {
+    if (m === "learner" && !LEARNER_MODE_ENABLED) {
+      notify(`Learner mode is coming soon — ready in ${LEARNER_MODE_ETA}.`, "error");
+      return;
+    }
     setModeState(m);
     apiFetch("/auth/me/", {
       method: "PATCH",

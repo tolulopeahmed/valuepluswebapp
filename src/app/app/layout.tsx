@@ -13,6 +13,7 @@ import { useStudentProfile, deriveLevel } from "../../hooks/useAcademy";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { MyBooksProvider } from "../../hooks/useMyBooks";
 import { VP_PAGE_BG } from "./GlassCard";
+import { LEARNER_MODE_ENABLED } from "../../lib/featureFlags";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -51,7 +52,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
     if (next === "publisher" && pathname === "/app/learn") {
       router.push("/app/publish");
-    } else if (next === "learner" && pathname === "/app/publish") {
+    } else if (
+      next === "learner" &&
+      LEARNER_MODE_ENABLED &&
+      pathname === "/app/publish"
+    ) {
+      // setMode() above refuses the switch entirely when Learner mode is
+      // disabled — without this guard, this would still navigate to
+      // /app/learn even though `mode` itself never actually changed.
       router.push("/app/learn");
     }
   };

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import SectionLabel from "../../../components/SectionLabel";
 import Title from "../../../components/Title";
 import Subtitle from "../../../components/Subtitle";
@@ -12,6 +13,7 @@ import { Check, Lock } from "lucide-react";
 import { useLearnerCurriculum, type ModuleItem } from "../CurriculumModules";
 import { completeLesson } from "../../../hooks/useAcademy";
 import { notify } from "../../../lib/snackbar";
+import { LEARNER_MODE_ENABLED } from "../../../lib/featureFlags";
 
 function lessonStatus(m: ModuleItem, currentId: number | null) {
   if (m.progress === 100) return "done" as const;
@@ -224,6 +226,18 @@ function AllLessonsSection({
 // already defines it globally; duplicating it risked one definition
 // silently overriding the other.
 export default function LearnPage() {
+  const router = useRouter();
+
+  // The sidebar/settings toggle already keeps `mode` off "learner" in
+  // production (see AppShellContext), but that doesn't stop someone
+  // reaching this URL directly (typed, bookmarked, shared) — this is the
+  // actual gate for the page itself, not just the nav that leads here.
+  useEffect(() => {
+    if (!LEARNER_MODE_ENABLED) {
+      router.replace("/app/publish");
+    }
+  }, [router]);
+
   const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(
     null,
   );
@@ -233,6 +247,8 @@ export default function LearnPage() {
     loading,
     refetch: refetchCurriculum,
   } = useLearnerCurriculum();
+
+  if (!LEARNER_MODE_ENABLED) return null;
 
   const currentId = current?.id ?? null;
   const totalXp = modules.reduce((s, m) => s + m.xp, 0);

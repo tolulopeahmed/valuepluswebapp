@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
+import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../../../lib/featureFlags";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getShortBankName } from "../../../lib/bankOptions";
 import {
@@ -115,12 +116,14 @@ const SWITCH_SX = {
 function ToggleRow({
   Icon,
   label,
+  sublabel,
   checked,
   onChange,
   disabled = false,
 }: {
   Icon: LucideIcon;
   label: string;
+  sublabel?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
@@ -137,7 +140,14 @@ function ToggleRow({
     >
       <div className="flex items-center gap-3.5">
         <Icon size={22} strokeWidth={1.8} className="text-white/80" />
-        <span className="text-[1.05rem] font-bold text-white">{label}</span>
+        <div>
+          <span className="text-[1.05rem] font-bold text-white">{label}</span>
+          {sublabel && (
+            <p className="mt-0.5 text-[0.7rem] leading-tight text-white/40">
+              {sublabel}
+            </p>
+          )}
+        </div>
       </div>
       <Switch
         checked={checked}
@@ -468,8 +478,14 @@ export default function Settings() {
         <ToggleRow
           Icon={ArrowLeftRight}
           label={mode === "publisher" ? "Publisher Mode" : "Learner Mode"}
+          sublabel={
+            LEARNER_MODE_ENABLED
+              ? undefined
+              : `Learner mode is coming soon — ready in ${LEARNER_MODE_ETA}`
+          }
           checked={mode === "publisher"}
           onChange={(v) => setMode(v ? "publisher" : "learner")}
+          disabled={!LEARNER_MODE_ENABLED}
         />
       </div>
 
