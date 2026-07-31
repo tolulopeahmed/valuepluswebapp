@@ -19,7 +19,10 @@ import {
 } from "lucide-react";
 import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
-import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../../../lib/featureFlags";
+import {
+  LEARNER_MODE_ENABLED,
+  LEARNER_MODE_ETA,
+} from "../../../lib/featureFlags";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getShortBankName } from "../../../lib/bankOptions";
 import {
@@ -37,7 +40,10 @@ const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
   rejected: "Rejected",
 };
 
-const KYC_STATUS_CHIP_TONE: Record<KYCStatus, "neutral" | "accent" | "warning" | "danger"> = {
+const KYC_STATUS_CHIP_TONE: Record<
+  KYCStatus,
+  "neutral" | "accent" | "warning" | "danger"
+> = {
   not_started: "neutral",
   pending: "warning",
   approved: "accent",
@@ -71,7 +77,13 @@ const ADMIN_WHATSAPP_URL = "https://wa.me/2349024312689";
 // it needs its own renderer rather than lucide's stroke icons).
 function WhatsAppIcon({ size = 15 }: { size?: number; strokeWidth?: number }) {
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      fill="currentColor"
+      aria-hidden="true"
+    >
       <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
       <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
     </svg>
@@ -240,82 +252,82 @@ function buildItems({
   kycStatus: KYCStatus;
 }): SettingItem[] {
   return [
-  {
-    id: "bank",
-    label: "My Bank Accounts",
-    subtitle: "Set up accounts for faster withdrawals",
-    Icon: Landmark,
-    href: "/app/more/bank-accounts",
-    trailing: (
-      <StatusChip tone={isBankLinked ? "accent" : "neutral"}>
-        {isBankLinked ? bankName : "Not added"}
-      </StatusChip>
-    ),
-  },
-  {
-    id: "referrals",
-    label: `My Referrals (${referralCount})`,
-    subtitle: "Invite friends so you both earn",
-    Icon: UserPlus,
-    href: "/app/more/referrals",
-    trailing: (
-      <div className="flex flex-col items-end gap-0.5">
-        <span
-          className="text-[0.85rem] font-black"
-          style={{ color: "#34D399" }}
-        >
-          {naira(referralTotalEarned)}
-        </span>
-        <span className="text-[0.55rem] text-white/35">
-          {naira(referralPending)} pending
-        </span>
-      </div>
-    ),
-  },
-  {
-    id: "kyc",
-    label: "Update KYC",
-    subtitle: "Verify your identity to unlock full features",
-    Icon: ShieldCheck,
-    href: "/app/more/kyc",
-    trailing: (
-      <StatusChip tone={KYC_STATUS_CHIP_TONE[kycStatus]}>
-        {KYC_STATUS_LABEL[kycStatus]}
-      </StatusChip>
-    ),
-  },
-  // Transaction PIN — hidden until PIN unlock actually exists on mobile;
-  // showing "Set" here right now would be a lie (nothing sets or checks
-  // a PIN anywhere yet). Re-enable once that ships.
-  // {
-  //   id: "pin",
-  //   label: "Transaction PIN",
-  //   subtitle: "Secure withdrawals with a 4-digit PIN",
-  //   Icon: KeyRound,
-  //   trailing: <StatusChip tone="accent">Set</StatusChip>,
-  // },
-  {
-    id: "faq",
-    label: "FAQ",
-    subtitle: "Get answers to common questions",
-    Icon: HelpCircle,
-    href: "/app/more/faq",
-  },
-  {
-    id: "message-admin",
-    label: "Message Admin",
-    subtitle: "Get instant support via WhatsApp",
-    Icon: WhatsAppIcon,
-    href: ADMIN_WHATSAPP_URL,
-    external: true,
-  },
-  {
-    id: "logout",
-    label: "Log Out",
-    subtitle: "Sign out of your account",
-    Icon: LogOut,
-    danger: true,
-  },
+    {
+      id: "bank",
+      label: "My Bank Accounts",
+      subtitle: "Set up accounts for faster withdrawals",
+      Icon: Landmark,
+      href: "/app/more/bank-accounts",
+      trailing: (
+        <StatusChip tone={isBankLinked ? "accent" : "neutral"}>
+          {isBankLinked ? bankName : "Not added"}
+        </StatusChip>
+      ),
+    },
+    {
+      id: "referrals",
+      label: `My Referrals (${referralCount})`,
+      subtitle: "Invite friends so you both earn",
+      Icon: UserPlus,
+      href: "/app/more/referrals",
+      trailing: (
+        <div className="flex flex-col items-end gap-0.5">
+          <span
+            className="text-[0.85rem] font-black"
+            style={{ color: "#34D399" }}
+          >
+            {naira(referralTotalEarned)}
+          </span>
+          <span className="text-[0.55rem] text-white/35">
+            {naira(referralPending)} pending
+          </span>
+        </div>
+      ),
+    },
+    {
+      id: "kyc",
+      label: "Update KYC",
+      subtitle: "Verify your identity to unlock full features",
+      Icon: ShieldCheck,
+      href: "/app/more/kyc",
+      trailing: (
+        <StatusChip tone={KYC_STATUS_CHIP_TONE[kycStatus]}>
+          {KYC_STATUS_LABEL[kycStatus]}
+        </StatusChip>
+      ),
+    },
+    // Transaction PIN — hidden until PIN unlock actually exists on mobile;
+    // showing "Set" here right now would be a lie (nothing sets or checks
+    // a PIN anywhere yet). Re-enable once that ships.
+    // {
+    //   id: "pin",
+    //   label: "Transaction PIN",
+    //   subtitle: "Secure withdrawals with a 4-digit PIN",
+    //   Icon: KeyRound,
+    //   trailing: <StatusChip tone="accent">Set</StatusChip>,
+    // },
+    {
+      id: "faq",
+      label: "FAQ",
+      subtitle: "Get answers to common questions",
+      Icon: HelpCircle,
+      href: "/app/more/faq",
+    },
+    {
+      id: "message-admin",
+      label: "Message Admin",
+      subtitle: "Get instant support via WhatsApp",
+      Icon: WhatsAppIcon,
+      href: ADMIN_WHATSAPP_URL,
+      external: true,
+    },
+    {
+      id: "logout",
+      label: "Log Out",
+      subtitle: "Sign out of your account",
+      Icon: LogOut,
+      danger: true,
+    },
   ];
 }
 
@@ -422,7 +434,8 @@ export default function Settings() {
   const { profile: kycProfile } = useKYCProfile();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const defaultBankAccount = bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
+  const defaultBankAccount =
+    bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
   const isBankLinked = bankAccounts.length > 0 || isLinked;
   // Short, everyday form ("GTBank", "FCMB", "Opay"...) — this chip is
   // tight on space, and the full legal name either wraps or gets

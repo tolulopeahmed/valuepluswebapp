@@ -21,6 +21,7 @@ import SectionLabel from "../../../../../components/SectionLabel";
 import Button from "../../../../../components/buttons/buttons";
 import Modal from "../../../../../components/Modal";
 import BookCoverCropModal from "../../../../../components/BookCoverCropModal";
+import ReorderPrintsModal from "../../../../../components/ReorderPrintsModal";
 import { notify } from "../../../../../lib/snackbar";
 import { ApiError } from "../../../../../lib/api";
 import {
@@ -33,10 +34,6 @@ import {
   suggestedPrice,
   type MyBook,
 } from "../../../../../hooks/useMyBooks";
-
-// Same admin line used everywhere else (Transactions.tsx, Sidebar.tsx,
-// Settings.tsx, BookDetailsModal.tsx): 09024312689 in wa.me international format.
-const ADMIN_WHATSAPP_NUMBER = "2349024312689";
 
 function StatTile({
   icon,
@@ -233,6 +230,7 @@ export default function BookLivePage() {
   const [priceInput, setPriceInput] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
   const [assetsOpen, setAssetsOpen] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
   const [removingCover, setRemovingCover] = useState(false);
   const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -330,10 +328,6 @@ export default function BookLivePage() {
     }
   };
 
-  const reorderMessage = `Hi ValuePlus! I'd like to reorder prints for "${book.title}"${
-    effectivePrice ? ` (currently ₦${Math.round(effectivePrice).toLocaleString()})` : ""
-  }. Please let me know the next steps. Thank you!`;
-  const reorderHref = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(reorderMessage)}`;
   const publicHref = `/book/${book.slug}`;
 
   return (
@@ -520,7 +514,7 @@ export default function BookLivePage() {
           icon={<Printer size={18} strokeWidth={1.9} />}
           label="Reorder Prints"
           description="Order more copies"
-          href={reorderHref}
+          onClick={() => setReorderOpen(true)}
         />
         <ActionCard
           icon={<ExternalLink size={18} strokeWidth={1.9} />}
@@ -531,6 +525,12 @@ export default function BookLivePage() {
       </div>
 
       <AssetsModal open={assetsOpen} onClose={() => setAssetsOpen(false)} book={book} />
+
+      <ReorderPrintsModal
+        open={reorderOpen}
+        onClose={() => setReorderOpen(false)}
+        book={book}
+      />
 
       <BookCoverCropModal
         open={pendingImageSrc !== null}

@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ShoppingCart } from "lucide-react";
 import Button from "@/components/buttons/buttons";
+import { getCartCount, subscribeToCartChanges } from "@/lib/cart";
 
 const menuItems = [
   { label: "Academy", href: "/#academy" },
@@ -45,6 +47,44 @@ function LoginIcon({ className }: { className?: string }) {
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
+  );
+}
+
+// Cart icon + item-count badge — same glass-pill treatment as
+// LoginIcon's own <Link> above (identical size/border/background), so
+// the two always sit as a matched pair whichever cluster they're in.
+function CartIconLink({ className }: { className?: string }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    setCount(getCartCount());
+    return subscribeToCartChanges(() => setCount(getCartCount()));
+  }, []);
+
+  return (
+    <Link
+      href="/cart"
+      aria-label="View cart"
+      className={`relative z-[3100] inline-flex h-[2.55rem] w-[2.55rem] min-w-[2.55rem] items-center justify-center rounded-[0.95rem] border border-white/14 text-white/80 backdrop-blur-[16px] ${className ?? ""}`}
+      style={{
+        background:
+          "linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04)), rgba(255,255,255,0.045)",
+        boxShadow: "0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.11)",
+        WebkitBackdropFilter: "blur(16px) saturate(1.4)",
+        touchAction: "manipulation",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <ShoppingCart className="h-[1.1rem] w-[1.1rem]" strokeWidth={1.75} />
+      {count > 0 && (
+        <span
+          className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[0.55rem] font-black text-[#171100]"
+          style={{ background: "rgb(var(--vp-accent-rgb))" }}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -190,6 +230,7 @@ export default function Navbar() {
 
             {/* Desktop CTA buttons */}
             <div className="hidden items-center gap-3 md:flex">
+              <CartIconLink />
               <Button href="/login" variant="secondary" size="sm">
                 Log in
               </Button>
@@ -198,8 +239,10 @@ export default function Navbar() {
               </Button>
             </div>
 
-            {/* Mobile right cluster: login icon + hamburger */}
+            {/* Mobile right cluster: cart icon + login icon + hamburger */}
             <div className="flex items-center gap-2 md:hidden">
+              <CartIconLink />
+
               {/*
                * Login icon button — sits right next to the hamburger.
                * Styled to match the hamburger button visually (same size,

@@ -212,6 +212,26 @@ export function updateBookPrice(bookId: string, price: number) {
   });
 }
 
+export interface ReprintRequest {
+  copies: number;
+  paperType: "cream" | "white";
+  nylonSeals: boolean;
+}
+
+// No "message" field in the response — ReorderPrintsModal shows its own
+// dedicated success screen, so the usual apiFetch auto-toast would just
+// be redundant noise on top of that.
+export function requestReprint(bookId: string, request: ReprintRequest) {
+  return apiFetch<{ received: boolean }>(`/books/mine/${bookId}/reorder/`, {
+    method: "POST",
+    body: JSON.stringify({
+      copies: request.copies,
+      paper_type: request.paperType,
+      nylon_seals: request.nylonSeals,
+    }),
+  });
+}
+
 // The default sale price a book is offered at until the author sets
 // their own: ~2.5x the physical unit print cost (quotation.print_cost —
 // staff's own manual entry for "what one copy costs to actually print",

@@ -2,22 +2,21 @@
 //
 // Public product page for a single title — the link a publisher shares
 // with buyers (surfaced by the "Buy" button on the Publish page), same
-// role as a Selar product page. No checkout system exists yet, so "Buy
-// Now" opens a pre-filled WhatsApp chat, the same real transactional
-// channel the rest of the public site already uses (Chat Admin, Get a
-// Quote) ahead of a payment gateway.
+// role as a Selar product page. The buy interaction itself (BuyBox) is
+// a client island so this page can stay a Server Component for the
+// SEO-relevant product data.
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-
-const ADMIN_WHATSAPP_NUMBER = "2349024312689";
+import BuyBox from "@/components/storefront/BuyBox";
 
 // Real published-book shape from the Django backend (GET /books/public/
 // <slug>/) — deliberately narrow (see PublicBookSerializer): no contact
 // info, no sales/earnings, nothing that isn't meant for a stranger to see.
 interface PublicBook {
+  id: string;
   title: string;
   subtitle: string;
   category: string;
@@ -49,10 +48,6 @@ export default async function BookPage({
   if (!book) notFound();
 
   const price = book.price !== null ? Number(book.price) : null;
-  const buyMessage = `Hi, I'd like to buy "${book.title}"${
-    price !== null ? ` (₦${price.toLocaleString()})` : ""
-  }.`;
-  const buyHref = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodeURIComponent(buyMessage)}`;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-vp-ink text-white">
@@ -100,20 +95,9 @@ export default async function BookPage({
               </p>
             )}
 
-            {price !== null && (
-              <p className="mt-8 text-3xl font-black text-white">
-                ₦{price.toLocaleString()}
-              </p>
-            )}
-
-            <a
-              href={buyHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-base btn-primary btn-lg mt-6 inline-flex w-full items-center justify-center gap-2 sm:w-auto"
-            >
-              Buy Now
-            </a>
+            <div className="mt-8 max-w-xs">
+              <BuyBox bookId={book.id} slug={slug} price={price} />
+            </div>
           </div>
         </div>
       </div>
