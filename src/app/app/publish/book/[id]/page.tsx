@@ -23,6 +23,7 @@ import {
   Trash2,
   TrendingUp,
   Wallet,
+  X,
 } from "lucide-react";
 import GlassCard from "../../../GlassCard";
 import SectionLabel from "../../../../../components/SectionLabel";
@@ -1101,7 +1102,8 @@ export default function BookLivePage() {
             )}
 
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
-              {book.format && <FormatBadge format={book.format} />}
+              {book.has_physical && <FormatBadge format={book.format} />}
+              {book.has_ebook && <FormatBadge format="Ebook" />}
               {book.pages !== null && (
                 <span className="inline-flex items-center gap-1 text-[0.62rem] font-bold text-white/40">
                   <Layers size={11} />
@@ -1149,128 +1151,125 @@ export default function BookLivePage() {
         </div>
       </div>
 
-      {/* Price */}
-      <GlassCard
-        accent
-        className="vp-card-in mt-5 p-3.5"
-        style={{ animationDelay: "60ms" }}
-      >
-        <div className="flex items-center justify-between">
-          <SectionLabel style={{ marginBottom: -10, fontSize: 15 }}>
-            Sale Price
-          </SectionLabel>
-          {!editingPrice && (
+      {/* Price + Ebook — side by side rather than stacked, so setting up
+          both editions doesn't cost a full extra screen of vertical
+          space on mobile. */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "60ms" }}>
+          <div className="flex items-center justify-between">
+            <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
+              Sale Price
+            </SectionLabel>
+            {!editingPrice && (
+              <button
+                type="button"
+                onClick={handleStartEditPrice}
+                aria-label="Edit price"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
+                style={{
+                  background: "rgba(var(--vp-accent-rgb),0.16)",
+                  color: "rgb(var(--vp-accent-rgb))",
+                }}
+              >
+                <Pencil size={12} strokeWidth={2.3} />
+              </button>
+            )}
+          </div>
+
+          {editingPrice ? (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <div
+                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border bg-white/5 px-2.5 py-2"
+                style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              >
+                <span className="text-white/40">₦</span>
+                <input
+                  autoFocus
+                  inputMode="numeric"
+                  value={priceInput}
+                  onChange={(e) =>
+                    setPriceInput(e.target.value.replace(/[^\d]/g, ""))
+                  }
+                  placeholder="0"
+                  className="w-full min-w-0 bg-transparent text-[0.95rem] font-black text-white outline-none placeholder:text-white/25"
+                />
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                loading={savingPrice}
+                onClick={handleSavePrice}
+                className="!px-2.5"
+              >
+                <Check size={14} />
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditingPrice(false)}
+                disabled={savingPrice}
+                className="!px-2.5"
+              >
+                <X size={14} />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="mt-1 text-2xl font-black leading-tight text-white">
+                {effectivePrice !== null ? naira(effectivePrice) : "—"}
+              </p>
+              {currentPrice === null && suggested !== null && (
+                <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
+                  Suggested — 2.5× print cost.
+                </p>
+              )}
+              {currentPrice === null && suggested === null && (
+                <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
+                  No price set yet.
+                </p>
+              )}
+            </>
+          )}
+        </GlassCard>
+
+        {/* Ebook — independent of the physical edition alongside it; can
+            be added regardless of whether `format` is set at all. */}
+        <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "70ms" }}>
+          <div className="flex items-center justify-between">
+            <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
+              Ebook Edition
+            </SectionLabel>
             <button
               type="button"
-              onClick={handleStartEditPrice}
-              aria-label="Edit price"
-              className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
+              onClick={() => setEbookOpen(true)}
+              aria-label={book.has_ebook ? "Edit Ebook edition" : "Set up Ebook edition"}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
               style={{
                 background: "rgba(var(--vp-accent-rgb),0.16)",
                 color: "rgb(var(--vp-accent-rgb))",
               }}
             >
-              <Pencil size={13} strokeWidth={2.3} />
+              <Pencil size={12} strokeWidth={2.3} />
             </button>
-          )}
-        </div>
-
-        {editingPrice ? (
-          <div className="mt-3 flex items-center gap-2">
-            <div
-              className="flex flex-1 items-center gap-2 rounded-xl border bg-white/5 px-3.5 py-2.5"
-              style={{ borderColor: "rgba(255,255,255,0.1)" }}
-            >
-              <span className="text-white/40">₦</span>
-              <input
-                autoFocus
-                inputMode="numeric"
-                value={priceInput}
-                onChange={(e) =>
-                  setPriceInput(e.target.value.replace(/[^\d]/g, ""))
-                }
-                placeholder="0"
-                className="w-full bg-transparent text-[1.1rem] font-black text-white outline-none placeholder:text-white/25"
-              />
-            </div>
-            <Button
-              variant="primary"
-              size="md"
-              loading={savingPrice}
-              onClick={handleSavePrice}
-            >
-              <Check size={16} />
-            </Button>
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setEditingPrice(false)}
-              disabled={savingPrice}
-            >
-              Cancel
-            </Button>
           </div>
-        ) : (
-          <>
-            <p className="mt-1 text-4xl font-black text-white">
-              {effectivePrice !== null ? naira(effectivePrice) : "—"}
-            </p>
-            {currentPrice === null && suggested !== null && (
-              <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/40">
-                Suggested default — 2.5× the print cost. Tap the pencil to
-                confirm or change it.
-              </p>
-            )}
-            {currentPrice === null && suggested === null && (
-              <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/40">
-                No price set yet — tap the pencil to add one.
-              </p>
-            )}
-          </>
-        )}
-      </GlassCard>
 
-      {/* Ebook — independent of the physical edition above; can be added
-          regardless of whether `format` is set at all. */}
-      <GlassCard
-        accent
-        className="vp-card-in mt-5 p-3.5"
-        style={{ animationDelay: "70ms" }}
-      >
-        <div className="flex items-center justify-between">
-          <SectionLabel style={{ marginBottom: -10, fontSize: 15 }}>
-            Ebook Edition
-          </SectionLabel>
-          <button
-            type="button"
-            onClick={() => setEbookOpen(true)}
-            aria-label={book.has_ebook ? "Edit Ebook edition" : "Set up Ebook edition"}
-            className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
-            style={{
-              background: "rgba(var(--vp-accent-rgb),0.16)",
-              color: "rgb(var(--vp-accent-rgb))",
-            }}
-          >
-            <Pencil size={13} strokeWidth={2.3} />
-          </button>
-        </div>
-
-        {book.has_ebook ? (
-          <>
-            <p className="mt-1 text-4xl font-black text-white">
-              {naira(Number(book.ebook_price))}
+          {book.has_ebook ? (
+            <>
+              <p className="mt-1 text-2xl font-black leading-tight text-white">
+                {naira(Number(book.ebook_price))}
+              </p>
+              <p className="mt-1.5 flex items-center gap-1 text-[0.62rem] leading-relaxed text-white/40">
+                <Download size={10} strokeWidth={2.3} className="shrink-0" />
+                Instant Drive delivery.
+              </p>
+            </>
+          ) : (
+            <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
+              Not set up yet — tap the pencil to add one.
             </p>
-            <p className="mt-1.5 flex items-center gap-1 text-[0.7rem] leading-relaxed text-white/40">
-              <Download size={11} strokeWidth={2.3} />
-              Delivered instantly by Drive link, on purchase and by email.
-            </p>
-          </>
-        ) : (
-          <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/40">
-            Not set up yet — tap the pencil to also sell an Ebook edition of this title.
-          </p>
-        )}
-      </GlassCard>
+          )}
+        </GlassCard>
+      </div>
 
       {/* Stats */}
       <div
