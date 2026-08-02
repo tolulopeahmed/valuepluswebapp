@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   BadgeCheck,
@@ -12,6 +12,7 @@ import {
   Layers,
   Pencil,
   Printer,
+  Tag,
   Trash2,
   TrendingUp,
   Wallet,
@@ -31,29 +32,53 @@ import {
   uploadBookCover,
   deleteBookCover,
   updateBookPrice,
+  updateBookDescription,
+  fetchBookCoupon,
+  saveBookCoupon,
+  deleteBookCoupon,
   suggestedPrice,
   type MyBook,
+  type BookCoupon,
 } from "../../../../../hooks/useMyBooks";
+import { useTransactions } from "../../../../../hooks/useWallet";
 
 function StatTile({
   icon,
   label,
   value,
+  onClick,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
+  onClick?: () => void;
 }) {
-  return (
-    <div
-      className="flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-3.5 text-center"
-      style={{ background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" }}
-    >
-      <span className="text-white/55">{icon}</span>
-      <p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-white/45">
-        {label}
-      </p>
+  const className =
+    "flex flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center transition-transform active:scale-[0.97]";
+  const style = { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" };
+  const content = (
+    <>
+      <div className="flex items-center gap-1 text-white/55">
+        {icon}
+        <p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-white/45">
+          {label}
+        </p>
+      </div>
       <p className="text-[0.95rem] font-black text-white">{value}</p>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} style={style}>
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className} style={style}>
+      {content}
     </div>
   );
 }
@@ -200,6 +225,389 @@ function AssetsModal({
   );
 }
 
+const DESCRIPTION_WORD_LIMIT = 50;
+
+function wordCount(text: string) {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
+// Edits the same `description` field staff can already set directly on
+// the Book change form in Django admin (see BookDescriptionSerializer) —
+// a modal rather than inline editing (like the price field gets) since
+// this is a multi-line, paragraph-preserving blurb, not a single value.
+function DescriptionModal({
+  open,
+  onClose,
+  book,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+  onSaved: () => Promise<void>;
+}) {
+  const [value, setValue] = useState(book.description);
+  const [saving, setSaving] = useState(false);
+  const count = wordCount(value);
+  const overLimit = count > DESCRIPTION_WORD_LIMIT;
+
+  // Fresh value every time the modal closes, rather than carrying over
+  // an abandoned edit into the next time it's opened — same pattern
+  // BookDetailsModal.tsx uses for its own cover-edit state.
+  useEffect(() => {
+    if (open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setValue(book.description);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const handleSave = async () => {
+    if (overLimit) return;
+    setSaving(true);
+    try {
+      await updateBookDescription(book.id, value.trim());
+      await onSaved();
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not update the description. Please try again.", "error");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={() => !saving && onClose()}>
+      <h3 className="mb-1 text-[1.05rem] font-black text-white">Description</h3>
+      <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
+        What readers see on &ldquo;{book.title}&rdquo;&apos;s public page. Up to{" "}
+        {DESCRIPTION_WORD_LIMIT} words — paragraphs are fine.
+      </p>
+
+      <textarea
+        autoFocus
+        rows={6}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Tell readers what this book is about…"
+        className="w-full resize-none rounded-2xl border bg-white/5 px-3.5 py-3 text-[0.85rem] leading-relaxed text-white outline-none placeholder:text-white/25"
+        style={{ borderColor: overLimit ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)" }}
+      />
+      <p
+        className="mt-1.5 text-right text-[0.68rem] font-bold"
+        style={{ color: overLimit ? "#F87171" : "rgba(255,255,255,0.35)" }}
+      >
+        {count} / {DESCRIPTION_WORD_LIMIT} words
+      </p>
+
+      <div className="mt-3 flex gap-2">
+        <Button variant="primary" size="md" className="flex-1" loading={saving} disabled={overLimit} onClick={handleSave}>
+          Save
+        </Button>
+        <Button variant="secondary" size="md" onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+// Sets/edits the one active coupon for this book (see apps.books.views.
+// BookCouponView — upsert, not a list) — code, percent/fixed discount,
+// an optional expiry date, and an optional usage cap.
+function CouponModal({
+  open,
+  onClose,
+  book,
+  coupon,
+  onSaved,
+  onDeleted,
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+  coupon: BookCoupon | null;
+  onSaved: (coupon: BookCoupon) => void;
+  onDeleted: () => void;
+}) {
+  const [code, setCode] = useState("");
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountValue, setDiscountValue] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
+  const [maxUses, setMaxUses] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  // Fresh form state every time the modal opens, seeded from whatever
+  // coupon currently exists (or blank defaults for a new one) — same
+  // "reset on open/close" pattern as DescriptionModal above.
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCode(coupon?.code ?? "");
+    setDiscountType(coupon?.discount_type ?? "percent");
+    setDiscountValue(coupon ? coupon.discount_value : "");
+    setExpiresAt(coupon?.valid_until ? coupon.valid_until.slice(0, 10) : "");
+    setMaxUses(coupon?.max_uses !== null && coupon?.max_uses !== undefined ? String(coupon.max_uses) : "");
+    setIsActive(coupon?.is_active ?? true);
+  }, [open, coupon]);
+
+  const handleSave = async () => {
+    const value = Number(discountValue);
+    if (!code.trim()) {
+      notify("Enter a coupon code.", "error");
+      return;
+    }
+    if (!Number.isFinite(value) || value <= 0) {
+      notify("Enter a discount amount greater than 0.", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const result = await saveBookCoupon(book.id, {
+        code: code.trim(),
+        discount_type: discountType,
+        discount_value: value,
+        is_active: isActive,
+        valid_until: expiresAt ? `${expiresAt}T23:59:59` : null,
+        max_uses: maxUses.trim() ? Number(maxUses) : null,
+      });
+      onSaved(result);
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not save the coupon. Please try again.", "error");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteBookCoupon(book.id);
+      onDeleted();
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not remove the coupon. Please try again.", "error");
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const busy = saving || deleting;
+
+  return (
+    <Modal open={open} onClose={() => !busy && onClose()}>
+      <h3 className="mb-1 text-[1.05rem] font-black text-white">Coupon</h3>
+      <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
+        A discount code just for &ldquo;{book.title}&rdquo;.
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+            Code
+          </span>
+          <input
+            value={code}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            placeholder="e.g. SUMMER20"
+            className="w-full rounded-xl border bg-white/5 px-3.5 py-2.5 text-[0.9rem] font-bold uppercase tracking-wide text-white outline-none placeholder:text-white/25 placeholder:normal-case placeholder:font-normal"
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          />
+        </div>
+
+        <div>
+          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+            Discount
+          </span>
+          <div className="flex gap-2">
+            <div className="flex overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+              {(["percent", "fixed"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setDiscountType(t)}
+                  className="px-3 py-2.5 text-[0.75rem] font-bold transition-colors"
+                  style={{
+                    background: discountType === t ? "rgb(var(--vp-accent-rgb))" : "transparent",
+                    color: discountType === t ? "#171100" : "rgba(255,255,255,0.55)",
+                  }}
+                >
+                  {t === "percent" ? "%" : "₦"}
+                </button>
+              ))}
+            </div>
+            <div
+              className="flex flex-1 items-center gap-1.5 rounded-xl border bg-white/5 px-3.5 py-2.5"
+              style={{ borderColor: "rgba(255,255,255,0.1)" }}
+            >
+              <input
+                inputMode="decimal"
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value.replace(/[^\d.]/g, ""))}
+                placeholder="0"
+                className="w-full bg-transparent text-[0.9rem] font-black text-white outline-none placeholder:text-white/25"
+              />
+              <span className="shrink-0 text-[0.7rem] text-white/35">
+                {discountType === "percent" ? "% off" : "off"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+              Expires
+            </span>
+            <input
+              type="date"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="w-full rounded-xl border bg-white/5 px-3 py-2.5 text-[0.8rem] font-semibold text-white outline-none"
+              style={{ borderColor: "rgba(255,255,255,0.1)", colorScheme: "dark" }}
+            />
+          </div>
+          <div>
+            <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+              Use limit
+            </span>
+            <input
+              inputMode="numeric"
+              value={maxUses}
+              onChange={(e) => setMaxUses(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="Unlimited"
+              className="w-full rounded-xl border bg-white/5 px-3 py-2.5 text-[0.8rem] font-semibold text-white outline-none placeholder:text-white/25"
+              style={{ borderColor: "rgba(255,255,255,0.1)" }}
+            />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsActive((v) => !v)}
+          className="flex items-center justify-between rounded-xl border px-3.5 py-2.5"
+          style={{ borderColor: "rgba(255,255,255,0.1)" }}
+        >
+          <span className="text-[0.78rem] font-bold text-white/75">Active</span>
+          <span
+            className="flex h-5 w-9 items-center rounded-full px-0.5 transition-colors"
+            style={{ background: isActive ? "rgb(var(--vp-accent-rgb))" : "rgba(255,255,255,0.15)" }}
+          >
+            <span
+              className="h-4 w-4 rounded-full bg-white transition-transform"
+              style={{ transform: isActive ? "translateX(16px)" : "translateX(0)" }}
+            />
+          </span>
+        </button>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <Button variant="primary" size="md" className="flex-1" loading={saving} disabled={deleting} onClick={handleSave}>
+          Save
+        </Button>
+        <Button variant="secondary" size="md" onClick={onClose} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+
+      {coupon && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={busy}
+          className="mt-3 w-full text-center text-[0.72rem] font-bold text-red-300/70 transition-colors hover:text-red-300 disabled:opacity-50"
+        >
+          {deleting ? "Removing…" : "Remove coupon"}
+        </button>
+      )}
+    </Modal>
+  );
+}
+
+const EARNINGS_STATUS_COLOR: Record<string, string> = {
+  confirmed: "#34D399",
+  pending: "rgba(255,255,255,0.55)",
+  failed: "#F87171",
+};
+
+function formatTxDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Clicking "Earned" opens this rather than sending the author over to
+// the general Transactions page — every row here is already scoped to
+// just this book (book_sale credits), which is the one thing they were
+// actually asking "how did I get to this number" about.
+function EarningsModal({
+  open,
+  onClose,
+  book,
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+}) {
+  const { transactions, loading } = useTransactions();
+  const bookTransactions = transactions.filter((tx) => tx.book_id === book.id);
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <h3 className="mb-1 text-[1.05rem] font-black text-white">Earnings History</h3>
+      <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
+        Every transaction tied to &ldquo;{book.title}&rdquo;.
+      </p>
+
+      {loading ? (
+        <p className="py-6 text-center text-[0.78rem] text-white/40">Loading…</p>
+      ) : bookTransactions.length === 0 ? (
+        <p className="py-6 text-center text-[0.78rem] text-white/40">
+          No transactions for this book yet.
+        </p>
+      ) : (
+        <div className="flex max-h-80 flex-col gap-1.5 overflow-y-auto">
+          {bookTransactions.map((tx) => (
+            <div
+              key={tx.id}
+              className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
+              style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)" }}
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[0.8rem] font-bold text-white/85">{tx.title}</p>
+                <p className="mt-0.5 text-[0.66rem] text-white/40">{formatTxDate(tx.created_at)}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p
+                  className="text-[0.85rem] font-black"
+                  style={{ color: EARNINGS_STATUS_COLOR[tx.status] ?? "#ffffff" }}
+                >
+                  {tx.type === "credit" ? "+" : "-"}
+                  {naira(Number(tx.amount))}
+                </p>
+                <p className="mt-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-white/35">
+                  {tx.status}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function CenteredMessage({
   title,
   subtitle,
@@ -230,10 +638,26 @@ export default function BookLivePage() {
   const [priceInput, setPriceInput] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
   const [assetsOpen, setAssetsOpen] = useState(false);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [removingCover, setRemovingCover] = useState(false);
   const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [coupon, setCoupon] = useState<BookCoupon | null>(null);
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [earningsOpen, setEarningsOpen] = useState(false);
+
+  // Not part of `book` (a separate resource — see BookCouponView), so it
+  // needs its own fetch once the book id is known. Silently stays null
+  // on failure — "no coupon" is the tile's own honest fallback state,
+  // not worth a toast for what's a secondary bit of info on this page.
+  useEffect(() => {
+    if (!id) return;
+    fetchBookCoupon(id)
+      .then((data) => setCoupon("id" in data ? (data as BookCoupon) : null))
+      .catch(() => {});
+  }, [id]);
 
   if (loading && books.length === 0) {
     return (
@@ -428,12 +852,34 @@ export default function BookLivePage() {
                 </span>
               )}
             </div>
+
+            {book.description ? (
+              <button
+                type="button"
+                onClick={() => setDescriptionOpen(true)}
+                className="mt-3 flex w-full items-start gap-2 rounded-xl text-left transition-opacity hover:opacity-80 sm:text-left"
+              >
+                <p className="min-w-0 flex-1 whitespace-pre-line text-[0.78rem] leading-relaxed text-white/55">
+                  {book.description}
+                </p>
+                <Pencil size={12} strokeWidth={2.3} className="mt-0.5 shrink-0 text-white/35" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDescriptionOpen(true)}
+                className="mt-3 flex items-center gap-1.5 text-[0.72rem] font-bold text-white/35 transition-colors hover:text-white/55"
+              >
+                <Pencil size={12} strokeWidth={2.3} />
+                Add a description
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Price */}
-      <GlassCard accent className="vp-card-in mt-5 p-5" style={{ animationDelay: "60ms" }}>
+      <GlassCard accent className="vp-card-in mt-5 p-3.5" style={{ animationDelay: "60ms" }}>
         <div className="flex items-center justify-between">
           <SectionLabel style={{ marginBottom: 0 }}>Sale Price</SectionLabel>
           {!editingPrice && (
@@ -493,12 +939,18 @@ export default function BookLivePage() {
 
       {/* Stats */}
       <div className="vp-card-in mt-5 grid grid-cols-3 gap-3" style={{ animationDelay: "100ms" }}>
-        <StatTile icon={<TrendingUp size={16} strokeWidth={1.8} />} label="Sales" value={String(book.sales)} />
-        <StatTile icon={<Wallet size={16} strokeWidth={1.8} />} label="Earned" value={naira(book.earned)} />
+        <StatTile icon={<TrendingUp size={12} strokeWidth={2} />} label="Sales" value={String(book.sales)} />
         <StatTile
-          icon={<Layers size={16} strokeWidth={1.8} />}
-          label="Pages"
-          value={book.pages !== null ? String(book.pages) : "—"}
+          icon={<Wallet size={12} strokeWidth={2} />}
+          label="Earned"
+          value={naira(book.earned)}
+          onClick={() => setEarningsOpen(true)}
+        />
+        <StatTile
+          icon={<Tag size={12} strokeWidth={2} />}
+          label="Coupon"
+          value={coupon ? coupon.code : "None"}
+          onClick={() => setCouponOpen(true)}
         />
       </div>
 
@@ -525,6 +977,24 @@ export default function BookLivePage() {
       </div>
 
       <AssetsModal open={assetsOpen} onClose={() => setAssetsOpen(false)} book={book} />
+
+      <DescriptionModal
+        open={descriptionOpen}
+        onClose={() => setDescriptionOpen(false)}
+        book={book}
+        onSaved={refetch}
+      />
+
+      <CouponModal
+        open={couponOpen}
+        onClose={() => setCouponOpen(false)}
+        book={book}
+        coupon={coupon}
+        onSaved={setCoupon}
+        onDeleted={() => setCoupon(null)}
+      />
+
+      <EarningsModal open={earningsOpen} onClose={() => setEarningsOpen(false)} book={book} />
 
       <ReorderPrintsModal
         open={reorderOpen}

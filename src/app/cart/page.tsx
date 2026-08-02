@@ -86,7 +86,11 @@ export default function CartPage() {
         {
           skipAuth: true,
           method: "POST",
-          body: JSON.stringify({ code: couponCode.trim(), subtotal }),
+          body: JSON.stringify({
+            code: couponCode.trim(),
+            subtotal,
+            book_ids: (lines ?? []).map((line) => line.book.id),
+          }),
         },
       );
       setDiscountAmount(result.valid ? Number(result.discount_amount) : 0);

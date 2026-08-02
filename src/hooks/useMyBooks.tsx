@@ -212,6 +212,61 @@ export function updateBookPrice(bookId: string, price: number) {
   });
 }
 
+// The author's own self-service edit of the same `description` field
+// staff can already set directly on the Book change form in Django
+// admin — the backend caps it at 50 words (see BookDescriptionSerializer),
+// this just lets the caller surface that error via ApiError like every
+// other validated PATCH in this file.
+export function updateBookDescription(bookId: string, description: string) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/description/`, {
+    method: "PATCH",
+    body: JSON.stringify({ description }),
+  });
+}
+
+// Mirrors apps.books.serializers.BookCouponSerializer/
+// BookCouponWriteSerializer — one coupon per book, upserted rather than
+// a full list (see apps.books.views.BookCouponView).
+export interface BookCoupon {
+  id: number;
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: string;
+  is_active: boolean;
+  valid_until: string | null;
+  max_uses: number | null;
+  times_used: number;
+  created_at: string;
+}
+
+export interface BookCouponInput {
+  code: string;
+  discount_type: "percent" | "fixed";
+  discount_value: number;
+  is_active: boolean;
+  valid_until: string | null;
+  max_uses: number | null;
+}
+
+// {} (not null — see BookCouponView.get's own comment on why) when this
+// book has no coupon yet.
+export function fetchBookCoupon(bookId: string) {
+  return apiFetch<BookCoupon | Record<string, never>>(`/books/mine/${bookId}/coupon/`);
+}
+
+export function saveBookCoupon(bookId: string, input: BookCouponInput) {
+  return apiFetch<BookCoupon & { message: string }>(`/books/mine/${bookId}/coupon/`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteBookCoupon(bookId: string) {
+  return apiFetch<void>(`/books/mine/${bookId}/coupon/`, {
+    method: "DELETE",
+  });
+}
+
 export interface ReprintRequest {
   copies: number;
   paperType: "cream" | "white";

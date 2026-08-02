@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeftRight,
   Mail,
@@ -566,6 +566,27 @@ function TransactionDetailsModal({
   );
 }
 
+// Shared by groupByMonth below and the ?tx= deep-link effect in
+// TransactionsPage (a cost-updated email links straight to one specific
+// transaction and needs to open its modal the same way clicking its row
+// would), so both build the exact same Row shape from a raw
+// WalletTransaction.
+function toRow(tx: WalletTransaction): Row {
+  return {
+    id: tx.id,
+    title: titleFor(tx),
+    date: formatDate(tx.created_at),
+    status: tx.status,
+    type: tx.type,
+    source: tx.source,
+    amount: Number(tx.amount),
+    needsPayment: tx.can_confirm_payment,
+    balanceBefore: tx.balance_before !== null ? Number(tx.balance_before) : null,
+    balanceAfter: tx.balance_after !== null ? Number(tx.balance_after) : null,
+    Icon: SOURCE_ICON[tx.source],
+  };
+}
+
 // Real transactions arrive newest-first (server-side ordering) — grouping
 // preserves that order since each month's bucket is created the first
 // time it's seen.
@@ -577,21 +598,8 @@ function groupByMonth(items: WalletTransaction[]): RowGroup[] {
       month: "long",
       year: "numeric",
     });
-    const row: Row = {
-      id: tx.id,
-      title: titleFor(tx),
-      date: formatDate(tx.created_at),
-      status: tx.status,
-      type: tx.type,
-      source: tx.source,
-      amount: Number(tx.amount),
-      needsPayment: tx.can_confirm_payment,
-      balanceBefore: tx.balance_before !== null ? Number(tx.balance_before) : null,
-      balanceAfter: tx.balance_after !== null ? Number(tx.balance_after) : null,
-      Icon: SOURCE_ICON[tx.source],
-    };
     if (!groups.has(month)) groups.set(month, []);
-    groups.get(month)!.push(row);
+    groups.get(month)!.push(toRow(tx));
   }
 
   return Array.from(groups.entries()).map(([month, items]) => ({
@@ -600,8 +608,9 @@ function groupByMonth(items: WalletTransaction[]): RowGroup[] {
   }));
 }
 
-export default function TransactionsPage() {
+function TransactionsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { transactions, loading } = useTransactions();
   const { notifications, loading: notificationsLoading } = useNotifications();
   const [tab, setTab] = useState<Tab>("transactions");
@@ -615,6 +624,30 @@ export default function TransactionsPage() {
   useEffect(() => {
     markAllNotificationsRead().catch(() => {});
   }, []);
+
+  // A cost-updated email (see apps.books.utils.send_reprint_cost_updated_email
+  // / apps.quotations.utils.send_quote_cost_updated_email) links straight
+  // here with ?tx=<id> instead of dumping payment details in the email
+  // itself — opening this page pops the same modal a manual click on that
+  // row would, bank details and "I've paid" WhatsApp button included.
+  // Runs once transactions have actually loaded (an empty list still
+  // means "not found yet", not "no such id"); the ref stops it from
+  // reopening if the visitor closes the modal and it's still on screen.
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenedRef.current || loading) return;
+    const txId = searchParams.get("tx");
+    if (!txId) return;
+
+    const match = transactions.find((tx) => tx.id === txId);
+    if (!match) return;
+
+    autoOpenedRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTab("transactions");
+    setSelected(toRow(match));
+    router.replace("/app/transactions", { scroll: false });
+  }, [transactions, loading, searchParams, router]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -747,5 +780,13 @@ export default function TransactionsPage() {
         onClose={() => setSelected(null)}
       />
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <TransactionsPageInner />
+    </Suspense>
   );
 }
