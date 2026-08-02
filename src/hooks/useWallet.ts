@@ -212,18 +212,20 @@ export interface WalletTransaction {
     | "referral"
     | "withdrawal"
     | "quote_payment"
+    | "reprint"
     | "transfer"
     | "deposit";
   title: string;
   amount: string;
   status: "confirmed" | "pending" | "failed";
   // No real payment gateway yet — true only for a pending quote_payment
-  // debit, the frontend's cue to show the self-report "I've paid" action.
+  // or reprint debit, the frontend's cue to show the self-report "I've
+  // paid" action.
   can_confirm_payment: boolean;
   // The real Wallet.balance this transaction moved from/to (see
-  // apps.wallet.services.apply_to_wallet) — null for a QUOTE_PAYMENT
-  // (never touches the wallet) or a still-pending withdrawal (nothing's
-  // moved yet, only reserved).
+  // apps.wallet.services.apply_to_wallet) — null for a QUOTE_PAYMENT/
+  // REPRINT (never touches the wallet) or a still-pending withdrawal
+  // (nothing's moved yet, only reserved).
   balance_before: string | null;
   balance_after: string | null;
   created_at: string;
