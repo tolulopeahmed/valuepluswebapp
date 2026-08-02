@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Plus, Check, MoreHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SectionLabel from "../../components/SectionLabel";
@@ -125,6 +126,17 @@ export function PublisherBookShelf() {
   const { books, loading } = useMyBooks();
   const selectedBook = books.find((b) => b.id === selectedBookId) ?? null;
 
+  // Same rule as the Publish tab/Published Books page (see BookLibrary):
+  // a published title has nothing to follow up on, so tapping it goes
+  // straight to its own detail page instead of the intermediate modal.
+  const handleSelectBook = (book: MyBook) => {
+    if (book.status === "published") {
+      router.push(`/app/publish/book/${book.id}`);
+      return;
+    }
+    setSelectedBookId(book.id);
+  };
+
   // Edge shadows only make sense where there's actually more to scroll
   // to — with just one book (nothing before it), the left shadow has no
   // reason to show. Re-checked on scroll (including the auto-scroll pass
@@ -198,7 +210,15 @@ export function PublisherBookShelf() {
 
   return (
     <div>
-      <SectionLabel>My Books</SectionLabel>
+      <div className="mb-2 flex items-center justify-between">
+        <SectionLabel style={{ marginBottom: 0 }}>My Books</SectionLabel>
+        <Link
+          href="/app/publish"
+          className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-white/40 transition-colors hover:text-white/70"
+        >
+          See All
+        </Link>
+      </div>
 
       {loading ? (
         <div className="py-6 text-center text-[0.8rem] text-white/40">
@@ -233,7 +253,7 @@ export function PublisherBookShelf() {
                   key={book.id}
                   book={book}
                   index={i}
-                  onSelect={(b) => setSelectedBookId(b.id)}
+                  onSelect={handleSelectBook}
                 />
               ))}
               <ShelfAddTile onClick={goToAddNewTitle} />

@@ -9,20 +9,6 @@ const STORAGE_KEY = "vp_cart";
 // live count off it.
 const CHANGE_EVENT = "vp:cart-changed";
 
-// A physical copy is printed to order — ValuePlus fulfills straight from
-// the press, so a single-copy order isn't economical the way an Ebook
-// (zero marginal cost, no press run) is. Mirrors apps.storefront.
-// services.PHYSICAL_FORMATS/MIN_PHYSICAL_QUANTITY server-side, which is
-// the actual enforcement point — this just keeps the UI (BuyBox's
-// stepper, cart quantity controls) from ever showing/allowing something
-// checkout would reject anyway.
-export const MIN_PHYSICAL_QUANTITY = 50;
-const PHYSICAL_FORMATS = new Set(["Paperback", "Hardback"]);
-
-export function minQuantityFor(format: string): number {
-  return PHYSICAL_FORMATS.has(format) ? MIN_PHYSICAL_QUANTITY : 1;
-}
-
 export interface CartItem {
   bookId: string;
   // Stored alongside bookId so the cart/checkout pages can re-fetch each
@@ -30,6 +16,13 @@ export interface CartItem {
   // endpoint (slug-keyed for SEO-friendly URLs) — checkout itself still
   // submits bookId, which is what the backend actually validates against.
   slug: string;
+  // A title's physical and Ebook editions are independent and can both
+  // be for sale at once (see Book.has_ebook/has_physical server-side) —
+  // "Ebook", or the book's own physical format string ("Paperback"/
+  // "Hardback"). Every lookup below is keyed on (bookId, format)
+  // together, not bookId alone, so the same book can sit in the cart
+  // twice: once as an Ebook line, once as a physical line.
+  format: string;
   quantity: number;
 }
 
@@ -53,30 +46,30 @@ export function getCart(): CartItem[] {
   return readCart();
 }
 
-export function addToCart(bookId: string, slug: string, quantity: number) {
+export function addToCart(bookId: string, slug: string, format: string, quantity: number) {
   const items = readCart();
-  const existing = items.find((i) => i.bookId === bookId);
+  const existing = items.find((i) => i.bookId === bookId && i.format === format);
   if (existing) {
     existing.quantity += quantity;
   } else {
-    items.push({ bookId, slug, quantity });
+    items.push({ bookId, slug, format, quantity });
   }
   writeCart(items);
 }
 
-export function updateCartQuantity(bookId: string, quantity: number) {
+export function updateCartQuantity(bookId: string, format: string, quantity: number) {
   const items = readCart();
   if (quantity <= 0) {
-    writeCart(items.filter((i) => i.bookId !== bookId));
+    writeCart(items.filter((i) => !(i.bookId === bookId && i.format === format)));
     return;
   }
-  const existing = items.find((i) => i.bookId === bookId);
+  const existing = items.find((i) => i.bookId === bookId && i.format === format);
   if (existing) existing.quantity = quantity;
   writeCart(items);
 }
 
-export function removeFromCart(bookId: string) {
-  writeCart(readCart().filter((i) => i.bookId !== bookId));
+export function removeFromCart(bookId: string, format: string) {
+  writeCart(readCart().filter((i) => !(i.bookId === bookId && i.format === format)));
 }
 
 export function clearCart() {
@@ -101,4 +94,18 @@ export function subscribeToCartChanges(callback: () => void): () => void {
     window.removeEventListener(CHANGE_EVENT, callback);
     window.removeEventListener("storage", callback);
   };
+}
+
+// A physical copy is printed to order — ValuePlus fulfills straight from
+// the press, so a single-copy order isn't economical the way an Ebook
+// (zero marginal cost, no press run) is. Mirrors apps.storefront.
+// services.PHYSICAL_FORMATS/MIN_PHYSICAL_QUANTITY server-side, which is
+// the actual enforcement point — this just keeps the UI (BuyBox's
+// stepper, cart quantity controls) from ever showing/allowing something
+// checkout would reject anyway.
+export const MIN_PHYSICAL_QUANTITY = 50;
+const PHYSICAL_FORMATS = new Set(["Paperback", "Hardback"]);
+
+export function minQuantityFor(format: string): number {
+  return PHYSICAL_FORMATS.has(format) ? MIN_PHYSICAL_QUANTITY : 1;
 }

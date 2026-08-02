@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Download, XCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
@@ -22,6 +22,10 @@ interface OrderItem {
   quantity: number;
   format: string;
   line_total: string;
+  // Only ever populated once the order is actually paid, and only for
+  // an Ebook line — see OrderItemSerializer.get_ebook_drive_link
+  // server-side. Null before that, or if the book has no link set.
+  ebook_drive_link: string | null;
 }
 
 interface OrderStatus {
@@ -116,9 +120,32 @@ export default function OrderStatusPage() {
                   </div>
                 ))}
               </div>
+              {order.items.some((item) => item.ebook_drive_link) && (
+                <div className="mt-5 flex flex-col gap-2">
+                  {order.items
+                    .filter((item) => item.ebook_drive_link)
+                    .map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.ebook_drive_link!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+                        style={{ background: "#16a34a" }}
+                      >
+                        <Download size={16} strokeWidth={2.25} />
+                        Access &ldquo;{item.book_title}&rdquo;
+                      </a>
+                    ))}
+                </div>
+              )}
+
               <p className="mt-5 text-xs leading-relaxed text-black/40">
-                A receipt has been emailed to you. Physical copies ship to the address you
-                provided; ebook copies will be emailed shortly.
+                A receipt has been emailed to you
+                {order.items.some((item) => item.ebook_drive_link)
+                  ? " with your ebook access link"
+                  : ""}
+                . Physical copies ship to the address you provided.
               </p>
               <Link
                 href="/"

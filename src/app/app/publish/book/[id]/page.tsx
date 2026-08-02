@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   Calendar,
   Check,
+  Download,
   ExternalLink,
   FileStack,
   FolderOpen,
@@ -40,6 +41,7 @@ import {
   deleteBookCover,
   updateBookPrice,
   updateBookDescription,
+  updateBookEbook,
   fetchBookCoupon,
   saveBookCoupon,
   deleteBookCoupon,
@@ -721,6 +723,151 @@ function EarningsModal({
   );
 }
 
+// Sets/edits this book's Ebook edition — independent of any physical
+// edition it has (the Sale Price card above). A Drive link is required
+// alongside a price (enforced server-side too — see BookEbookSerializer)
+// since that link is what actually gets handed to a buyer the moment
+// they pay; there's no "priced but nothing to deliver" state possible.
+function EbookModal({
+  open,
+  onClose,
+  book,
+  onSaved,
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+  onSaved: () => Promise<void>;
+}) {
+  const [priceInput, setPriceInput] = useState("");
+  const [linkInput, setLinkInput] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPriceInput(book.ebook_price ? String(Math.round(Number(book.ebook_price))) : "");
+    setLinkInput(book.ebook_drive_link);
+  }, [open, book.ebook_price, book.ebook_drive_link]);
+
+  const handleSave = async () => {
+    const value = Number(priceInput.replace(/,/g, ""));
+    if (!Number.isFinite(value) || value <= 0) {
+      notify("Enter a valid price.", "error");
+      return;
+    }
+    if (!linkInput.trim()) {
+      notify("Add the Google Drive link to the Ebook file.", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateBookEbook(book.id, value, linkInput.trim());
+      await onSaved();
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not save the Ebook edition. Please try again.", "error");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    try {
+      await updateBookEbook(book.id, null, "");
+      await onSaved();
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not remove the Ebook edition. Please try again.", "error");
+      }
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const busy = saving || removing;
+
+  return (
+    <Modal open={open} onClose={() => !busy && onClose()}>
+      <h3 className="mb-1 text-[1.05rem] font-black text-white">Ebook Edition</h3>
+      <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
+        Sell &ldquo;{book.title}&rdquo; as an Ebook too — buyers get this link the moment they
+        pay, on their order page and by email.
+      </p>
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+            Ebook price
+          </span>
+          <div
+            className="flex items-center gap-2 rounded-xl border bg-white/5 px-3.5 py-2.5"
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            <span className="text-white/40">₦</span>
+            <input
+              autoFocus
+              inputMode="numeric"
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="0"
+              className="w-full bg-transparent text-[1.05rem] font-black text-white outline-none placeholder:text-white/25"
+            />
+          </div>
+        </div>
+
+        <div>
+          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+            Google Drive link
+          </span>
+          <input
+            value={linkInput}
+            onChange={(e) => setLinkInput(e.target.value)}
+            placeholder="https://drive.google.com/..."
+            className="w-full rounded-xl border bg-white/5 px-3.5 py-2.5 text-[0.85rem] text-white outline-none placeholder:text-white/25"
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          />
+          <p className="mt-1.5 text-[0.66rem] leading-relaxed text-white/35">
+            Set sharing to &ldquo;Anyone with the link&rdquo; so buyers can actually open it.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <Button
+          variant="primary"
+          size="md"
+          className="flex-1"
+          loading={saving}
+          disabled={removing}
+          onClick={handleSave}
+        >
+          Save
+        </Button>
+        <Button variant="secondary" size="md" onClick={onClose} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+
+      {book.has_ebook && (
+        <button
+          type="button"
+          onClick={handleRemove}
+          disabled={busy}
+          className="mt-3 w-full text-center text-[0.72rem] font-bold text-red-300/70 transition-colors hover:text-red-300 disabled:opacity-50"
+        >
+          {removing ? "Removing…" : "Remove Ebook edition"}
+        </button>
+      )}
+    </Modal>
+  );
+}
+
 function CenteredMessage({
   title,
   subtitle,
@@ -760,6 +907,7 @@ export default function BookLivePage() {
   const [coupon, setCoupon] = useState<BookCoupon | null>(null);
   const [couponOpen, setCouponOpen] = useState(false);
   const [earningsOpen, setEarningsOpen] = useState(false);
+  const [ebookOpen, setEbookOpen] = useState(false);
 
   // Not part of `book` (a separate resource — see BookCouponView), so it
   // needs its own fetch once the book id is known. Silently stays null
@@ -1082,6 +1230,48 @@ export default function BookLivePage() {
         )}
       </GlassCard>
 
+      {/* Ebook — independent of the physical edition above; can be added
+          regardless of whether `format` is set at all. */}
+      <GlassCard
+        accent
+        className="vp-card-in mt-5 p-3.5"
+        style={{ animationDelay: "70ms" }}
+      >
+        <div className="flex items-center justify-between">
+          <SectionLabel style={{ marginBottom: -10, fontSize: 15 }}>
+            Ebook Edition
+          </SectionLabel>
+          <button
+            type="button"
+            onClick={() => setEbookOpen(true)}
+            aria-label={book.has_ebook ? "Edit Ebook edition" : "Set up Ebook edition"}
+            className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
+            style={{
+              background: "rgba(var(--vp-accent-rgb),0.16)",
+              color: "rgb(var(--vp-accent-rgb))",
+            }}
+          >
+            <Pencil size={13} strokeWidth={2.3} />
+          </button>
+        </div>
+
+        {book.has_ebook ? (
+          <>
+            <p className="mt-1 text-4xl font-black text-white">
+              {naira(Number(book.ebook_price))}
+            </p>
+            <p className="mt-1.5 flex items-center gap-1 text-[0.7rem] leading-relaxed text-white/40">
+              <Download size={11} strokeWidth={2.3} />
+              Delivered instantly by Drive link, on purchase and by email.
+            </p>
+          </>
+        ) : (
+          <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/40">
+            Not set up yet — tap the pencil to also sell an Ebook edition of this title.
+          </p>
+        )}
+      </GlassCard>
+
       {/* Stats */}
       <div
         className="vp-card-in mt-5 grid grid-cols-3 gap-3"
@@ -1152,6 +1342,13 @@ export default function BookLivePage() {
         coupon={coupon}
         onSaved={setCoupon}
         onDeleted={() => setCoupon(null)}
+      />
+
+      <EbookModal
+        open={ebookOpen}
+        onClose={() => setEbookOpen(false)}
+        book={book}
+        onSaved={refetch}
       />
 
       <EarningsModal

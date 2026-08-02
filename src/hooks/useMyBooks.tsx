@@ -63,12 +63,22 @@ export interface MyBook {
   slug: string;
   cover: string | null;
   status: "pending" | "draft" | "in_progress" | "published";
-  format: "Paperback" | "Ebook" | "Hardback" | "";
+  // The physical binding, if any — independent of the Ebook edition
+  // below now (see Book.format's own docstring server-side): a title
+  // can have a physical edition, an Ebook edition, or both.
+  format: "Paperback" | "Hardback" | "";
   pages: number | null;
   sales: number;
   earned: string;
   date_published: string | null;
   price: string | null;
+  ebook_price: string | null;
+  // The author's own Google Drive link to the Ebook file — only ever
+  // handed to a buyer after purchase; here (the author's own book list)
+  // it's fine to see it, since they're the one who set it.
+  ebook_drive_link: string;
+  has_ebook: boolean;
+  has_physical: boolean;
   description: string;
   // Google Drive link to production files — blank until staff set it in
   // Django admin, generally once publishing is complete.
@@ -221,6 +231,26 @@ export function updateBookDescription(bookId: string, description: string) {
   return apiFetch<MyBook>(`/books/mine/${bookId}/description/`, {
     method: "PATCH",
     body: JSON.stringify({ description }),
+  });
+}
+
+// Sets/changes this book's Ebook edition — independent of any physical
+// edition it has (see MyBook.format's own comment). Passing
+// ebookPrice: null removes the Ebook edition (and its link) entirely —
+// the backend enforces that a price always needs a link alongside it
+// (see BookEbookSerializer), so there's no way to end up with one but
+// not the other.
+export function updateBookEbook(
+  bookId: string,
+  ebookPrice: number | null,
+  ebookDriveLink: string,
+) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/ebook/`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      ebook_price: ebookPrice,
+      ebook_drive_link: ebookPrice === null ? "" : ebookDriveLink,
+    }),
   });
 }
 

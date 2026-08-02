@@ -97,15 +97,15 @@ function WhatsAppIcon({ size = 15 }: { size?: number; strokeWidth?: number }) {
 // On-state fills the track solidly with the brand accent. Shared between
 // ToggleRow's (now purely visual, pointerEvents:none) Switch instances.
 const SWITCH_SX = {
-  width: 58,
-  height: 34,
+  width: 46,
+  height: 26,
   padding: 0,
   "& .MuiSwitch-switchBase": {
-    padding: "3px",
+    padding: "2px",
     color: "#fff",
     transitionDuration: "220ms",
     "&.Mui-checked": {
-      transform: "translateX(24px)",
+      transform: "translateX(20px)",
       color: "#fff",
       "& + .MuiSwitch-track": {
         backgroundColor: "rgb(var(--vp-accent-rgb))",
@@ -115,12 +115,12 @@ const SWITCH_SX = {
     },
   },
   "& .MuiSwitch-thumb": {
-    width: 28,
-    height: 28,
+    width: 22,
+    height: 22,
     boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
   },
   "& .MuiSwitch-track": {
-    borderRadius: 17,
+    borderRadius: 13,
     backgroundColor: "rgba(255,255,255,0.16)",
     opacity: 1,
     transition: "background-color 220ms ease",
@@ -150,7 +150,7 @@ function ToggleRow({
       type="button"
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between rounded-xl py-2 text-left transition-opacity active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex w-full items-center justify-between rounded-xl py-1 text-left transition-opacity active:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
     >
       <div className="flex items-center gap-3.5">
         <Icon size={22} strokeWidth={1.8} className="text-white/80" />

@@ -41,7 +41,7 @@ function StatTile({
   onClick?: () => void;
 }) {
   const className =
-    "flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-2 text-left";
+    "flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl border px-3 py-1.5 text-left";
   const style = {
     background: "rgba(255,255,255,0.06)",
     borderColor: "rgba(255,255,255,0.1)",

@@ -25,6 +25,9 @@ interface PublicBook {
   cover: string | null;
   format: string;
   price: string | null;
+  ebook_price: string | null;
+  has_ebook: boolean;
+  has_physical: boolean;
   description: string;
   author_name: string;
 }
@@ -51,6 +54,7 @@ export default async function BookPage({
   if (!book) notFound();
 
   const price = book.price !== null ? Number(book.price) : null;
+  const ebookPrice = book.ebook_price !== null ? Number(book.ebook_price) : null;
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-vp-ink text-white">
@@ -94,9 +98,10 @@ export default async function BookPage({
               By {book.author_name} · Published via ValuePlus
             </p>
 
-            {book.format && (
-              <div className="mt-3">
-                <FormatBadge format={book.format} />
+            {(book.has_physical || book.has_ebook) && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {book.has_physical && <FormatBadge format={book.format} />}
+                {book.has_ebook && <FormatBadge format="Ebook" />}
               </div>
             )}
 
@@ -107,7 +112,15 @@ export default async function BookPage({
             )}
 
             <div className="mt-8 max-w-xs">
-              <BuyBox bookId={book.id} slug={slug} price={price} format={book.format} />
+              <BuyBox
+                bookId={book.id}
+                slug={slug}
+                format={book.format}
+                price={price}
+                ebookPrice={ebookPrice}
+                hasEbook={book.has_ebook}
+                hasPhysical={book.has_physical}
+              />
             </div>
           </div>
         </div>

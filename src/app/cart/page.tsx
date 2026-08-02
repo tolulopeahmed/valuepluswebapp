@@ -29,6 +29,7 @@ interface PublicBook {
   title: string;
   cover: string | null;
   price: string | null;
+  ebook_price: string | null;
   format: string;
 }
 
@@ -46,6 +47,15 @@ async function fetchPublicBook(slug: string): Promise<PublicBook | null> {
 
 function naira(value: number) {
   return `₦${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// A cart line's own `format` (what was actually selected when it was
+// added — see lib/cart.ts) picks which of the book's two independent
+// prices applies; `book.format`/`book.price` alone would be wrong for
+// an Ebook line on a book that also has a physical edition.
+function priceForLine(line: CartLine): number | null {
+  const raw = line.format === "Ebook" ? line.book.ebook_price : line.book.price;
+  return raw !== null ? Number(raw) : null;
 }
 
 export default function CartPage() {
@@ -74,11 +84,11 @@ export default function CartPage() {
   }, []);
 
   const subtotal = (lines ?? []).reduce(
-    (sum, line) => sum + (line.book.price ? Number(line.book.price) * line.quantity : 0),
+    (sum, line) => sum + (priceForLine(line) ?? 0) * line.quantity,
     0,
   );
   const total = Math.max(0, subtotal - discountAmount);
-  const hasPhysicalItem = (lines ?? []).some((l) => l.book.format !== "Ebook");
+  const hasPhysicalItem = (lines ?? []).some((l) => l.format !== "Ebook");
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -137,9 +147,10 @@ export default function CartPage() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white p-4">
               {lines.map((line) => {
-                const minQty = minQuantityFor(line.book.format);
+                const minQty = minQuantityFor(line.format);
+                const price = priceForLine(line);
                 return (
-                <div key={line.bookId} className="flex items-center gap-3 border-b border-black/5 pb-3 last:border-0 last:pb-0">
+                <div key={`${line.bookId}-${line.format}`} className="flex items-center gap-3 border-b border-black/5 pb-3 last:border-0 last:pb-0">
                   <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-black/10 bg-black/5">
                     {line.book.cover && (
                       <Image src={line.book.cover} alt={line.book.title} fill sizes="48px" className="object-cover" />
@@ -148,11 +159,11 @@ export default function CartPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-[#14181f]">{line.book.title}</p>
                     <p className="text-xs text-black/45">
-                      {line.book.price ? naira(Number(line.book.price)) : "—"}
+                      {price !== null ? naira(price) : "—"}
                     </p>
-                    {line.book.format && (
+                    {line.format && (
                       <div className="mt-1 flex items-center gap-1.5">
-                        <FormatBadge format={line.book.format} />
+                        <FormatBadge format={line.format} />
                         {minQty > 1 && (
                           <span className="text-[0.62rem] text-black/35">Min {minQty}</span>
                         )}
@@ -163,7 +174,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       aria-label="Decrease quantity"
-                      onClick={() => updateCartQuantity(line.bookId, Math.max(minQty, line.quantity - 1))}
+                      onClick={() => updateCartQuantity(line.bookId, line.format, Math.max(minQty, line.quantity - 1))}
                       disabled={line.quantity <= minQty}
                       className="grid h-7 w-7 place-items-center text-black/60 disabled:opacity-30"
                     >
@@ -173,7 +184,7 @@ export default function CartPage() {
                     <button
                       type="button"
                       aria-label="Increase quantity"
-                      onClick={() => updateCartQuantity(line.bookId, line.quantity + 1)}
+                      onClick={() => updateCartQuantity(line.bookId, line.format, line.quantity + 1)}
                       className="grid h-7 w-7 place-items-center text-black/60"
                     >
                       <Plus size={13} strokeWidth={2.5} />
@@ -182,7 +193,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     aria-label="Remove from cart"
-                    onClick={() => removeFromCart(line.bookId)}
+                    onClick={() => removeFromCart(line.bookId, line.format)}
                     className="text-black/30 hover:text-red-500"
                   >
                     <Trash2 size={16} />

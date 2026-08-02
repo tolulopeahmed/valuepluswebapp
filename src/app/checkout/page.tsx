@@ -14,6 +14,7 @@ interface PublicBook {
   id: string;
   title: string;
   price: string | null;
+  ebook_price: string | null;
   format: string;
 }
 
@@ -47,13 +48,18 @@ function CheckoutForm() {
     Promise.all(
       items.map(async (item) => {
         const book = await fetchPublicBook(item.slug);
-        if (!book || book.price === null) return null;
+        if (!book) return null;
+        // The cart line's own `format` (what was actually selected —
+        // see lib/cart.ts) picks which of the book's two independent
+        // prices applies here, not the book's own `format` field.
+        const price = item.format === "Ebook" ? book.ebook_price : book.price;
+        if (price === null) return null;
         return {
           id: book.id,
           title: book.title,
-          price: Number(book.price),
+          price: Number(price),
           quantity: item.quantity,
-          format: book.format,
+          format: item.format,
         };
       }),
     ).then((resolved) => setBooks(resolved.filter((b): b is NonNullable<typeof b> => b !== null)));
@@ -89,7 +95,7 @@ function CheckoutForm() {
           skipAuth: true,
           method: "POST",
           body: JSON.stringify({
-            items: books.map((b) => ({ book_id: b.id, quantity: b.quantity })),
+            items: books.map((b) => ({ book_id: b.id, format: b.format, quantity: b.quantity })),
             coupon_code: couponCode,
             buyer_name: buyerName.trim(),
             buyer_email: buyerEmail.trim(),
@@ -126,7 +132,7 @@ function CheckoutForm() {
             <>
               <div className="flex flex-col gap-2 border-b border-black/5 pb-4">
                 {books.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between gap-3 text-sm">
+                  <div key={`${b.id}-${b.format}`} className="flex items-center justify-between gap-3 text-sm">
                     <span className="flex min-w-0 items-center gap-2 text-black/70">
                       <span className="truncate">{b.title} × {b.quantity}</span>
                       {b.format && <FormatBadge format={b.format} className="shrink-0" />}

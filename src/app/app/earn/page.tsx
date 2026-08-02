@@ -8,6 +8,7 @@ import {
   PlusCircle,
   BookOpen,
   Send,
+  RefreshCcw,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -27,11 +28,18 @@ import {
 } from "../../../hooks/useWallet";
 
 type EarningStatus = "confirmed" | "pending" | "failed";
-type EarningSource = "referral" | "book-sale" | "transfer";
+type EarningType = "credit" | "debit";
+// quote_payment/reprint deliberately excluded — those are external
+// payments the author owes ValuePlus for a service and never touch
+// Wallet.balance at all (see Transaction model docstring), so they
+// don't belong on a page about money actually moving through the
+// wallet. Every other source does.
+type EarningSource = "referral" | "book-sale" | "transfer" | "withdrawal" | "deposit";
 
 interface Earning {
   id: string;
   source: EarningSource;
+  type: EarningType;
   title: string;
   subtitle: string;
   date: string;
@@ -51,7 +59,17 @@ const SOURCE_ICON: Record<EarningSource, LucideIcon> = {
   referral: Gift,
   "book-sale": BookOpen,
   transfer: Send,
+  withdrawal: RefreshCcw,
+  deposit: PlusCircle,
 };
+
+const WALLET_SOURCES = new Set<WalletTransaction["source"]>([
+  "book_sale",
+  "referral",
+  "withdrawal",
+  "transfer",
+  "deposit",
+]);
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("en-US", {
@@ -63,27 +81,37 @@ function formatDate(iso: string) {
   });
 }
 
-// Only CREDIT transactions — this page is specifically about money
-// coming *in* (referral commissions, book-sale royalties, an incoming
-// peer transfer), not the full ledger (that's app/app/transactions).
-// Real transactions already arrive newest-first (Transaction.Meta.
-// ordering server-side), so grouping preserves that order.
+// Every transaction that actually moves the wallet — money in (book
+// sales, referral rewards, an incoming transfer, a confirmed deposit)
+// and money out (a withdrawal, an outgoing transfer) alike. Real
+// transactions already arrive newest-first (Transaction.Meta.ordering
+// server-side), so grouping preserves that order.
 function groupEarnings(transactions: WalletTransaction[]): EarningGroup[] {
   const groups = new Map<string, Earning[]>();
 
   for (const tx of transactions) {
-    if (tx.type !== "credit") continue;
+    if (!WALLET_SOURCES.has(tx.source)) continue;
 
     const month = new Date(tx.created_at).toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
     });
-    const source: EarningSource = tx.source === "book_sale" ? "book-sale" : tx.source === "transfer" ? "transfer" : "referral";
+    const source: EarningSource =
+      tx.source === "book_sale"
+        ? "book-sale"
+        : tx.source === "transfer"
+          ? "transfer"
+          : tx.source === "withdrawal"
+            ? "withdrawal"
+            : tx.source === "deposit"
+              ? "deposit"
+              : "referral";
     const date = formatDate(tx.created_at);
 
     const earning: Earning = {
       id: tx.id,
       source,
+      type: tx.type,
       title: tx.title,
       subtitle: date,
       date,
@@ -122,21 +150,40 @@ const STATUS_STYLES: Record<
   },
 };
 
+// Same rule as the Transactions page/home dashboard: pending is always
+// grey regardless of credit/debit (nothing's actually moved yet), failed
+// is red, and otherwise credit is green / debit is the warm accent.
+const AMOUNT_COLOR: Record<EarningType, string> = {
+  credit: "#34D399",
+  debit: "#E0A458",
+};
+
+function amountColorFor(earning: Pick<Earning, "status" | "type">) {
+  if (earning.status === "failed") return STATUS_STYLES.failed.text;
+  if (earning.status === "pending") return STATUS_STYLES.pending.text;
+  return AMOUNT_COLOR[earning.type];
+}
+
 // Renders ₦ and the decimal tail smaller than the whole-number amount, in
 // `em` units so one component works at hero size and at row size alike.
 function NairaAmount({
   value,
   className = "",
   bold = true,
+  color,
 }: {
   value: number;
   className?: string;
   bold?: boolean;
+  color?: string;
 }) {
   const [whole, decimal] = value.toFixed(2).split(".");
   const symbolWeight = bold ? "font-black" : "font-normal";
   return (
-    <span className={`inline-flex items-baseline ${className}`}>
+    <span
+      className={`inline-flex items-baseline ${className}`}
+      style={color ? { color } : undefined}
+    >
       <span className={`mr-0.5 text-[0.5em] ${symbolWeight}`}>₦</span>
       <span>{Number(whole).toLocaleString()}</span>
       <span className={`text-[0.5em] ${symbolWeight}`}>.{decimal}</span>
@@ -298,10 +345,17 @@ function EarningRow({
         </span>
       </div>
 
-      <div className="flex shrink-0 items-center">
+      <div className="flex shrink-0 items-center gap-0.5">
+        <span
+          className="text-[0.95rem] font-black"
+          style={{ color: amountColorFor(earning) }}
+        >
+          {earning.type === "credit" ? "+" : "-"}
+        </span>
         <NairaAmount
           value={earning.amount}
           className="text-right text-[1.1rem] font-black leading-none"
+          color={amountColorFor(earning)}
         />
       </div>
     </button>
@@ -357,10 +411,19 @@ function EarningDetailsModal({
           />
         </div>
 
-        <NairaAmount
-          value={earning.amount}
-          className="text-4xl font-black leading-none text-white"
-        />
+        <div className="inline-flex items-baseline gap-1">
+          <span
+            className="text-4xl font-black leading-none"
+            style={{ color: amountColorFor(earning) }}
+          >
+            {earning.type === "credit" ? "+" : "-"}
+          </span>
+          <NairaAmount
+            value={earning.amount}
+            className="text-4xl font-black leading-none"
+            color={amountColorFor(earning)}
+          />
+        </div>
 
         <p className="mt-3 text-[0.95rem] font-semibold text-white/90">
           {earning.title}
@@ -386,7 +449,11 @@ function EarningDetailsModal({
                 ? "Referral"
                 : earning.source === "book-sale"
                   ? "Book sale"
-                  : "Wallet transfer"
+                  : earning.source === "withdrawal"
+                    ? "Withdrawal"
+                    : earning.source === "deposit"
+                      ? "Wallet deposit"
+                      : "Wallet transfer"
             }
           />
           {earning.balanceBefore !== null && (
@@ -424,8 +491,9 @@ function EarningDetailsModal({
   );
 }
 
-// ── All earnings — every referral reward, book sale, and incoming
-// transfer, grouped by month ─
+// ── Wallet Activity — every transaction that actually moves the wallet
+// (book sales, referral rewards, deposits, transfers, withdrawals —
+// money in and out alike), grouped by month ─
 function AllEarningsSection({
   groups,
   loading,
@@ -438,7 +506,7 @@ function AllEarningsSection({
   if (loading) {
     return (
       <div className="flex flex-col gap-2">
-        <SectionLabel>All earnings</SectionLabel>
+        <SectionLabel>Wallet Activity</SectionLabel>
         <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
           Loading your earnings…
         </div>
@@ -449,10 +517,10 @@ function AllEarningsSection({
   if (groups.length === 0) {
     return (
       <div className="flex flex-col gap-2">
-        <SectionLabel>All earnings</SectionLabel>
+        <SectionLabel>Wallet Activity</SectionLabel>
         <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
-          No earnings yet — book sales and referral rewards will show up
-          here.
+          No wallet activity yet — book sales, referral rewards, deposits,
+          and withdrawals will show up here.
         </div>
       </div>
     );
