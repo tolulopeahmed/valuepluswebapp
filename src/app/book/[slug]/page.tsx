@@ -11,6 +11,8 @@ import Image from "next/image";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BuyBox from "@/components/storefront/BuyBox";
+import FormatBadge from "@/components/FormatBadge";
+import BackButton from "@/components/storefront/BackButton";
 
 // Real published-book shape from the Django backend (GET /books/public/
 // <slug>/) — deliberately narrow (see PublicBookSerializer): no contact
@@ -21,6 +23,7 @@ interface PublicBook {
   subtitle: string;
   category: string;
   cover: string | null;
+  format: string;
   price: string | null;
   description: string;
   author_name: string;
@@ -56,6 +59,8 @@ export default async function BookPage({
       <Navbar />
 
       <div className="mx-auto max-w-5xl px-4 pb-24 pt-28 md:pt-32">
+        <BackButton className="mb-5" />
+
         <div className="grid gap-10 md:grid-cols-2 md:items-start md:gap-14">
           <div className="relative mx-auto aspect-[3/4.4] w-full max-w-sm overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
             {book.cover ? (
@@ -89,6 +94,12 @@ export default async function BookPage({
               By {book.author_name} · Published via ValuePlus
             </p>
 
+            {book.format && (
+              <div className="mt-3">
+                <FormatBadge format={book.format} />
+              </div>
+            )}
+
             {book.description && (
               <p className="mt-6 text-base leading-relaxed text-white/70">
                 {book.description}
@@ -96,7 +107,7 @@ export default async function BookPage({
             )}
 
             <div className="mt-8 max-w-xs">
-              <BuyBox bookId={book.id} slug={slug} price={price} />
+              <BuyBox bookId={book.id} slug={slug} price={price} format={book.format} />
             </div>
           </div>
         </div>

@@ -8,6 +8,7 @@ import Switch from "@mui/material/Switch";
 import {
   Moon,
   ArrowLeftRight,
+  BookOpen,
   Landmark,
   UserPlus,
   ShieldCheck,
@@ -31,6 +32,7 @@ import {
   useReferrals,
 } from "../../../hooks/useWallet";
 import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
+import { useMyBooks } from "../../../hooks/useMyBooks";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
@@ -237,6 +239,7 @@ interface SettingItem {
 // backend equivalent yet (see the plan's "explicitly out of scope") and
 // stays static.
 function buildItems({
+  publishedCount,
   isBankLinked,
   bankName,
   referralCount,
@@ -244,6 +247,7 @@ function buildItems({
   referralPending,
   kycStatus,
 }: {
+  publishedCount: number;
   isBankLinked: boolean;
   bankName: string | null;
   referralCount: number;
@@ -252,6 +256,18 @@ function buildItems({
   kycStatus: KYCStatus;
 }): SettingItem[] {
   return [
+    {
+      id: "my-books",
+      label: "My Books",
+      subtitle: "See every title you've published",
+      Icon: BookOpen,
+      href: "/app/more/books",
+      trailing: (
+        <StatusChip tone={publishedCount > 0 ? "accent" : "neutral"}>
+          {publishedCount}
+        </StatusChip>
+      ),
+    },
     {
       id: "bank",
       label: "My Bank Accounts",
@@ -432,6 +448,10 @@ export default function Settings() {
   const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
   const { profile: kycProfile } = useKYCProfile();
+  // Same shared books list the Publish tab/Published Books page read, so
+  // this row's count always agrees with those.
+  const { books } = useMyBooks();
+  const publishedCount = books.filter((b) => b.status === "published").length;
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const defaultBankAccount =
@@ -447,6 +467,7 @@ export default function Settings() {
       : null;
 
   const items = buildItems({
+    publishedCount,
     isBankLinked,
     bankName: linkedBankName,
     referralCount: referrals?.count ?? 0,

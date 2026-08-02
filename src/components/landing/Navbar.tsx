@@ -8,9 +8,9 @@ import Button from "@/components/buttons/buttons";
 import { getCartCount, subscribeToCartChanges } from "@/lib/cart";
 
 const menuItems = [
-  { label: "Academy", href: "/#academy" },
+  { label: "Books", href: "/books" },
+  { label: "Learn Publishing", href: "/pricing" },
   { label: "Portfolio", href: "/#portfolio" },
-  { label: "Pricing", href: "/pricing" },
   { label: "Get Quote", href: "/getQuote" },
 ];
 

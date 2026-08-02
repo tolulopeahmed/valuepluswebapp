@@ -12,19 +12,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Minus, Plus, ShoppingCart } from "lucide-react";
-import { addToCart } from "@/lib/cart";
+import { addToCart, minQuantityFor } from "@/lib/cart";
 import { notify } from "@/lib/snackbar";
 
 export default function BuyBox({
   bookId,
   slug,
   price,
+  format,
 }: {
   bookId: string;
   slug: string;
   price: number | null;
+  format?: string;
 }) {
-  const [quantity, setQuantity] = useState(1);
+  const minQty = minQuantityFor(format ?? "");
+  const [quantity, setQuantity] = useState(minQty);
 
   const handleAddToCart = () => {
     addToCart(bookId, slug, quantity);
@@ -45,12 +48,13 @@ export default function BuyBox({
           <button
             type="button"
             aria-label="Decrease quantity"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="grid h-9 w-9 place-items-center text-black/60 transition-colors hover:text-black"
+            onClick={() => setQuantity((q) => Math.max(minQty, q - 1))}
+            disabled={quantity <= minQty}
+            className="grid h-9 w-9 place-items-center text-black/60 transition-colors hover:text-black disabled:opacity-30"
           >
             <Minus size={15} strokeWidth={2.5} />
           </button>
-          <span className="w-8 text-center text-sm font-bold text-[#14181f]">{quantity}</span>
+          <span className="w-10 text-center text-sm font-bold text-[#14181f]">{quantity}</span>
           <button
             type="button"
             aria-label="Increase quantity"
@@ -62,6 +66,12 @@ export default function BuyBox({
         </div>
       </div>
 
+      {minQty > 1 && (
+        <p className="mt-1.5 text-[0.68rem] text-black/40">
+          Minimum order for a physical copy: {minQty} copies.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={handleAddToCart}
@@ -71,6 +81,12 @@ export default function BuyBox({
         <ShoppingCart size={16} strokeWidth={2.25} />
         {price === null ? "Not available yet" : "Add to Cart"}
       </button>
+
+      {format && format !== "Ebook" && (
+        <p className="mt-2.5 text-center text-[0.68rem] leading-relaxed text-black/40">
+          A physical copy — delivery cost is paid separately by you, arranged at checkout.
+        </p>
+      )}
 
       <Link
         href="/cart"

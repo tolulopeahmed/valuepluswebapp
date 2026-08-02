@@ -12,6 +12,8 @@ import Link from "next/link";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
+import FormatBadge from "@/components/FormatBadge";
+import BackButton from "@/components/storefront/BackButton";
 import { apiFetch } from "@/lib/api";
 import { clearCart } from "@/lib/cart";
 
@@ -87,6 +89,8 @@ export default function OrderStatusPage() {
       <Navbar />
 
       <div className="mx-auto max-w-xl px-4 pb-24 pt-28 md:pt-32">
+        <BackButton href="/" label="Back to ValuePlus" className="mb-4" />
+
         <div className="rounded-2xl border border-black/10 bg-white p-8 text-center text-[#14181f]">
           {!order || order.status === "pending" ? (
             <>
@@ -103,9 +107,12 @@ export default function OrderStatusPage() {
               </p>
               <div className="mt-5 flex flex-col gap-1.5 text-left text-sm">
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-black/70">
-                    <span>{item.book_title} × {item.quantity}</span>
-                    <span className="font-bold">{naira(Number(item.line_total))}</span>
+                  <div key={i} className="flex items-center justify-between gap-3 text-black/70">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{item.book_title} × {item.quantity}</span>
+                      {item.format && <FormatBadge format={item.format} className="shrink-0" />}
+                    </span>
+                    <span className="shrink-0 font-bold">{naira(Number(item.line_total))}</span>
                   </div>
                 ))}
               </div>

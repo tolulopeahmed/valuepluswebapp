@@ -4,6 +4,8 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
+import FormatBadge from "@/components/FormatBadge";
+import BackButton from "@/components/storefront/BackButton";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import { getCart } from "@/lib/cart";
@@ -37,6 +39,7 @@ function CheckoutForm() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
+  const [deliveryCostAck, setDeliveryCostAck] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -73,6 +76,10 @@ function CheckoutForm() {
       notify("A shipping address is required for a physical copy.", "error");
       return;
     }
+    if (hasPhysicalItem && !deliveryCostAck) {
+      notify("Please confirm you understand you'll pay the delivery cost.", "error");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -88,6 +95,7 @@ function CheckoutForm() {
             buyer_email: buyerEmail.trim(),
             buyer_phone: buyerPhone.trim(),
             shipping_address: shippingAddress.trim(),
+            delivery_cost_acknowledged: deliveryCostAck,
           }),
         },
       );
@@ -106,6 +114,7 @@ function CheckoutForm() {
       <Navbar />
 
       <div className="mx-auto max-w-2xl px-4 pb-24 pt-28 md:pt-32">
+        <BackButton href="/cart" label="Back to Cart" className="mb-4" />
         <h1 className="mb-6 text-3xl font-black text-white">Checkout</h1>
 
         <div className="rounded-2xl border border-black/10 bg-white p-5 text-[#14181f]">
@@ -117,9 +126,12 @@ function CheckoutForm() {
             <>
               <div className="flex flex-col gap-2 border-b border-black/5 pb-4">
                 {books.map((b) => (
-                  <div key={b.id} className="flex justify-between text-sm">
-                    <span className="text-black/70">{b.title} × {b.quantity}</span>
-                    <span className="font-bold">{naira(b.price * b.quantity)}</span>
+                  <div key={b.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2 text-black/70">
+                      <span className="truncate">{b.title} × {b.quantity}</span>
+                      {b.format && <FormatBadge format={b.format} className="shrink-0" />}
+                    </span>
+                    <span className="shrink-0 font-bold">{naira(b.price * b.quantity)}</span>
                   </div>
                 ))}
               </div>
@@ -162,20 +174,34 @@ function CheckoutForm() {
                   className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
                 />
                 {hasPhysicalItem && (
-                  <textarea
-                    value={shippingAddress}
-                    onChange={(e) => setShippingAddress(e.target.value)}
-                    placeholder="Shipping address *"
-                    rows={3}
-                    className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
-                  />
+                  <>
+                    <textarea
+                      value={shippingAddress}
+                      onChange={(e) => setShippingAddress(e.target.value)}
+                      placeholder="Shipping address *"
+                      rows={3}
+                      className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
+                    />
+                    <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3">
+                      <input
+                        type="checkbox"
+                        checked={deliveryCostAck}
+                        onChange={(e) => setDeliveryCostAck(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#171100]"
+                      />
+                      <span className="text-xs leading-relaxed text-black/60">
+                        I understand delivery cost for physical copies is paid by me (the
+                        receiver) separately, and isn&apos;t included in the total above.
+                      </span>
+                    </label>
+                  </>
                 )}
               </div>
 
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || (hasPhysicalItem && !deliveryCostAck)}
                 className="mt-5 w-full rounded-xl py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-50"
                 style={{ background: "#171100" }}
               >

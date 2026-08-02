@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   BadgeCheck,
@@ -23,6 +29,7 @@ import Button from "../../../../../components/buttons/buttons";
 import Modal from "../../../../../components/Modal";
 import BookCoverCropModal from "../../../../../components/BookCoverCropModal";
 import ReorderPrintsModal from "../../../../../components/ReorderPrintsModal";
+import FormatBadge from "../../../../../components/FormatBadge";
 import { notify } from "../../../../../lib/snackbar";
 import { ApiError } from "../../../../../lib/api";
 import {
@@ -46,16 +53,21 @@ function StatTile({
   icon,
   label,
   value,
+  valueColor,
   onClick,
 }: {
   icon: ReactNode;
   label: string;
   value: string;
+  valueColor?: string;
   onClick?: () => void;
 }) {
   const className =
     "flex flex-col items-center gap-1 rounded-2xl border px-3 py-3 text-center transition-transform active:scale-[0.97]";
-  const style = { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.1)" };
+  const style = {
+    background: "rgba(255,255,255,0.06)",
+    borderColor: "rgba(255,255,255,0.1)",
+  };
   const content = (
     <>
       <div className="flex items-center gap-1 text-white/55">
@@ -64,13 +76,23 @@ function StatTile({
           {label}
         </p>
       </div>
-      <p className="text-[0.95rem] font-black text-white">{value}</p>
+      <p
+        className="text-[0.95rem] font-black"
+        style={{ color: valueColor ?? "#ffffff" }}
+      >
+        {value}
+      </p>
     </>
   );
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className} style={style}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={className}
+        style={style}
+      >
         {content}
       </button>
     );
@@ -98,13 +120,19 @@ function ActionCard({
 }) {
   const className =
     "flex items-center gap-3 rounded-2xl border p-3.5 text-left transition-transform active:scale-[0.98]";
-  const style = { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)" };
+  const style = {
+    background: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(255,255,255,0.1)",
+  };
 
   const content = (
     <>
       <span
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: "rgba(var(--vp-accent-rgb),0.16)", color: "rgb(var(--vp-accent-rgb))" }}
+        style={{
+          background: "rgba(var(--vp-accent-rgb),0.16)",
+          color: "rgb(var(--vp-accent-rgb))",
+        }}
       >
         {icon}
       </span>
@@ -117,7 +145,13 @@ function ActionCard({
 
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        style={style}
+      >
         {content}
       </a>
     );
@@ -155,13 +189,18 @@ function AssetsModal({
 
       <div
         className="flex items-center gap-3 rounded-2xl border p-3"
-        style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)" }}
+        style={{
+          background: "rgba(255,255,255,0.04)",
+          borderColor: "rgba(255,255,255,0.1)",
+        }}
       >
         <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-lg border border-white/15">
           <BookCover book={book} sizes="56px" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[0.85rem] font-black text-white">Cover Image</p>
+          <p className="truncate text-[0.85rem] font-black text-white">
+            Cover Image
+          </p>
           {book.cover ? (
             <a
               href={book.cover}
@@ -210,14 +249,17 @@ function AssetsModal({
       ) : (
         <div
           className="mt-4 rounded-2xl border px-4 py-3 text-center"
-          style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}
+          style={{
+            borderColor: "rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.03)",
+          }}
         >
           <p className="text-[0.78rem] font-bold text-white/70">
             Your assets aren&apos;t ready yet
           </p>
           <p className="mt-1 text-[0.7rem] leading-relaxed text-white/40">
-            Manuscript files, ISBN certificates, and other production files will be available
-            here once publishing is complete.
+            Manuscript files, ISBN certificates, and other production files will
+            be available here once publishing is complete.
           </p>
         </div>
       )}
@@ -293,7 +335,11 @@ function DescriptionModal({
         onChange={(e) => setValue(e.target.value)}
         placeholder="Tell readers what this book is about…"
         className="w-full resize-none rounded-2xl border bg-white/5 px-3.5 py-3 text-[0.85rem] leading-relaxed text-white outline-none placeholder:text-white/25"
-        style={{ borderColor: overLimit ? "rgba(248,113,113,0.5)" : "rgba(255,255,255,0.1)" }}
+        style={{
+          borderColor: overLimit
+            ? "rgba(248,113,113,0.5)"
+            : "rgba(255,255,255,0.1)",
+        }}
       />
       <p
         className="mt-1.5 text-right text-[0.68rem] font-bold"
@@ -303,10 +349,22 @@ function DescriptionModal({
       </p>
 
       <div className="mt-3 flex gap-2">
-        <Button variant="primary" size="md" className="flex-1" loading={saving} disabled={overLimit} onClick={handleSave}>
+        <Button
+          variant="primary"
+          size="md"
+          className="flex-1"
+          loading={saving}
+          disabled={overLimit}
+          onClick={handleSave}
+        >
           Save
         </Button>
-        <Button variant="secondary" size="md" onClick={onClose} disabled={saving}>
+        <Button
+          variant="secondary"
+          size="md"
+          onClick={onClose}
+          disabled={saving}
+        >
           Cancel
         </Button>
       </div>
@@ -333,7 +391,9 @@ function CouponModal({
   onDeleted: () => void;
 }) {
   const [code, setCode] = useState("");
-  const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">(
+    "percent",
+  );
   const [discountValue, setDiscountValue] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
@@ -351,7 +411,11 @@ function CouponModal({
     setDiscountType(coupon?.discount_type ?? "percent");
     setDiscountValue(coupon ? coupon.discount_value : "");
     setExpiresAt(coupon?.valid_until ? coupon.valid_until.slice(0, 10) : "");
-    setMaxUses(coupon?.max_uses !== null && coupon?.max_uses !== undefined ? String(coupon.max_uses) : "");
+    setMaxUses(
+      coupon?.max_uses !== null && coupon?.max_uses !== undefined
+        ? String(coupon.max_uses)
+        : "",
+    );
     setIsActive(coupon?.is_active ?? true);
   }, [open, coupon]);
 
@@ -429,7 +493,10 @@ function CouponModal({
             Discount
           </span>
           <div className="flex gap-2">
-            <div className="flex overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+            <div
+              className="flex overflow-hidden rounded-xl border"
+              style={{ borderColor: "rgba(255,255,255,0.1)" }}
+            >
               {(["percent", "fixed"] as const).map((t) => (
                 <button
                   key={t}
@@ -437,8 +504,12 @@ function CouponModal({
                   onClick={() => setDiscountType(t)}
                   className="px-3 py-2.5 text-[0.75rem] font-bold transition-colors"
                   style={{
-                    background: discountType === t ? "rgb(var(--vp-accent-rgb))" : "transparent",
-                    color: discountType === t ? "#171100" : "rgba(255,255,255,0.55)",
+                    background:
+                      discountType === t
+                        ? "rgb(var(--vp-accent-rgb))"
+                        : "transparent",
+                    color:
+                      discountType === t ? "#171100" : "rgba(255,255,255,0.55)",
                   }}
                 >
                   {t === "percent" ? "%" : "₦"}
@@ -452,7 +523,9 @@ function CouponModal({
               <input
                 inputMode="decimal"
                 value={discountValue}
-                onChange={(e) => setDiscountValue(e.target.value.replace(/[^\d.]/g, ""))}
+                onChange={(e) =>
+                  setDiscountValue(e.target.value.replace(/[^\d.]/g, ""))
+                }
                 placeholder="0"
                 className="w-full bg-transparent text-[0.9rem] font-black text-white outline-none placeholder:text-white/25"
               />
@@ -473,7 +546,10 @@ function CouponModal({
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
               className="w-full rounded-xl border bg-white/5 px-3 py-2.5 text-[0.8rem] font-semibold text-white outline-none"
-              style={{ borderColor: "rgba(255,255,255,0.1)", colorScheme: "dark" }}
+              style={{
+                borderColor: "rgba(255,255,255,0.1)",
+                colorScheme: "dark",
+              }}
             />
           </div>
           <div>
@@ -500,18 +576,31 @@ function CouponModal({
           <span className="text-[0.78rem] font-bold text-white/75">Active</span>
           <span
             className="flex h-5 w-9 items-center rounded-full px-0.5 transition-colors"
-            style={{ background: isActive ? "rgb(var(--vp-accent-rgb))" : "rgba(255,255,255,0.15)" }}
+            style={{
+              background: isActive
+                ? "rgb(var(--vp-accent-rgb))"
+                : "rgba(255,255,255,0.15)",
+            }}
           >
             <span
               className="h-4 w-4 rounded-full bg-white transition-transform"
-              style={{ transform: isActive ? "translateX(16px)" : "translateX(0)" }}
+              style={{
+                transform: isActive ? "translateX(16px)" : "translateX(0)",
+              }}
             />
           </span>
         </button>
       </div>
 
       <div className="mt-4 flex gap-2">
-        <Button variant="primary" size="md" className="flex-1" loading={saving} disabled={deleting} onClick={handleSave}>
+        <Button
+          variant="primary"
+          size="md"
+          className="flex-1"
+          loading={saving}
+          disabled={deleting}
+          onClick={handleSave}
+        >
           Save
         </Button>
         <Button variant="secondary" size="md" onClick={onClose} disabled={busy}>
@@ -533,11 +622,20 @@ function CouponModal({
   );
 }
 
-const EARNINGS_STATUS_COLOR: Record<string, string> = {
-  confirmed: "#34D399",
-  pending: "rgba(255,255,255,0.55)",
-  failed: "#F87171",
+// Same amount-color rule the Transactions page/home dashboard use
+// (Transactions.tsx's amountColorFor): pending is always grey regardless
+// of credit/debit (nothing's actually moved yet), failed is red, and
+// otherwise credit is green / debit is the warm accent.
+const EARNINGS_AMOUNT_COLOR: Record<"credit" | "debit", string> = {
+  credit: "#34D399",
+  debit: "#E0A458",
 };
+
+function amountColorFor(tx: { status: string; type: "credit" | "debit" }) {
+  if (tx.status === "failed") return "#F87171";
+  if (tx.status === "pending") return "rgba(255,255,255,0.55)";
+  return EARNINGS_AMOUNT_COLOR[tx.type];
+}
 
 function formatTxDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -548,9 +646,11 @@ function formatTxDate(iso: string) {
 }
 
 // Clicking "Earned" opens this rather than sending the author over to
-// the general Transactions page — every row here is already scoped to
-// just this book (book_sale credits), which is the one thing they were
-// actually asking "how did I get to this number" about.
+// the general Transactions page — scoped to just this book's book_sale
+// rows (real earnings from real sales), not every transaction that
+// happens to reference the book (a quote_payment or reprint debit is
+// money the author owes ValuePlus for production, not part of "how did
+// I get to this earned number").
 function EarningsModal({
   open,
   onClose,
@@ -561,17 +661,23 @@ function EarningsModal({
   book: MyBook;
 }) {
   const { transactions, loading } = useTransactions();
-  const bookTransactions = transactions.filter((tx) => tx.book_id === book.id);
+  const bookTransactions = transactions.filter(
+    (tx) => tx.book_id === book.id && tx.source === "book_sale",
+  );
 
   return (
     <Modal open={open} onClose={onClose}>
-      <h3 className="mb-1 text-[1.05rem] font-black text-white">Earnings History</h3>
+      <h3 className="mb-1 text-[1.05rem] font-black text-white">
+        Earnings History
+      </h3>
       <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
         Every transaction tied to &ldquo;{book.title}&rdquo;.
       </p>
 
       {loading ? (
-        <p className="py-6 text-center text-[0.78rem] text-white/40">Loading…</p>
+        <p className="py-6 text-center text-[0.78rem] text-white/40">
+          Loading…
+        </p>
       ) : bookTransactions.length === 0 ? (
         <p className="py-6 text-center text-[0.78rem] text-white/40">
           No transactions for this book yet.
@@ -582,16 +688,23 @@ function EarningsModal({
             <div
               key={tx.id}
               className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
-              style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.1)" }}
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                borderColor: "rgba(255,255,255,0.1)",
+              }}
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[0.8rem] font-bold text-white/85">{tx.title}</p>
-                <p className="mt-0.5 text-[0.66rem] text-white/40">{formatTxDate(tx.created_at)}</p>
+                <p className="truncate text-[0.8rem] font-bold text-white/85">
+                  {tx.title}
+                </p>
+                <p className="mt-0.5 text-[0.66rem] text-white/40">
+                  {formatTxDate(tx.created_at)}
+                </p>
               </div>
               <div className="shrink-0 text-right">
                 <p
                   className="text-[0.85rem] font-black"
-                  style={{ color: EARNINGS_STATUS_COLOR[tx.status] ?? "#ffffff" }}
+                  style={{ color: amountColorFor(tx) }}
                 >
                   {tx.type === "credit" ? "+" : "-"}
                   {naira(Number(tx.amount))}
@@ -661,7 +774,9 @@ export default function BookLivePage() {
 
   if (loading && books.length === 0) {
     return (
-      <div className="py-24 text-center text-[0.85rem] text-white/40">Loading your book…</div>
+      <div className="py-24 text-center text-[0.85rem] text-white/40">
+        Loading your book…
+      </div>
     );
   }
 
@@ -690,7 +805,9 @@ export default function BookLivePage() {
   const effectivePrice = currentPrice ?? suggested;
 
   const handleStartEditPrice = () => {
-    setPriceInput(effectivePrice !== null ? String(Math.round(effectivePrice)) : "");
+    setPriceInput(
+      effectivePrice !== null ? String(Math.round(effectivePrice)) : "",
+    );
     setEditingPrice(true);
   };
 
@@ -809,7 +926,11 @@ export default function BookLivePage() {
           <div className="min-w-0 flex-1 text-center sm:text-left">
             <span
               className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em]"
-              style={{ background: "#123524", color: "#4ade80", border: "1px solid rgba(74,222,128,0.5)" }}
+              style={{
+                background: "#123524",
+                color: "#4ade80",
+                border: "1px solid rgba(74,222,128,0.5)",
+              }}
             >
               <BadgeCheck size={12} strokeWidth={2.5} />
               Live
@@ -826,15 +947,13 @@ export default function BookLivePage() {
               {book.title}
             </h1>
             {book.subtitle && (
-              <p className="mt-1 text-[0.82rem] text-white/55">{book.subtitle}</p>
+              <p className="mt-1 text-[0.82rem] text-white/55">
+                {book.subtitle}
+              </p>
             )}
 
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
-              {book.format && (
-                <span className="inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-white/60">
-                  {book.format}
-                </span>
-              )}
+              {book.format && <FormatBadge format={book.format} />}
               {book.pages !== null && (
                 <span className="inline-flex items-center gap-1 text-[0.62rem] font-bold text-white/40">
                   <Layers size={11} />
@@ -862,7 +981,11 @@ export default function BookLivePage() {
                 <p className="min-w-0 flex-1 whitespace-pre-line text-[0.78rem] leading-relaxed text-white/55">
                   {book.description}
                 </p>
-                <Pencil size={12} strokeWidth={2.3} className="mt-0.5 shrink-0 text-white/35" />
+                <Pencil
+                  size={12}
+                  strokeWidth={2.3}
+                  className="mt-0.5 shrink-0 text-white/35"
+                />
               </button>
             ) : (
               <button
@@ -879,16 +1002,25 @@ export default function BookLivePage() {
       </div>
 
       {/* Price */}
-      <GlassCard accent className="vp-card-in mt-5 p-3.5" style={{ animationDelay: "60ms" }}>
+      <GlassCard
+        accent
+        className="vp-card-in mt-5 p-3.5"
+        style={{ animationDelay: "60ms" }}
+      >
         <div className="flex items-center justify-between">
-          <SectionLabel style={{ marginBottom: 0 }}>Sale Price</SectionLabel>
+          <SectionLabel style={{ marginBottom: -10, fontSize: 15 }}>
+            Sale Price
+          </SectionLabel>
           {!editingPrice && (
             <button
               type="button"
               onClick={handleStartEditPrice}
               aria-label="Edit price"
               className="flex h-7 w-7 items-center justify-center rounded-full transition-transform active:scale-90"
-              style={{ background: "rgba(var(--vp-accent-rgb),0.16)", color: "rgb(var(--vp-accent-rgb))" }}
+              style={{
+                background: "rgba(var(--vp-accent-rgb),0.16)",
+                color: "rgb(var(--vp-accent-rgb))",
+              }}
             >
               <Pencil size={13} strokeWidth={2.3} />
             </button>
@@ -906,15 +1038,27 @@ export default function BookLivePage() {
                 autoFocus
                 inputMode="numeric"
                 value={priceInput}
-                onChange={(e) => setPriceInput(e.target.value.replace(/[^\d]/g, ""))}
+                onChange={(e) =>
+                  setPriceInput(e.target.value.replace(/[^\d]/g, ""))
+                }
                 placeholder="0"
                 className="w-full bg-transparent text-[1.1rem] font-black text-white outline-none placeholder:text-white/25"
               />
             </div>
-            <Button variant="primary" size="md" loading={savingPrice} onClick={handleSavePrice}>
+            <Button
+              variant="primary"
+              size="md"
+              loading={savingPrice}
+              onClick={handleSavePrice}
+            >
               <Check size={16} />
             </Button>
-            <Button variant="secondary" size="md" onClick={() => setEditingPrice(false)} disabled={savingPrice}>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setEditingPrice(false)}
+              disabled={savingPrice}
+            >
               Cancel
             </Button>
           </div>
@@ -925,7 +1069,8 @@ export default function BookLivePage() {
             </p>
             {currentPrice === null && suggested !== null && (
               <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/40">
-                Suggested default — 2.5× the print cost. Tap the pencil to confirm or change it.
+                Suggested default — 2.5× the print cost. Tap the pencil to
+                confirm or change it.
               </p>
             )}
             {currentPrice === null && suggested === null && (
@@ -938,12 +1083,20 @@ export default function BookLivePage() {
       </GlassCard>
 
       {/* Stats */}
-      <div className="vp-card-in mt-5 grid grid-cols-3 gap-3" style={{ animationDelay: "100ms" }}>
-        <StatTile icon={<TrendingUp size={12} strokeWidth={2} />} label="Sales" value={String(book.sales)} />
+      <div
+        className="vp-card-in mt-5 grid grid-cols-3 gap-3"
+        style={{ animationDelay: "100ms" }}
+      >
+        <StatTile
+          icon={<TrendingUp size={12} strokeWidth={2} />}
+          label="Sales"
+          value={String(book.sales)}
+        />
         <StatTile
           icon={<Wallet size={12} strokeWidth={2} />}
           label="Earned"
           value={naira(book.earned)}
+          valueColor="#34D399"
           onClick={() => setEarningsOpen(true)}
         />
         <StatTile
@@ -955,7 +1108,10 @@ export default function BookLivePage() {
       </div>
 
       {/* Actions */}
-      <div className="vp-card-in mt-5 grid gap-3 sm:grid-cols-3" style={{ animationDelay: "140ms" }}>
+      <div
+        className="vp-card-in mt-5 grid gap-3 sm:grid-cols-3"
+        style={{ animationDelay: "140ms" }}
+      >
         <ActionCard
           icon={<FileStack size={18} strokeWidth={1.9} />}
           label="View Assets"
@@ -976,7 +1132,11 @@ export default function BookLivePage() {
         />
       </div>
 
-      <AssetsModal open={assetsOpen} onClose={() => setAssetsOpen(false)} book={book} />
+      <AssetsModal
+        open={assetsOpen}
+        onClose={() => setAssetsOpen(false)}
+        book={book}
+      />
 
       <DescriptionModal
         open={descriptionOpen}
@@ -994,7 +1154,11 @@ export default function BookLivePage() {
         onDeleted={() => setCoupon(null)}
       />
 
-      <EarningsModal open={earningsOpen} onClose={() => setEarningsOpen(false)} book={book} />
+      <EarningsModal
+        open={earningsOpen}
+        onClose={() => setEarningsOpen(false)}
+        book={book}
+      />
 
       <ReorderPrintsModal
         open={reorderOpen}

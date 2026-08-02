@@ -6,6 +6,7 @@ import { ArrowRight, Pencil, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import Button from "./buttons/buttons";
 import BookCoverCropModal from "./BookCoverCropModal";
+import FormatBadge from "./FormatBadge";
 import { notify } from "../lib/snackbar";
 import { ApiError } from "../lib/api";
 import {
@@ -292,11 +293,7 @@ export default function BookDetailsModal({
                 {MY_BOOK_STATUS_LABEL[book.status]}
               </span>
 
-              {book.format && (
-                <span className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/60">
-                  {book.format}
-                </span>
-              )}
+              {book.format && <FormatBadge format={book.format} className="!px-2 !py-0.5 !text-[0.54rem]" />}
 
               {book.pages !== null && (
                 <span className="text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/35">

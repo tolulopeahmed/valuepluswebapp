@@ -11,6 +11,8 @@ import Image from "next/image";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
+import FormatBadge from "@/components/FormatBadge";
+import BackButton from "@/components/storefront/BackButton";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import {
@@ -18,6 +20,7 @@ import {
   updateCartQuantity,
   removeFromCart,
   subscribeToCartChanges,
+  minQuantityFor,
   type CartItem,
 } from "@/lib/cart";
 
@@ -117,6 +120,7 @@ export default function CartPage() {
       <Navbar />
 
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-28 md:pt-32">
+        <BackButton className="mb-4" />
         <h1 className="mb-6 text-3xl font-black text-white">Your Cart</h1>
 
         {lines === null ? (
@@ -132,7 +136,9 @@ export default function CartPage() {
         ) : (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white p-4">
-              {lines.map((line) => (
+              {lines.map((line) => {
+                const minQty = minQuantityFor(line.book.format);
+                return (
                 <div key={line.bookId} className="flex items-center gap-3 border-b border-black/5 pb-3 last:border-0 last:pb-0">
                   <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-black/10 bg-black/5">
                     {line.book.cover && (
@@ -144,17 +150,26 @@ export default function CartPage() {
                     <p className="text-xs text-black/45">
                       {line.book.price ? naira(Number(line.book.price)) : "—"}
                     </p>
+                    {line.book.format && (
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <FormatBadge format={line.book.format} />
+                        {minQty > 1 && (
+                          <span className="text-[0.62rem] text-black/35">Min {minQty}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-black/[0.03]">
                     <button
                       type="button"
                       aria-label="Decrease quantity"
-                      onClick={() => updateCartQuantity(line.bookId, line.quantity - 1)}
-                      className="grid h-7 w-7 place-items-center text-black/60"
+                      onClick={() => updateCartQuantity(line.bookId, Math.max(minQty, line.quantity - 1))}
+                      disabled={line.quantity <= minQty}
+                      className="grid h-7 w-7 place-items-center text-black/60 disabled:opacity-30"
                     >
                       <Minus size={13} strokeWidth={2.5} />
                     </button>
-                    <span className="w-6 text-center text-xs font-bold text-[#14181f]">{line.quantity}</span>
+                    <span className="w-7 text-center text-xs font-bold text-[#14181f]">{line.quantity}</span>
                     <button
                       type="button"
                       aria-label="Increase quantity"
@@ -173,7 +188,8 @@ export default function CartPage() {
                     <Trash2 size={16} />
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="rounded-2xl border border-black/10 bg-white p-4">
@@ -219,7 +235,8 @@ export default function CartPage() {
 
               {hasPhysicalItem && (
                 <p className="mt-3 text-xs text-black/40">
-                  A shipping address will be collected at checkout for physical copies.
+                  A shipping address will be collected at checkout for physical copies —
+                  delivery cost is paid separately by you.
                 </p>
               )}
 
