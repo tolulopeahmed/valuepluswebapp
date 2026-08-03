@@ -9,11 +9,12 @@
 // store," where scannability of price/trust details matters more than
 // the marketing site's dark editorial brand.
 //
-// A title's physical edition and Ebook edition are independent and can
-// both be for sale at once (see Book.has_ebook/has_physical
-// server-side) — when both exist, this renders a tab to pick one, each
-// with its own price/quantity rules, and adds a SEPARATE cart line per
-// edition (see lib/cart.ts's (bookId, format) keying).
+// A title's Paperback, Hardback, and Ebook editions are independent and
+// can all be for sale at once (see Book.has_paperback/has_hardback/
+// has_ebook server-side) — when more than one exists, this renders a
+// tab to pick between them, each with its own price/quantity rules, and
+// adds a SEPARATE cart line per edition (see lib/cart.ts's
+// (bookId, format) keying).
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -30,22 +31,29 @@ interface Edition {
 export default function BuyBox({
   bookId,
   slug,
-  format,
-  price,
+  paperbackPrice,
+  hardbackPrice,
   ebookPrice,
+  hasPaperback,
+  hasHardback,
   hasEbook,
-  hasPhysical,
 }: {
   bookId: string;
   slug: string;
-  format: string;
-  price: number | null;
+  paperbackPrice: number | null;
+  hardbackPrice: number | null;
   ebookPrice: number | null;
+  hasPaperback: boolean;
+  hasHardback: boolean;
   hasEbook: boolean;
-  hasPhysical: boolean;
 }) {
   const editions: Edition[] = [
-    ...(hasPhysical && price !== null ? [{ format, label: format, price }] : []),
+    ...(hasPaperback && paperbackPrice !== null
+      ? [{ format: "Paperback", label: "Paperback", price: paperbackPrice }]
+      : []),
+    ...(hasHardback && hardbackPrice !== null
+      ? [{ format: "Hardback", label: "Hardback", price: hardbackPrice }]
+      : []),
     ...(hasEbook && ebookPrice !== null ? [{ format: "Ebook", label: "Ebook", price: ebookPrice }] : []),
   ];
 

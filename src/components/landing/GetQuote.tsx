@@ -72,6 +72,17 @@ type QuoteEstimateDetail = {
   estimateInView: boolean;
 };
 
+// Which edition(s) to publish — independent of, and asked before, the
+// services checklist below. Mirrors apps.quotations.models.
+// QuotationRequest.requested_formats server-side.
+type BookFormat = "Paperback" | "Hardback" | "Ebook";
+
+const formatOptions: { id: BookFormat; label: string; note: string }[] = [
+  { id: "Paperback", label: "Paperback", note: "Softcover print" },
+  { id: "Hardback", label: "Hardback", note: "Hardcover print" },
+  { id: "Ebook", label: "Ebook", note: "Digital download" },
+];
+
 type QuoteWindow = Window & {
   __valuePlusQuoteEstimate?: QuoteEstimateDetail;
 };
@@ -629,6 +640,12 @@ export default function GetQuote({
   const [referrerEmail, setReferrerEmail] = useState(() =>
     getStoredReferrerEmail(),
   );
+  // Paperback preselected — the default assumption every prior version
+  // of this form made, so a visitor who doesn't touch this still gets
+  // the same behavior as before this selector existed.
+  const [selectedFormats, setSelectedFormats] = useState<BookFormat[]>([
+    "Paperback",
+  ]);
   const [manualSelectedIds, setManualSelectedIds] = useState<string[]>([]);
   const [wordAnchorId, setWordAnchorId] = useState<string | null>(null);
   const [displayTotal, setDisplayTotal] = useState(0);
@@ -675,12 +692,32 @@ export default function GetQuote({
     return manualSelectedIds.some((id) => printFinishIds.includes(id));
   }, [manualSelectedIds]);
 
+  const hasPhysicalFormat =
+    selectedFormats.includes("Paperback") || selectedFormats.includes("Hardback");
+  // Paperback and/or Hardback selected together — the second one's
+  // print cost is quoted separately from the first's, same split the
+  // backend makes (see QuotationRequest.secondary_physical_formats /
+  // the auto-created BookFormatRequest for it).
+  const secondaryPhysicalFormat =
+    selectedFormats.includes("Paperback") && selectedFormats.includes("Hardback")
+      ? "Hardback"
+      : null;
+
   // Anything from the "Print Finish" group (paper/lamination/binding/
-  // nylon, or the 250+ page auto-add) means staff still need to price
-  // printing by hand — the displayed total isn't the final cost yet.
-  // With none of that selected, the total already IS the final cost, so
-  // the button/success copy/email shouldn't imply more is coming.
-  const hasPrintElement = hasManualPrintFinish || pageCount > 250;
+  // nylon, or the 250+ page auto-add), OR simply asking for a physical
+  // edition at all, means staff still need to price printing by hand —
+  // the displayed total isn't the final cost yet. With neither, the
+  // total already IS the final cost, so the button/success copy/email
+  // shouldn't imply more is coming.
+  const hasPrintElement = hasManualPrintFinish || pageCount > 250 || hasPhysicalFormat;
+
+  function toggleFormat(format: BookFormat) {
+    setSelectedFormats((current) =>
+      current.includes(format)
+        ? current.filter((f) => f !== format)
+        : [...current, format],
+    );
+  }
 
   const effectiveSelectedIds = useMemo(() => {
     const next = [...manualSelectedIds];
@@ -1168,6 +1205,11 @@ export default function GetQuote({
   }
 
   async function submitQuote() {
+    if (selectedFormats.length === 0) {
+      notify("Choose at least one format — Paperback, Hardback, or Ebook.", "error");
+      return;
+    }
+
     setSubmitState("submitting");
 
     const numberOrUndefined = (value: string) => {
@@ -1192,6 +1234,7 @@ export default function GetQuote({
           words: numberOrUndefined(words),
           chapters: numberOrUndefined(chapters),
           copies: numberOrUndefined(copies),
+          formats: selectedFormats,
           selected_service_ids: effectiveSelectedIds,
           referrer_email: referrerEmail.trim() || undefined,
         }),
@@ -1231,6 +1274,7 @@ export default function GetQuote({
     setPages("");
     setWords("");
     setChapters("");
+    setSelectedFormats(["Paperback"]);
     setManualSelectedIds([]);
     setWordAnchorId(null);
     setCompletedFields((current) =>
@@ -1936,6 +1980,39 @@ export default function GetQuote({
                   </div>
                 </div>
 
+                <div className="vpgq-sub-panel">
+                  <span className="vpgq-label" style={{ color: "#60c8ff" }}>
+                    Which format(s) do you want to publish? *
+                  </span>
+
+                  <div className="vpgq-chips" style={{ marginTop: "0.6rem" }}>
+                    {formatOptions.map((option) => {
+                      const isSelected = selectedFormats.includes(option.id);
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={`vpgq-chip${isSelected ? " vpgq-chip-active" : ""}`}
+                          onClick={() => toggleFormat(option.id)}
+                          aria-pressed={isSelected}
+                        >
+                          <span className="vpgq-check">
+                            <Check className="vpgq-check-icon" strokeWidth={3} />
+                          </span>
+                          <span>{option.label}</span>
+                          <span className="vpgq-chip-meta">{option.note}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {secondaryPhysicalFormat && (
+                    <p className="mt-2 text-[0.68rem] leading-relaxed text-white/40">
+                      {`We'll quote your ${secondaryPhysicalFormat} print cost separately from Paperback's — shared costs like cover design and layout are only ever charged once.`}
+                    </p>
+                  )}
+                </div>
+
                 <p className="mb-3 text-center text-[0.66rem] text-white/40">
                   Fields marked{" "}
                   <span className="font-black text-[#fbbf24]">*</span> are
@@ -2206,7 +2283,9 @@ export default function GetQuote({
                 <div className="vpgq-services-panel">
                   <p className="vpgq-head">Other Services for Your Book</p>
 
-                  {groups.map((group) => {
+                  {groups
+                    .filter((group) => group !== "Print Finish" || hasPhysicalFormat)
+                    .map((group) => {
                     const items = serviceOptions.filter(
                       (item) => item.group === group,
                     );

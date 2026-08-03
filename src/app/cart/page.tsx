@@ -28,9 +28,9 @@ interface PublicBook {
   id: string;
   title: string;
   cover: string | null;
-  price: string | null;
+  paperback_price: string | null;
+  hardback_price: string | null;
   ebook_price: string | null;
-  format: string;
 }
 
 interface CartLine extends CartItem {
@@ -50,11 +50,16 @@ function naira(value: number) {
 }
 
 // A cart line's own `format` (what was actually selected when it was
-// added — see lib/cart.ts) picks which of the book's two independent
-// prices applies; `book.format`/`book.price` alone would be wrong for
-// an Ebook line on a book that also has a physical edition.
+// added — see lib/cart.ts) picks which of the book's three independent
+// prices applies; a single `book.price` field no longer exists since
+// Paperback, Hardback, and Ebook are all separately priced.
 function priceForLine(line: CartLine): number | null {
-  const raw = line.format === "Ebook" ? line.book.ebook_price : line.book.price;
+  const raw =
+    line.format === "Ebook"
+      ? line.book.ebook_price
+      : line.format === "Hardback"
+        ? line.book.hardback_price
+        : line.book.paperback_price;
   return raw !== null ? Number(raw) : null;
 }
 

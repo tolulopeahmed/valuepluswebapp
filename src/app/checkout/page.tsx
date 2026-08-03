@@ -13,9 +13,9 @@ import { getCart } from "@/lib/cart";
 interface PublicBook {
   id: string;
   title: string;
-  price: string | null;
+  paperback_price: string | null;
+  hardback_price: string | null;
   ebook_price: string | null;
-  format: string;
 }
 
 async function fetchPublicBook(slug: string): Promise<PublicBook | null> {
@@ -50,9 +50,14 @@ function CheckoutForm() {
         const book = await fetchPublicBook(item.slug);
         if (!book) return null;
         // The cart line's own `format` (what was actually selected —
-        // see lib/cart.ts) picks which of the book's two independent
-        // prices applies here, not the book's own `format` field.
-        const price = item.format === "Ebook" ? book.ebook_price : book.price;
+        // see lib/cart.ts) picks which of the book's three independent
+        // prices applies here.
+        const price =
+          item.format === "Ebook"
+            ? book.ebook_price
+            : item.format === "Hardback"
+              ? book.hardback_price
+              : book.paperback_price;
         if (price === null) return null;
         return {
           id: book.id,

@@ -23,6 +23,12 @@ export interface BookQuotationSummary {
   whatsapp_number: string;
   email: string;
   book_size: string;
+  // Which edition(s) were asked about at signup — "Paperback", "Hardback",
+  // "Ebook", any combination. A second physical format beyond the first
+  // gets its own BookFormatRequest for its print cost (see
+  // fetchBookFormatRequests) rather than being folded into this quote's
+  // own print_cost, which only ever prices the first one.
+  requested_formats: string[];
   pages: number | null;
   words: number | null;
   chapters: number | null;
@@ -63,28 +69,49 @@ export interface MyBook {
   slug: string;
   cover: string | null;
   status: "pending" | "draft" | "in_progress" | "published";
-  // The physical binding, if any — independent of the Ebook edition
-  // below now (see Book.format's own docstring server-side): a title
-  // can have a physical edition, an Ebook edition, or both.
-  format: "Paperback" | "Hardback" | "";
-  pages: number | null;
-  sales: number;
-  earned: string;
-  date_published: string | null;
-  price: string | null;
+  // Three fully independent editions — a title can have any combination
+  // of the three, each priced/toggled on its own (see Book model's own
+  // docstring server-side). Paperback/Hardback are real physical runs
+  // (see BookFormatRequest for how a NEW one gets added — never just a
+  // direct price entry); Ebook has zero marginal cost, so it alone can
+  // be set directly (see ebook_price/ebook_drive_link below).
+  paperback_price: string | null;
+  hardback_price: string | null;
   ebook_price: string | null;
   // The author's own Google Drive link to the Ebook file — only ever
   // handed to a buyer after purchase; here (the author's own book list)
   // it's fine to see it, since they're the one who set it.
   ebook_drive_link: string;
+  has_paperback: boolean;
+  has_hardback: boolean;
   has_ebook: boolean;
-  has_physical: boolean;
+  pages: number | null;
+  sales: number;
+  earned: string;
+  date_published: string | null;
   description: string;
   // Google Drive link to production files — blank until staff set it in
   // Django admin, generally once publishing is complete.
   assets_link: string;
   created_at: string;
   quotation: BookQuotationSummary | null;
+}
+
+// Mirrors apps.books.models.BookFormatRequest.Format — the two physical
+// bindings a book can request a brand-new edition of. Ebook never goes
+// through this flow (see updateBookEbook), so it isn't part of this type.
+export type PhysicalFormat = "Paperback" | "Hardback";
+
+// Mirrors apps.books.serializers.BookFormatRequestSerializer — surfaced
+// on the book detail page so "Request Quote" can become "Quote
+// requested…" / "Quoted — set your price" per format instead of always
+// just a bare button.
+export interface BookFormatRequestSummary {
+  id: number;
+  requested_format: PhysicalFormat;
+  status: "pending" | "quoted" | "closed";
+  print_cost: string | null;
+  created_at: string;
 }
 
 export const MY_BOOK_STATUS_LABEL: Record<MyBook["status"], string> = {
@@ -215,10 +242,35 @@ export function deleteBookCover(bookId: string) {
 // Whoever saves last wins here too — staff can also set `price` directly
 // on the Book change form in Django admin. Follow with the shared
 // MyBooksProvider's refetch() so every consumer picks up the new price.
-export function updateBookPrice(bookId: string, price: number) {
+// `format` picks which of the book's two independent physical prices
+// this write applies to — only ever meaningful once that edition
+// already exists (has_paperback/has_hardback); see requestBookFormat
+// below for how a title gets a NEW physical edition in the first place.
+export function updateBookPrice(bookId: string, format: PhysicalFormat, price: number) {
   return apiFetch<MyBook>(`/books/mine/${bookId}/price/`, {
     method: "PATCH",
-    body: JSON.stringify({ price }),
+    body: JSON.stringify({ format, price }),
+  });
+}
+
+// Every format-edition request this book has ever had — lets the
+// dashboard show "Quote requested" / "Quoted — set your price" per
+// format instead of just a bare "Request Quote" button once one's
+// already in flight.
+export function fetchBookFormatRequests(bookId: string) {
+  return apiFetch<BookFormatRequestSummary[]>(`/books/mine/${bookId}/format-requests/`);
+}
+
+// Asks ValuePlus to quote a brand-new physical edition this book
+// doesn't have yet — real one-off production cost (typesetting/binding
+// for that format), so unlike the Ebook edition this can't just be
+// priced directly. Staff quote it in Django admin; the author pays via
+// the same Transactions flow as everything else, then sets the sale
+// price with updateBookPrice once it's confirmed.
+export function requestBookFormat(bookId: string, format: PhysicalFormat) {
+  return apiFetch<BookFormatRequestSummary>(`/books/mine/${bookId}/format-requests/`, {
+    method: "POST",
+    body: JSON.stringify({ format }),
   });
 }
 
@@ -325,13 +377,32 @@ export function requestReprint(bookId: string, request: ReprintRequest) {
 // e.g. an ebook-only title, or staff haven't entered a print cost yet)
 // — the price field falls back to plain manual entry in that case
 // rather than suggesting a number pulled out of thin air.
-const SUGGESTED_PRICE_MULTIPLIER = 2.5;
+export const SUGGESTED_PRICE_MULTIPLIER = 2.5;
 
 export function suggestedPrice(quotation: BookQuotationSummary | null): number | null {
   if (!quotation || quotation.print_cost === null) return null;
   const printCost = Number(quotation.print_cost);
   if (!Number.isFinite(printCost) || printCost <= 0) return null;
   return Math.round(printCost * SUGGESTED_PRICE_MULTIPLIER);
+}
+
+// Same 2.5x-print-cost heuristic as suggestedPrice above, but for a
+// format that came from a BookFormatRequest (a Hardback edition added
+// later, say) rather than the book's original "Get a Quote" submission.
+export function suggestedPriceFromPrintCost(printCost: string | null): number | null {
+  if (printCost === null) return null;
+  const n = Number(printCost);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * SUGGESTED_PRICE_MULTIPLIER);
+}
+
+// A single "headline" price for compact views that only have room for
+// one number (shelf tiles, grid tiles) — a book can have up to three
+// independent prices now, so this just picks whichever is set first in
+// physical-before-digital, paperback-before-hardback order. The full
+// book detail page shows all three separately instead of this.
+export function displayPrice(book: MyBook): string | null {
+  return book.paperback_price ?? book.hardback_price ?? book.ebook_price;
 }
 
 // Backend decimal fields (price/earned) arrive as strings; price is also

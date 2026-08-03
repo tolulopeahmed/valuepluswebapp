@@ -11,6 +11,7 @@ import { notify } from "../lib/snackbar";
 import { ApiError } from "../lib/api";
 import {
   naira,
+  displayPrice,
   BookCover,
   uploadBookCover,
   deleteBookCover,
@@ -104,6 +105,18 @@ function QuotationDetails({ book }: { book: MyBook }) {
         What you submitted
       </p>
 
+      {q.requested_formats.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {q.requested_formats.map((format) => (
+            <FormatBadge
+              key={format}
+              format={format}
+              className="!px-2 !py-0.5 !text-[0.54rem]"
+            />
+          ))}
+        </div>
+      )}
+
       {details.length > 0 && (
         <p className="mt-1.5 text-[0.72rem] leading-relaxed text-white/75">
           {details.join(" · ")}
@@ -186,7 +199,7 @@ export default function BookDetailsModal({
   if (!book) return null;
 
   // Still awaiting a real quote — no price has been set yet.
-  const isAwaitingQuote = book.price === null && book.quotation !== null;
+  const isAwaitingQuote = displayPrice(book) === null && book.quotation !== null;
 
   const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -293,7 +306,15 @@ export default function BookDetailsModal({
                 {MY_BOOK_STATUS_LABEL[book.status]}
               </span>
 
-              {book.format && <FormatBadge format={book.format} className="!px-2 !py-0.5 !text-[0.54rem]" />}
+              {book.has_paperback && (
+                <FormatBadge format="Paperback" className="!px-2 !py-0.5 !text-[0.54rem]" />
+              )}
+              {book.has_hardback && (
+                <FormatBadge format="Hardback" className="!px-2 !py-0.5 !text-[0.54rem]" />
+              )}
+              {book.has_ebook && (
+                <FormatBadge format="Ebook" className="!px-2 !py-0.5 !text-[0.54rem]" />
+              )}
 
               {book.pages !== null && (
                 <span className="text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/35">
@@ -317,7 +338,7 @@ export default function BookDetailsModal({
                 Price
               </p>
               <p className="mt-1 text-3xl font-black text-white">
-                {naira(book.price)}
+                {naira(displayPrice(book))}
               </p>
             </div>
 
@@ -369,7 +390,7 @@ export default function BookDetailsModal({
                 Price
               </p>
               <p className="mt-1 text-3xl font-black text-white">
-                {naira(book.price)}
+                {naira(displayPrice(book))}
               </p>
             </div>
 

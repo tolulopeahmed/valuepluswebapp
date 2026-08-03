@@ -18,6 +18,7 @@ import SectionLabel from "./SectionLabel";
 import BookDetailsModal from "./BookDetailsModal";
 import {
   naira,
+  displayPrice,
   BookCover,
   MY_BOOK_STATUS_LABEL,
   MY_BOOK_STATUS_BADGE_CLASS,
@@ -168,7 +169,7 @@ function BookGridTile({
 
         <div className="vp-shelf-book-details">
           <p className="vp-shelf-book-title">{book.title}</p>
-          <p className="vp-shelf-book-price">{naira(book.price)}</p>
+          <p className="vp-shelf-book-price">{naira(displayPrice(book))}</p>
         </div>
       </button>
 

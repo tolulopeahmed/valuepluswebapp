@@ -10,6 +10,8 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import {
   BadgeCheck,
+  BookMarked,
+  BookOpen,
   Calendar,
   Check,
   Download,
@@ -46,9 +48,14 @@ import {
   fetchBookCoupon,
   saveBookCoupon,
   deleteBookCoupon,
+  fetchBookFormatRequests,
+  requestBookFormat,
   suggestedPrice,
+  suggestedPriceFromPrintCost,
   type MyBook,
   type BookCoupon,
+  type PhysicalFormat,
+  type BookFormatRequestSummary,
 } from "../../../../../hooks/useMyBooks";
 import { useTransactions } from "../../../../../hooks/useWallet";
 
@@ -869,6 +876,137 @@ function EbookModal({
   );
 }
 
+// A physical edition (Paperback/Hardback) this book doesn't have yet is
+// never just a price field — it's real one-off production cost that
+// needs quoting first (see BookFormatRequest), so this card cycles
+// through 4 states: no request yet ("Request Quote"), pending
+// ("Quote requested…"), quoted-but-not-priced (shows the quoted cost,
+// pencil now sets a sale price), and priced (the normal editable price
+// card, same UX Ebook already has).
+function PhysicalFormatCard({
+  format,
+  icon,
+  price,
+  formatRequest,
+  editing,
+  priceInput,
+  saving,
+  requesting,
+  onStartEdit,
+  onPriceInputChange,
+  onSave,
+  onCancelEdit,
+  onRequestQuote,
+  animationDelay,
+}: {
+  format: PhysicalFormat;
+  icon: ReactNode;
+  price: string | null;
+  formatRequest: BookFormatRequestSummary | undefined;
+  editing: boolean;
+  priceInput: string;
+  saving: boolean;
+  requesting: boolean;
+  onStartEdit: () => void;
+  onPriceInputChange: (v: string) => void;
+  onSave: () => void;
+  onCancelEdit: () => void;
+  onRequestQuote: () => void;
+  animationDelay: string;
+}) {
+  const hasPrice = price !== null;
+  const isQuoted = !hasPrice && formatRequest?.status === "quoted";
+  const isPending = !hasPrice && formatRequest?.status === "pending";
+  const canRequest = !hasPrice && !isPending && !isQuoted;
+  const canEdit = hasPrice || isQuoted;
+
+  return (
+    <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-white/45">
+          {icon}
+          <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>{format}</SectionLabel>
+        </div>
+        {canEdit && !editing && (
+          <button
+            type="button"
+            onClick={onStartEdit}
+            aria-label={`Edit ${format} price`}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
+            style={{
+              background: "rgba(var(--vp-accent-rgb),0.16)",
+              color: "rgb(var(--vp-accent-rgb))",
+            }}
+          >
+            <Pencil size={12} strokeWidth={2.3} />
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <div
+            className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border bg-white/5 px-2.5 py-2"
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            <span className="text-white/40">₦</span>
+            <input
+              autoFocus
+              inputMode="numeric"
+              value={priceInput}
+              onChange={(e) => onPriceInputChange(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="0"
+              className="w-full min-w-0 bg-transparent text-[0.95rem] font-black text-white outline-none placeholder:text-white/25"
+            />
+          </div>
+          <Button variant="primary" size="sm" loading={saving} onClick={onSave} className="!px-2.5">
+            <Check size={14} />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onCancelEdit}
+            disabled={saving}
+            className="!px-2.5"
+          >
+            <X size={14} />
+          </Button>
+        </div>
+      ) : hasPrice ? (
+        <p className="mt-1 text-2xl font-black leading-tight text-white">{naira(price)}</p>
+      ) : isQuoted ? (
+        <>
+          <p
+            className="mt-1 text-[0.95rem] font-black leading-tight"
+            style={{ color: "rgb(var(--vp-accent-rgb))" }}
+          >
+            Quoted: {naira(formatRequest.print_cost)}
+          </p>
+          <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
+            Tap the pencil to set your sale price.
+          </p>
+        </>
+      ) : isPending ? (
+        <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/50">
+          Quote requested — we&apos;ll email you once it&apos;s ready.
+        </p>
+      ) : (
+        canRequest && (
+          <button
+            type="button"
+            onClick={onRequestQuote}
+            disabled={requesting}
+            className="mt-2 text-[0.72rem] font-bold disabled:opacity-50"
+            style={{ color: "rgb(var(--vp-accent-rgb))" }}
+          >
+            {requesting ? "Requesting…" : "Request Quote"}
+          </button>
+        )
+      )}
+    </GlassCard>
+  );
+}
+
 function CenteredMessage({
   title,
   subtitle,
@@ -895,9 +1033,15 @@ export default function BookLivePage() {
   const { books, loading, refetch } = useMyBooks();
   const book = books.find((b) => b.id === id) ?? null;
 
-  const [editingPrice, setEditingPrice] = useState(false);
+  // Which physical edition's price is being edited right now, if any —
+  // a single shared slot (not one per format) since only one card is
+  // ever open for editing at a time, same UX as before this had a
+  // second physical format to juggle.
+  const [editingFormat, setEditingFormat] = useState<PhysicalFormat | null>(null);
   const [priceInput, setPriceInput] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
+  const [requestingFormat, setRequestingFormat] = useState<PhysicalFormat | null>(null);
+  const [formatRequests, setFormatRequests] = useState<BookFormatRequestSummary[]>([]);
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
@@ -918,6 +1062,16 @@ export default function BookLivePage() {
     if (!id) return;
     fetchBookCoupon(id)
       .then((data) => setCoupon("id" in data ? (data as BookCoupon) : null))
+      .catch(() => {});
+  }, [id]);
+
+  // Same reasoning as the coupon fetch above — drives whether a physical
+  // format shows "Request Quote", "Quote requested…", or "Quoted — set
+  // your price" (see latestRequestFor below).
+  useEffect(() => {
+    if (!id) return;
+    fetchBookFormatRequests(id)
+      .then(setFormatRequests)
       .catch(() => {});
   }, [id]);
 
@@ -949,18 +1103,35 @@ export default function BookLivePage() {
     );
   }
 
-  const suggested = suggestedPrice(book.quotation);
-  const currentPrice = book.price !== null ? Number(book.price) : null;
-  const effectivePrice = currentPrice ?? suggested;
+  // Most recent (non-)closed request for a format — "quoted" wins over
+  // an older "closed" one for the same format if both exist, so a
+  // second, more recent attempt always takes precedence for display.
+  const latestRequestFor = (format: PhysicalFormat): BookFormatRequestSummary | undefined =>
+    formatRequests
+      .filter((r) => r.requested_format === format)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
 
-  const handleStartEditPrice = () => {
-    setPriceInput(
-      effectivePrice !== null ? String(Math.round(effectivePrice)) : "",
-    );
-    setEditingPrice(true);
+  const priceFor = (format: PhysicalFormat): string | null =>
+    format === "Paperback" ? book.paperback_price : book.hardback_price;
+
+  // Paperback's suggestion comes from the book's original "Get a Quote"
+  // print_cost; a Hardback added later has no such quote — its own
+  // BookFormatRequest.print_cost (once staff have quoted it) is the
+  // equivalent number to suggest 2.5x off instead.
+  const suggestedFor = (format: PhysicalFormat): number | null =>
+    format === "Paperback"
+      ? suggestedPrice(book.quotation)
+      : suggestedPriceFromPrintCost(latestRequestFor(format)?.print_cost ?? null);
+
+  const handleStartEditPrice = (format: PhysicalFormat) => {
+    const current = priceFor(format);
+    const effective = current !== null ? Number(current) : suggestedFor(format);
+    setPriceInput(effective !== null ? String(Math.round(effective)) : "");
+    setEditingFormat(format);
   };
 
   const handleSavePrice = async () => {
+    if (!editingFormat) return;
     const value = Number(priceInput.replace(/,/g, ""));
     if (!Number.isFinite(value) || value <= 0) {
       notify("Enter a valid price.", "error");
@@ -968,15 +1139,29 @@ export default function BookLivePage() {
     }
     setSavingPrice(true);
     try {
-      await updateBookPrice(book.id, value);
+      await updateBookPrice(book.id, editingFormat, value);
       await refetch();
-      setEditingPrice(false);
+      setEditingFormat(null);
     } catch (err) {
       if (!(err instanceof ApiError)) {
         notify("Could not update the price. Please try again.", "error");
       }
     } finally {
       setSavingPrice(false);
+    }
+  };
+
+  const handleRequestFormat = async (format: PhysicalFormat) => {
+    setRequestingFormat(format);
+    try {
+      const result = await requestBookFormat(book.id, format);
+      setFormatRequests((prev) => [...prev, result]);
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not send the request. Please try again.", "error");
+      }
+    } finally {
+      setRequestingFormat(null);
     }
   };
 
@@ -1074,7 +1259,11 @@ export default function BookLivePage() {
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em]"
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] ${
+                book.has_paperback || book.has_hardback || book.has_ebook
+                  ? "vp-badge-glow-green"
+                  : ""
+              }`}
               style={{
                 background: "#123524",
                 color: "#4ade80",
@@ -1102,7 +1291,8 @@ export default function BookLivePage() {
             )}
 
             <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:justify-start">
-              {book.has_physical && <FormatBadge format={book.format} />}
+              {book.has_paperback && <FormatBadge format="Paperback" />}
+              {book.has_hardback && <FormatBadge format="Hardback" />}
               {book.has_ebook && <FormatBadge format="Ebook" />}
               {book.pages !== null && (
                 <span className="inline-flex items-center gap-1 text-[0.62rem] font-bold text-white/40">
@@ -1151,94 +1341,54 @@ export default function BookLivePage() {
         </div>
       </div>
 
-      {/* Price + Ebook — side by side rather than stacked, so setting up
-          both editions doesn't cost a full extra screen of vertical
-          space on mobile. */}
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "60ms" }}>
-          <div className="flex items-center justify-between">
-            <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
-              Sale Price
-            </SectionLabel>
-            {!editingPrice && (
-              <button
-                type="button"
-                onClick={handleStartEditPrice}
-                aria-label="Edit price"
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
-                style={{
-                  background: "rgba(var(--vp-accent-rgb),0.16)",
-                  color: "rgb(var(--vp-accent-rgb))",
-                }}
-              >
-                <Pencil size={12} strokeWidth={2.3} />
-              </button>
-            )}
-          </div>
+      {/* Paperback + Hardback + Ebook — three independent editions, each
+          its own card in one row, so an author can price/quote/publish
+          any subset of the three without the others blocking it. */}
+      <div className="mt-5 grid grid-cols-3 gap-3">
+        <PhysicalFormatCard
+          format="Paperback"
+          icon={<BookOpen size={13} strokeWidth={2.2} />}
+          price={priceFor("Paperback")}
+          formatRequest={latestRequestFor("Paperback")}
+          editing={editingFormat === "Paperback"}
+          priceInput={priceInput}
+          saving={savingPrice}
+          requesting={requestingFormat === "Paperback"}
+          onStartEdit={() => handleStartEditPrice("Paperback")}
+          onPriceInputChange={setPriceInput}
+          onSave={handleSavePrice}
+          onCancelEdit={() => setEditingFormat(null)}
+          onRequestQuote={() => handleRequestFormat("Paperback")}
+          animationDelay="60ms"
+        />
 
-          {editingPrice ? (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <div
-                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-xl border bg-white/5 px-2.5 py-2"
-                style={{ borderColor: "rgba(255,255,255,0.1)" }}
-              >
-                <span className="text-white/40">₦</span>
-                <input
-                  autoFocus
-                  inputMode="numeric"
-                  value={priceInput}
-                  onChange={(e) =>
-                    setPriceInput(e.target.value.replace(/[^\d]/g, ""))
-                  }
-                  placeholder="0"
-                  className="w-full min-w-0 bg-transparent text-[0.95rem] font-black text-white outline-none placeholder:text-white/25"
-                />
-              </div>
-              <Button
-                variant="primary"
-                size="sm"
-                loading={savingPrice}
-                onClick={handleSavePrice}
-                className="!px-2.5"
-              >
-                <Check size={14} />
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditingPrice(false)}
-                disabled={savingPrice}
-                className="!px-2.5"
-              >
-                <X size={14} />
-              </Button>
-            </div>
-          ) : (
-            <>
-              <p className="mt-1 text-2xl font-black leading-tight text-white">
-                {effectivePrice !== null ? naira(effectivePrice) : "—"}
-              </p>
-              {currentPrice === null && suggested !== null && (
-                <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
-                  Suggested — 2.5× print cost.
-                </p>
-              )}
-              {currentPrice === null && suggested === null && (
-                <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
-                  No price set yet.
-                </p>
-              )}
-            </>
-          )}
-        </GlassCard>
+        <PhysicalFormatCard
+          format="Hardback"
+          icon={<BookMarked size={13} strokeWidth={2.2} />}
+          price={priceFor("Hardback")}
+          formatRequest={latestRequestFor("Hardback")}
+          editing={editingFormat === "Hardback"}
+          priceInput={priceInput}
+          saving={savingPrice}
+          requesting={requestingFormat === "Hardback"}
+          onStartEdit={() => handleStartEditPrice("Hardback")}
+          onPriceInputChange={setPriceInput}
+          onSave={handleSavePrice}
+          onCancelEdit={() => setEditingFormat(null)}
+          onRequestQuote={() => handleRequestFormat("Hardback")}
+          animationDelay="65ms"
+        />
 
-        {/* Ebook — independent of the physical edition alongside it; can
-            be added regardless of whether `format` is set at all. */}
+        {/* Ebook — independent of the physical editions beside it. Can be
+            added regardless of whether either physical edition is set up. */}
         <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "70ms" }}>
           <div className="flex items-center justify-between">
-            <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
-              Ebook Edition
-            </SectionLabel>
+            <div className="flex items-center gap-1.5 text-white/45">
+              <Download size={13} strokeWidth={2.2} />
+              <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
+                Ebook
+              </SectionLabel>
+            </div>
             <button
               type="button"
               onClick={() => setEbookOpen(true)}
@@ -1254,15 +1404,9 @@ export default function BookLivePage() {
           </div>
 
           {book.has_ebook ? (
-            <>
-              <p className="mt-1 text-2xl font-black leading-tight text-white">
-                {naira(Number(book.ebook_price))}
-              </p>
-              <p className="mt-1.5 flex items-center gap-1 text-[0.62rem] leading-relaxed text-white/40">
-                <Download size={10} strokeWidth={2.3} className="shrink-0" />
-                Instant Drive delivery.
-              </p>
-            </>
+            <p className="mt-1 text-2xl font-black leading-tight text-white">
+              {naira(Number(book.ebook_price))}
+            </p>
           ) : (
             <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
               Not set up yet — tap the pencil to add one.

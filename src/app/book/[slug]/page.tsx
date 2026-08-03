@@ -23,11 +23,12 @@ interface PublicBook {
   subtitle: string;
   category: string;
   cover: string | null;
-  format: string;
-  price: string | null;
+  paperback_price: string | null;
+  hardback_price: string | null;
   ebook_price: string | null;
+  has_paperback: boolean;
+  has_hardback: boolean;
   has_ebook: boolean;
-  has_physical: boolean;
   description: string;
   author_name: string;
 }
@@ -53,7 +54,8 @@ export default async function BookPage({
 
   if (!book) notFound();
 
-  const price = book.price !== null ? Number(book.price) : null;
+  const paperbackPrice = book.paperback_price !== null ? Number(book.paperback_price) : null;
+  const hardbackPrice = book.hardback_price !== null ? Number(book.hardback_price) : null;
   const ebookPrice = book.ebook_price !== null ? Number(book.ebook_price) : null;
 
   return (
@@ -98,9 +100,10 @@ export default async function BookPage({
               By {book.author_name} · Published via ValuePlus
             </p>
 
-            {(book.has_physical || book.has_ebook) && (
+            {(book.has_paperback || book.has_hardback || book.has_ebook) && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {book.has_physical && <FormatBadge format={book.format} />}
+                {book.has_paperback && <FormatBadge format="Paperback" />}
+                {book.has_hardback && <FormatBadge format="Hardback" />}
                 {book.has_ebook && <FormatBadge format="Ebook" />}
               </div>
             )}
@@ -115,11 +118,12 @@ export default async function BookPage({
               <BuyBox
                 bookId={book.id}
                 slug={slug}
-                format={book.format}
-                price={price}
+                paperbackPrice={paperbackPrice}
+                hardbackPrice={hardbackPrice}
                 ebookPrice={ebookPrice}
+                hasPaperback={book.has_paperback}
+                hasHardback={book.has_hardback}
                 hasEbook={book.has_ebook}
-                hasPhysical={book.has_physical}
               />
             </div>
           </div>

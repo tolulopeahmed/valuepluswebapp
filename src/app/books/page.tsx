@@ -22,9 +22,20 @@ interface PublicBookSummary {
   category: string;
   slug: string;
   cover: string | null;
-  format: string;
-  price: string | null;
+  paperback_price: string | null;
+  hardback_price: string | null;
+  ebook_price: string | null;
+  has_paperback: boolean;
+  has_hardback: boolean;
+  has_ebook: boolean;
   author_name: string;
+}
+
+// The catalog card only has room for one headline price — Paperback
+// wins as the most common edition, falling back to Hardback then
+// Ebook for a title that skips straight to one of those.
+function displayPrice(book: PublicBookSummary): string | null {
+  return book.paperback_price ?? book.hardback_price ?? book.ebook_price;
 }
 
 interface PaginatedBooks {
@@ -54,19 +65,27 @@ function BookCard({ book }: { book: PublicBookSummary }) {
             No cover yet
           </div>
         )}
-        <div className="absolute left-1.5 top-1.5">
-          <FormatBadge format={book.format} className="!px-2 !py-0.5 !text-[0.48rem]" />
+        <div className="absolute left-1.5 top-1.5 flex flex-wrap gap-1">
+          {book.has_paperback && (
+            <FormatBadge format="Paperback" className="!px-2 !py-0.5 !text-[0.48rem]" />
+          )}
+          {book.has_hardback && (
+            <FormatBadge format="Hardback" className="!px-2 !py-0.5 !text-[0.48rem]" />
+          )}
+          {book.has_ebook && (
+            <FormatBadge format="Ebook" className="!px-2 !py-0.5 !text-[0.48rem]" />
+          )}
         </div>
       </div>
       <div className="min-w-0">
         <p className="truncate text-[0.82rem] font-bold text-white">{book.title}</p>
         <p className="truncate text-[0.66rem] text-white/40">By {book.author_name}</p>
-        {book.price !== null && (
+        {displayPrice(book) !== null && (
           <p
             className="mt-0.5 text-[0.8rem] font-black"
             style={{ color: "rgb(var(--vp-accent-rgb))" }}
           >
-            {naira(Number(book.price))}
+            {naira(Number(displayPrice(book)))}
           </p>
         )}
       </div>

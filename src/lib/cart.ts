@@ -16,11 +16,11 @@ export interface CartItem {
   // endpoint (slug-keyed for SEO-friendly URLs) — checkout itself still
   // submits bookId, which is what the backend actually validates against.
   slug: string;
-  // A title's physical and Ebook editions are independent and can both
-  // be for sale at once (see Book.has_ebook/has_physical server-side) —
-  // "Ebook", or the book's own physical format string ("Paperback"/
-  // "Hardback"). Every lookup below is keyed on (bookId, format)
-  // together, not bookId alone, so the same book can sit in the cart
+  // A title's Paperback, Hardback, and Ebook editions are independent
+  // and can all be for sale at once (see Book.has_paperback/
+  // has_hardback/has_ebook server-side) — "Paperback", "Hardback", or
+  // "Ebook". Every lookup below is keyed on (bookId, format) together,
+  // not bookId alone, so the same book can sit in the cart
   // twice: once as an Ebook line, once as a physical line.
   format: string;
   quantity: number;
