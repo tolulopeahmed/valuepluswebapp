@@ -693,13 +693,15 @@ export default function GetQuote({
   }, [manualSelectedIds]);
 
   const hasPhysicalFormat =
-    selectedFormats.includes("Paperback") || selectedFormats.includes("Hardback");
+    selectedFormats.includes("Paperback") ||
+    selectedFormats.includes("Hardback");
   // Paperback and/or Hardback selected together — the second one's
   // print cost is quoted separately from the first's, same split the
   // backend makes (see QuotationRequest.secondary_physical_formats /
   // the auto-created BookFormatRequest for it).
   const secondaryPhysicalFormat =
-    selectedFormats.includes("Paperback") && selectedFormats.includes("Hardback")
+    selectedFormats.includes("Paperback") &&
+    selectedFormats.includes("Hardback")
       ? "Hardback"
       : null;
 
@@ -709,7 +711,8 @@ export default function GetQuote({
   // the displayed total isn't the final cost yet. With neither, the
   // total already IS the final cost, so the button/success copy/email
   // shouldn't imply more is coming.
-  const hasPrintElement = hasManualPrintFinish || pageCount > 250 || hasPhysicalFormat;
+  const hasPrintElement =
+    hasManualPrintFinish || pageCount > 250 || hasPhysicalFormat;
 
   function toggleFormat(format: BookFormat) {
     setSelectedFormats((current) =>
@@ -1133,9 +1136,7 @@ export default function GetQuote({
 
     return (
       <div className="vpgq-inline-field-shell">
-        <span className="vpgq-inline-word-label">
-          Estimated word count *
-        </span>
+        <span className="vpgq-inline-word-label">Estimated word count *</span>
 
         <div
           className={getFieldClassName(
@@ -1206,7 +1207,10 @@ export default function GetQuote({
 
   async function submitQuote() {
     if (selectedFormats.length === 0) {
-      notify("Choose at least one format — Paperback, Hardback, or Ebook.", "error");
+      notify(
+        "Choose at least one format — Paperback, Hardback, or Ebook.",
+        "error",
+      );
       return;
     }
 
@@ -1982,7 +1986,7 @@ export default function GetQuote({
 
                 <div className="vpgq-sub-panel">
                   <span className="vpgq-label" style={{ color: "#60c8ff" }}>
-                    Which format(s) do you want to publish? *
+                    Which format(s) do you want? *
                   </span>
 
                   <div className="vpgq-chips" style={{ marginTop: "0.6rem" }}>
@@ -1997,7 +2001,10 @@ export default function GetQuote({
                           aria-pressed={isSelected}
                         >
                           <span className="vpgq-check">
-                            <Check className="vpgq-check-icon" strokeWidth={3} />
+                            <Check
+                              className="vpgq-check-icon"
+                              strokeWidth={3}
+                            />
                           </span>
                           <span>{option.label}</span>
                           <span className="vpgq-chip-meta">{option.note}</span>
@@ -2016,7 +2023,7 @@ export default function GetQuote({
                 <p className="mb-3 text-center text-[0.66rem] text-white/40">
                   Fields marked{" "}
                   <span className="font-black text-[#fbbf24]">*</span> are
-                  required — everything else is optional.
+                  required
                 </p>
 
                 <div className="vpgq-sub-panel">
@@ -2065,7 +2072,7 @@ export default function GetQuote({
                         onFocus={() => setFocusedField("category")}
                         onBlur={() => markFieldComplete("category", category)}
                       >
-                        <option value="">Book category (optional)</option>
+                        <option value="">Book category</option>
 
                         {bookCategories.map((item) => (
                           <option key={item}>{item}</option>
@@ -2121,7 +2128,7 @@ export default function GetQuote({
                           onFocus={() => setFocusedField("size")}
                           onBlur={() => markFieldComplete("size", bookSize)}
                         >
-                          <option value="">Book size (optional)</option>
+                          <option value="">Book size</option>
                           {bookSizes.map((size) => (
                             <option key={size}>{size}</option>
                           ))}
@@ -2284,57 +2291,59 @@ export default function GetQuote({
                   <p className="vpgq-head">Other Services for Your Book</p>
 
                   {groups
-                    .filter((group) => group !== "Print Finish" || hasPhysicalFormat)
+                    .filter(
+                      (group) => group !== "Print Finish" || hasPhysicalFormat,
+                    )
                     .map((group) => {
-                    const items = serviceOptions.filter(
-                      (item) => item.group === group,
-                    );
+                      const items = serviceOptions.filter(
+                        (item) => item.group === group,
+                      );
 
-                    return (
-                      <div key={group} className="vpgq-group">
-                        <p className="vpgq-group-title">{group}</p>
+                      return (
+                        <div key={group} className="vpgq-group">
+                          <p className="vpgq-group-title">{group}</p>
 
-                        <div className="vpgq-chips">
-                          {items.map((item) => {
-                            const isSelected = selectedSet.has(item.id);
-                            const meta = getMeta(item);
-                            const isFree = item.type === "free";
+                          <div className="vpgq-chips">
+                            {items.map((item) => {
+                              const isSelected = selectedSet.has(item.id);
+                              const meta = getMeta(item);
+                              const isFree = item.type === "free";
 
-                            return (
-                              <div key={item.id} className="vpgq-chip-wrap">
-                                <button
-                                  type="button"
-                                  className={`vpgq-chip${
-                                    isSelected ? " vpgq-chip-active" : ""
-                                  }${isFree ? " vpgq-chip-free" : ""}`}
-                                  onClick={() => toggleService(item.id)}
-                                  aria-pressed={isSelected}
-                                >
-                                  <span className="vpgq-check">
-                                    <Check
-                                      className="vpgq-check-icon"
-                                      strokeWidth={3}
-                                    />
-                                  </span>
-
-                                  <span>{item.label}</span>
-
-                                  {meta && (
-                                    <span className={getMetaClassName(item)}>
-                                      {meta}
+                              return (
+                                <div key={item.id} className="vpgq-chip-wrap">
+                                  <button
+                                    type="button"
+                                    className={`vpgq-chip${
+                                      isSelected ? " vpgq-chip-active" : ""
+                                    }${isFree ? " vpgq-chip-free" : ""}`}
+                                    onClick={() => toggleService(item.id)}
+                                    aria-pressed={isSelected}
+                                  >
+                                    <span className="vpgq-check">
+                                      <Check
+                                        className="vpgq-check-icon"
+                                        strokeWidth={3}
+                                      />
                                     </span>
-                                  )}
-                                </button>
 
-                                {renderWordCountField(item.id)}
-                                {renderIllustrationCountField(item.id)}
-                              </div>
-                            );
-                          })}
+                                    <span>{item.label}</span>
+
+                                    {meta && (
+                                      <span className={getMetaClassName(item)}>
+                                        {meta}
+                                      </span>
+                                    )}
+                                  </button>
+
+                                  {renderWordCountField(item.id)}
+                                  {renderIllustrationCountField(item.id)}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
 
                 <button

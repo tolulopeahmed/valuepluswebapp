@@ -28,7 +28,6 @@ import {
   X,
 } from "lucide-react";
 import GlassCard from "../../../GlassCard";
-import SectionLabel from "../../../../../components/SectionLabel";
 import Button from "../../../../../components/buttons/buttons";
 import Modal from "../../../../../components/Modal";
 import BookCoverCropModal from "../../../../../components/BookCoverCropModal";
@@ -925,7 +924,9 @@ function PhysicalFormatCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-white/45">
           {icon}
-          <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>{format}</SectionLabel>
+          <span className="text-[0.58rem] font-black uppercase leading-none tracking-[0.16em]">
+            {format}
+          </span>
         </div>
         {canEdit && !editing && (
           <button
@@ -1362,32 +1363,15 @@ export default function BookLivePage() {
           animationDelay="60ms"
         />
 
-        <PhysicalFormatCard
-          format="Hardback"
-          icon={<BookMarked size={13} strokeWidth={2.2} />}
-          price={priceFor("Hardback")}
-          formatRequest={latestRequestFor("Hardback")}
-          editing={editingFormat === "Hardback"}
-          priceInput={priceInput}
-          saving={savingPrice}
-          requesting={requestingFormat === "Hardback"}
-          onStartEdit={() => handleStartEditPrice("Hardback")}
-          onPriceInputChange={setPriceInput}
-          onSave={handleSavePrice}
-          onCancelEdit={() => setEditingFormat(null)}
-          onRequestQuote={() => handleRequestFormat("Hardback")}
-          animationDelay="65ms"
-        />
-
         {/* Ebook — independent of the physical editions beside it. Can be
             added regardless of whether either physical edition is set up. */}
-        <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "70ms" }}>
+        <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay: "65ms" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-white/45">
               <Download size={13} strokeWidth={2.2} />
-              <SectionLabel style={{ marginBottom: -10, fontSize: 13 }}>
+              <span className="text-[0.58rem] font-black uppercase leading-none tracking-[0.16em]">
                 Ebook
-              </SectionLabel>
+              </span>
             </div>
             <button
               type="button"
@@ -1413,6 +1397,23 @@ export default function BookLivePage() {
             </p>
           )}
         </GlassCard>
+
+        <PhysicalFormatCard
+          format="Hardback"
+          icon={<BookMarked size={13} strokeWidth={2.2} />}
+          price={priceFor("Hardback")}
+          formatRequest={latestRequestFor("Hardback")}
+          editing={editingFormat === "Hardback"}
+          priceInput={priceInput}
+          saving={savingPrice}
+          requesting={requestingFormat === "Hardback"}
+          onStartEdit={() => handleStartEditPrice("Hardback")}
+          onPriceInputChange={setPriceInput}
+          onSave={handleSavePrice}
+          onCancelEdit={() => setEditingFormat(null)}
+          onRequestQuote={() => handleRequestFormat("Hardback")}
+          animationDelay="70ms"
+        />
       </div>
 
       {/* Stats */}
