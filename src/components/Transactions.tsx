@@ -13,6 +13,7 @@ import {
   Send,
   PlusCircle,
   Package,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import SectionLabel from "./SectionLabel";
@@ -68,6 +69,7 @@ const SOURCE_ICON: Record<WalletTransaction["source"], LucideIcon> = {
   withdrawal: RefreshCcw,
   quote_payment: Receipt,
   reprint: Package,
+  format_request: Layers,
   transfer: Send,
   deposit: PlusCircle,
 };
@@ -105,11 +107,13 @@ function groupByMonth(items: WalletTransaction[]): TransactionGroup[] {
               ? "Quote Payment"
               : tx.source === "reprint"
                 ? "Reprint Payment"
-                : tx.source === "transfer"
-                  ? "Wallet Transfer"
-                  : tx.source === "deposit"
-                    ? "Wallet Deposit"
-                    : "Withdrawal"),
+                : tx.source === "format_request"
+                  ? "New Format Payment"
+                  : tx.source === "transfer"
+                    ? "Wallet Transfer"
+                    : tx.source === "deposit"
+                      ? "Wallet Deposit"
+                      : "Withdrawal"),
       date: formatDate(tx.created_at),
       status: tx.status,
       type: tx.type,

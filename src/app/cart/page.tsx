@@ -13,6 +13,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
+import Button from "@/components/buttons/buttons";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import {
@@ -220,8 +221,8 @@ export default function CartPage() {
                   type="button"
                   onClick={handleApplyCoupon}
                   disabled={validatingCoupon || !couponCode.trim()}
-                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                  style={{ background: "#171100" }}
+                  className="rounded-xl px-4 py-2.5 text-sm font-bold text-[#171100] disabled:opacity-50"
+                  style={{ background: "rgb(var(--vp-accent-rgb))" }}
                 >
                   {validatingCoupon ? "Checking…" : "Apply"}
                 </button>
@@ -256,14 +257,9 @@ export default function CartPage() {
                 </p>
               )}
 
-              <button
-                type="button"
-                onClick={handleCheckout}
-                className="mt-4 w-full rounded-xl py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.98]"
-                style={{ background: "#171100" }}
-              >
+              <Button variant="primary" size="md" onClick={handleCheckout} className="mt-4 w-full">
                 Proceed to Checkout
-              </button>
+              </Button>
             </div>
           </div>
         )}

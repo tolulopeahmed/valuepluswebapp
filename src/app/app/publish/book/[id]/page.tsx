@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   BadgeCheck,
   BookMarked,
@@ -47,14 +48,14 @@ import {
   fetchBookCoupon,
   saveBookCoupon,
   deleteBookCoupon,
-  fetchBookFormatRequests,
   requestBookFormat,
   suggestedPrice,
   suggestedPriceFromPrintCost,
+  suggestedPriceFromPaperback,
   type MyBook,
   type BookCoupon,
   type PhysicalFormat,
-  type BookFormatRequestSummary,
+  type FormatRequestStatus,
 } from "../../../../../hooks/useMyBooks";
 import { useTransactions } from "../../../../../hooks/useWallet";
 
@@ -877,16 +878,20 @@ function EbookModal({
 
 // A physical edition (Paperback/Hardback) this book doesn't have yet is
 // never just a price field — it's real one-off production cost that
-// needs quoting first (see BookFormatRequest), so this card cycles
-// through 4 states: no request yet ("Request Quote"), pending
-// ("Quote requested…"), quoted-but-not-priced (shows the quoted cost,
-// pencil now sets a sale price), and priced (the normal editable price
-// card, same UX Ebook already has).
+// needs quoting AND paying for first (see Book.FormatRequestStatus), so
+// this card cycles through 5 states: no request yet ("Request Quote"),
+// pending ("Quote requested…"), quoted-but-unpaid (shows the quoted
+// cost + a link to pay — not editable yet, per product requirement:
+// pricing only unlocks once payment is actually confirmed), paid-but-
+// unpriced (pencil now sets a sale price, pre-filled with a suggestion),
+// and priced (the normal editable price card, same UX Ebook already has).
 function PhysicalFormatCard({
   format,
   icon,
   price,
-  formatRequest,
+  requestStatus,
+  printCost,
+  transactionId,
   editing,
   priceInput,
   saving,
@@ -901,7 +906,9 @@ function PhysicalFormatCard({
   format: PhysicalFormat;
   icon: ReactNode;
   price: string | null;
-  formatRequest: BookFormatRequestSummary | undefined;
+  requestStatus: FormatRequestStatus;
+  printCost: string | null;
+  transactionId: string | null;
   editing: boolean;
   priceInput: string;
   saving: boolean;
@@ -914,10 +921,14 @@ function PhysicalFormatCard({
   animationDelay: string;
 }) {
   const hasPrice = price !== null;
-  const isQuoted = !hasPrice && formatRequest?.status === "quoted";
-  const isPending = !hasPrice && formatRequest?.status === "pending";
-  const canRequest = !hasPrice && !isPending && !isQuoted;
-  const canEdit = hasPrice || isQuoted;
+  const isPaid = !hasPrice && requestStatus === "paid";
+  const isQuoted = !hasPrice && requestStatus === "quoted";
+  const isPending = !hasPrice && requestStatus === "pending";
+  const canRequest = !hasPrice && requestStatus === "none";
+  const canEdit = hasPrice || isPaid;
+  const transactionsHref = transactionId
+    ? `/app/transactions?tx=${transactionId}`
+    : "/app/transactions";
 
   return (
     <GlassCard accent className="vp-card-in p-3.5" style={{ animationDelay }}>
@@ -975,17 +986,25 @@ function PhysicalFormatCard({
         </div>
       ) : hasPrice ? (
         <p className="mt-1 text-2xl font-black leading-tight text-white">{naira(price)}</p>
+      ) : isPaid ? (
+        <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/50">
+          Paid — tap the pencil to set your sale price.
+        </p>
       ) : isQuoted ? (
         <>
           <p
             className="mt-1 text-[0.95rem] font-black leading-tight"
             style={{ color: "rgb(var(--vp-accent-rgb))" }}
           >
-            Quoted: {naira(formatRequest.print_cost)}
+            Quoted: {naira(printCost)}
           </p>
-          <p className="mt-1.5 text-[0.62rem] leading-relaxed text-white/40">
-            Tap the pencil to set your sale price.
-          </p>
+          <Link
+            href={transactionsHref}
+            className="mt-1.5 inline-block text-[0.68rem] font-bold"
+            style={{ color: "rgb(var(--vp-accent-rgb))" }}
+          >
+            Pay to unlock pricing →
+          </Link>
         </>
       ) : isPending ? (
         <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/50">
@@ -1042,7 +1061,6 @@ export default function BookLivePage() {
   const [priceInput, setPriceInput] = useState("");
   const [savingPrice, setSavingPrice] = useState(false);
   const [requestingFormat, setRequestingFormat] = useState<PhysicalFormat | null>(null);
-  const [formatRequests, setFormatRequests] = useState<BookFormatRequestSummary[]>([]);
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
@@ -1063,16 +1081,6 @@ export default function BookLivePage() {
     if (!id) return;
     fetchBookCoupon(id)
       .then((data) => setCoupon("id" in data ? (data as BookCoupon) : null))
-      .catch(() => {});
-  }, [id]);
-
-  // Same reasoning as the coupon fetch above — drives whether a physical
-  // format shows "Request Quote", "Quote requested…", or "Quoted — set
-  // your price" (see latestRequestFor below).
-  useEffect(() => {
-    if (!id) return;
-    fetchBookFormatRequests(id)
-      .then(setFormatRequests)
       .catch(() => {});
   }, [id]);
 
@@ -1104,25 +1112,31 @@ export default function BookLivePage() {
     );
   }
 
-  // Most recent (non-)closed request for a format — "quoted" wins over
-  // an older "closed" one for the same format if both exist, so a
-  // second, more recent attempt always takes precedence for display.
-  const latestRequestFor = (format: PhysicalFormat): BookFormatRequestSummary | undefined =>
-    formatRequests
-      .filter((r) => r.requested_format === format)
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
-
   const priceFor = (format: PhysicalFormat): string | null =>
     format === "Paperback" ? book.paperback_price : book.hardback_price;
 
-  // Paperback's suggestion comes from the book's original "Get a Quote"
-  // print_cost; a Hardback added later has no such quote — its own
-  // BookFormatRequest.print_cost (once staff have quoted it) is the
-  // equivalent number to suggest 2.5x off instead.
-  const suggestedFor = (format: PhysicalFormat): number | null =>
-    format === "Paperback"
-      ? suggestedPrice(book.quotation)
-      : suggestedPriceFromPrintCost(latestRequestFor(format)?.print_cost ?? null);
+  const requestStatusFor = (format: PhysicalFormat) =>
+    format === "Paperback" ? book.paperback_request_status : book.hardback_request_status;
+
+  const printCostFor = (format: PhysicalFormat): string | null =>
+    format === "Paperback" ? book.paperback_print_cost : book.hardback_print_cost;
+
+  const transactionIdFor = (format: PhysicalFormat): string | null =>
+    format === "Paperback" ? book.paperback_transaction_id : book.hardback_transaction_id;
+
+  // Hardback prices off Paperback's own sale price (a 40% premium —
+  // it's the same book, just a nicer edition) whenever that's available;
+  // Paperback itself has no sibling to reference, so it (and Hardback,
+  // as a fallback when there's no Paperback price yet either) falls back
+  // to the classic 2.5x-print-cost heuristic instead — from the book's
+  // original "Get a Quote" submission for Paperback, or its own
+  // request's print cost for Hardback.
+  const suggestedFor = (format: PhysicalFormat): number | null => {
+    if (format === "Hardback") {
+      return suggestedPriceFromPaperback(book) ?? suggestedPriceFromPrintCost(printCostFor(format));
+    }
+    return suggestedPrice(book.quotation) ?? suggestedPriceFromPrintCost(printCostFor(format));
+  };
 
   const handleStartEditPrice = (format: PhysicalFormat) => {
     const current = priceFor(format);
@@ -1155,8 +1169,8 @@ export default function BookLivePage() {
   const handleRequestFormat = async (format: PhysicalFormat) => {
     setRequestingFormat(format);
     try {
-      const result = await requestBookFormat(book.id, format);
-      setFormatRequests((prev) => [...prev, result]);
+      await requestBookFormat(book.id, format);
+      await refetch();
     } catch (err) {
       if (!(err instanceof ApiError)) {
         notify("Could not send the request. Please try again.", "error");
@@ -1350,7 +1364,9 @@ export default function BookLivePage() {
           format="Paperback"
           icon={<BookOpen size={13} strokeWidth={2.2} />}
           price={priceFor("Paperback")}
-          formatRequest={latestRequestFor("Paperback")}
+          requestStatus={requestStatusFor("Paperback")}
+          printCost={printCostFor("Paperback")}
+          transactionId={transactionIdFor("Paperback")}
           editing={editingFormat === "Paperback"}
           priceInput={priceInput}
           saving={savingPrice}
@@ -1402,7 +1418,9 @@ export default function BookLivePage() {
           format="Hardback"
           icon={<BookMarked size={13} strokeWidth={2.2} />}
           price={priceFor("Hardback")}
-          formatRequest={latestRequestFor("Hardback")}
+          requestStatus={requestStatusFor("Hardback")}
+          printCost={printCostFor("Hardback")}
+          transactionId={transactionIdFor("Hardback")}
           editing={editingFormat === "Hardback"}
           priceInput={priceInput}
           saving={savingPrice}

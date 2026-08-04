@@ -213,6 +213,7 @@ export interface WalletTransaction {
     | "withdrawal"
     | "quote_payment"
     | "reprint"
+    | "format_request"
     | "transfer"
     | "deposit";
   title: string;

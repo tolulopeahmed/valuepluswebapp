@@ -25,9 +25,9 @@ export interface BookQuotationSummary {
   book_size: string;
   // Which edition(s) were asked about at signup — "Paperback", "Hardback",
   // "Ebook", any combination. A second physical format beyond the first
-  // gets its own BookFormatRequest for its print cost (see
-  // fetchBookFormatRequests) rather than being folded into this quote's
-  // own print_cost, which only ever prices the first one.
+  // gets its own request-status tracked directly on the book (see
+  // MyBook.hardback_request_status etc.) rather than being folded into
+  // this quote's own print_cost, which only ever prices the first one.
   requested_formats: string[];
   pages: number | null;
   words: number | null;
@@ -55,6 +55,15 @@ export interface BookQuotationSummary {
   created_at: string;
 }
 
+// Mirrors apps.books.models.Book.FormatRequestStatus — the lifecycle of
+// an in-flight "add a new physical edition" request, tracked directly
+// on the book itself (a book only ever has one open per format at a
+// time): none requested yet -> pending (author asked) -> quoted (staff
+// entered a print cost, awaiting payment) -> paid (payment confirmed,
+// dashboard now suggests a sale price) -> back to none once a price is
+// actually set.
+export type FormatRequestStatus = "none" | "pending" | "quoted" | "paid";
+
 // Real book shape from the Django backend (GET /books/mine/) — separate
 // from the demo `Book` type in src/data/books.ts, which backs the public
 // marketing storefront page and stays on static mock content. Several
@@ -72,12 +81,23 @@ export interface MyBook {
   // Three fully independent editions — a title can have any combination
   // of the three, each priced/toggled on its own (see Book model's own
   // docstring server-side). Paperback/Hardback are real physical runs
-  // (see BookFormatRequest for how a NEW one gets added — never just a
-  // direct price entry); Ebook has zero marginal cost, so it alone can
-  // be set directly (see ebook_price/ebook_drive_link below).
+  // (see *_request_status/*_print_cost for how a NEW one gets added —
+  // never just a direct price entry); Ebook has zero marginal cost, so
+  // it alone can be set directly (see ebook_price/ebook_drive_link
+  // below).
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
+  paperback_request_status: FormatRequestStatus;
+  paperback_print_cost: string | null;
+  // The FORMAT_REQUEST transaction backing this format's quote, once
+  // one exists (request_status "quoted" or "paid") — lets the dashboard
+  // deep-link straight to it on the Transactions page (?tx=<id>), same
+  // pattern the cost-updated email already uses.
+  paperback_transaction_id: string | null;
+  hardback_request_status: FormatRequestStatus;
+  hardback_print_cost: string | null;
+  hardback_transaction_id: string | null;
   // The author's own Google Drive link to the Ebook file — only ever
   // handed to a buyer after purchase; here (the author's own book list)
   // it's fine to see it, since they're the one who set it.
@@ -97,22 +117,10 @@ export interface MyBook {
   quotation: BookQuotationSummary | null;
 }
 
-// Mirrors apps.books.models.BookFormatRequest.Format — the two physical
-// bindings a book can request a brand-new edition of. Ebook never goes
-// through this flow (see updateBookEbook), so it isn't part of this type.
+// The two physical bindings a book can request a brand-new edition of.
+// Ebook never goes through this flow (see updateBookEbook), so it isn't
+// part of this type.
 export type PhysicalFormat = "Paperback" | "Hardback";
-
-// Mirrors apps.books.serializers.BookFormatRequestSerializer — surfaced
-// on the book detail page so "Request Quote" can become "Quote
-// requested…" / "Quoted — set your price" per format instead of always
-// just a bare button.
-export interface BookFormatRequestSummary {
-  id: number;
-  requested_format: PhysicalFormat;
-  status: "pending" | "quoted" | "closed";
-  print_cost: string | null;
-  created_at: string;
-}
 
 export const MY_BOOK_STATUS_LABEL: Record<MyBook["status"], string> = {
   pending: "Pending",
@@ -253,22 +261,17 @@ export function updateBookPrice(bookId: string, format: PhysicalFormat, price: n
   });
 }
 
-// Every format-edition request this book has ever had — lets the
-// dashboard show "Quote requested" / "Quoted — set your price" per
-// format instead of just a bare "Request Quote" button once one's
-// already in flight.
-export function fetchBookFormatRequests(bookId: string) {
-  return apiFetch<BookFormatRequestSummary[]>(`/books/mine/${bookId}/format-requests/`);
-}
-
 // Asks ValuePlus to quote a brand-new physical edition this book
 // doesn't have yet — real one-off production cost (typesetting/binding
 // for that format), so unlike the Ebook edition this can't just be
 // priced directly. Staff quote it in Django admin; the author pays via
 // the same Transactions flow as everything else, then sets the sale
-// price with updateBookPrice once it's confirmed.
+// price with updateBookPrice once it's confirmed. Returns the updated
+// book itself (its own paperback_request_status/hardback_request_status
+// now reflect the new "pending" state) — the caller should refetch()
+// the shared book list rather than trying to patch local state by hand.
 export function requestBookFormat(bookId: string, format: PhysicalFormat) {
-  return apiFetch<BookFormatRequestSummary>(`/books/mine/${bookId}/format-requests/`, {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/format-requests/`, {
     method: "POST",
     body: JSON.stringify({ format }),
   });
@@ -387,13 +390,31 @@ export function suggestedPrice(quotation: BookQuotationSummary | null): number |
 }
 
 // Same 2.5x-print-cost heuristic as suggestedPrice above, but for a
-// format that came from a BookFormatRequest (a Hardback edition added
-// later, say) rather than the book's original "Get a Quote" submission.
+// physical edition added later via the request-a-new-format flow
+// (paperback_print_cost/hardback_print_cost) rather than the book's
+// original "Get a Quote" submission — used as the fallback when there's
+// no sibling physical price to base a markup off (see
+// suggestedPriceFromPaperback below, which is preferred once available).
 export function suggestedPriceFromPrintCost(printCost: string | null): number | null {
   if (printCost === null) return null;
   const n = Number(printCost);
   if (!Number.isFinite(n) || n <= 0) return null;
   return Math.round(n * SUGGESTED_PRICE_MULTIPLIER);
+}
+
+// Hardback's own suggested price, once its request is PAID: 40% over
+// Paperback's own sale price rather than off Hardback's print cost —
+// Hardback is a premium variant of the same book, so pricing it relative
+// to what the book already sells for reads more sensibly to an author
+// than a number derived from production cost alone. Null when Paperback
+// itself has no price yet (falls back to suggestedPriceFromPrintCost).
+const HARDBACK_MARKUP_OVER_PAPERBACK = 1.4;
+
+export function suggestedPriceFromPaperback(book: MyBook): number | null {
+  if (book.paperback_price === null) return null;
+  const n = Number(book.paperback_price);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * HARDBACK_MARKUP_OVER_PAPERBACK);
 }
 
 // A single "headline" price for compact views that only have room for

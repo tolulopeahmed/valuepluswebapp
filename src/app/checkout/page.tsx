@@ -6,6 +6,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
+import Button from "@/components/buttons/buttons";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import { getCart } from "@/lib/cart";
@@ -198,7 +199,7 @@ function CheckoutForm() {
                         type="checkbox"
                         checked={deliveryCostAck}
                         onChange={(e) => setDeliveryCostAck(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#171100]"
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#EFC700]"
                       />
                       <span className="text-xs leading-relaxed text-black/60">
                         I understand delivery cost for physical copies is paid by me (the
@@ -209,15 +210,16 @@ function CheckoutForm() {
                 )}
               </div>
 
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="md"
                 onClick={handleSubmit}
-                disabled={submitting || (hasPhysicalItem && !deliveryCostAck)}
-                className="mt-5 w-full rounded-xl py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-50"
-                style={{ background: "#171100" }}
+                loading={submitting}
+                disabled={hasPhysicalItem && !deliveryCostAck}
+                className="mt-5 w-full"
               >
                 {submitting ? "Redirecting to payment…" : `Pay ${naira(total)}`}
-              </button>
+              </Button>
             </>
           )}
         </div>

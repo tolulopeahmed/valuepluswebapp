@@ -19,6 +19,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Download, Minus, Plus, ShoppingCart, Truck } from "lucide-react";
+import Button from "@/components/buttons/buttons";
 import { addToCart, minQuantityFor } from "@/lib/cart";
 import { notify } from "@/lib/snackbar";
 
@@ -47,17 +48,27 @@ export default function BuyBox({
   hasHardback: boolean;
   hasEbook: boolean;
 }) {
+  // Ebook, Paperback, Hardback — deliberately in this order (not the
+  // Paperback-first convention used elsewhere) so the tab row reads
+  // Ebook / Paperback / Hardback left to right, per product decision.
   const editions: Edition[] = [
+    ...(hasEbook && ebookPrice !== null ? [{ format: "Ebook", label: "Ebook", price: ebookPrice }] : []),
     ...(hasPaperback && paperbackPrice !== null
       ? [{ format: "Paperback", label: "Paperback", price: paperbackPrice }]
       : []),
     ...(hasHardback && hardbackPrice !== null
       ? [{ format: "Hardback", label: "Hardback", price: hardbackPrice }]
       : []),
-    ...(hasEbook && ebookPrice !== null ? [{ format: "Ebook", label: "Ebook", price: ebookPrice }] : []),
   ];
 
-  const [selectedFormat, setSelectedFormat] = useState(editions[0]?.format ?? "");
+  // Paperback still wins as the default selected tab (same "primary
+  // edition" convention used everywhere else — see e.g. useMyBooks.tsx's
+  // displayPrice) even though the tab row itself displays Ebook first;
+  // falls back to whichever edition actually exists first if this book
+  // has no Paperback at all.
+  const [selectedFormat, setSelectedFormat] = useState(
+    editions.find((e) => e.format === "Paperback")?.format ?? editions[0]?.format ?? "",
+  );
   const selected = editions.find((e) => e.format === selectedFormat) ?? editions[0] ?? null;
   const minQty = minQuantityFor(selected?.format ?? "");
   const [quantity, setQuantity] = useState(minQty);
@@ -77,9 +88,15 @@ export default function BuyBox({
   };
 
   return (
-    <div className="rounded-2xl border border-black/10 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.15)]">
+    <div
+      className="rounded-2xl border bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.15),0_0_0_1px_rgba(239,199,0,0.12)]"
+      style={{ borderColor: "rgba(239,199,0,0.28)" }}
+    >
       {editions.length > 1 && (
-        <div className="mb-4 flex gap-1.5 rounded-xl border border-black/10 bg-black/[0.03] p-1">
+        <div
+          className="mb-4 flex gap-1.5 rounded-xl border p-1"
+          style={{ borderColor: "rgba(239,199,0,0.18)", background: "rgba(239,199,0,0.05)" }}
+        >
           {editions.map((edition) => {
             const isEbook = edition.format === "Ebook";
             const active = selected?.format === edition.format;
@@ -90,8 +107,8 @@ export default function BuyBox({
                 onClick={() => setSelectedFormat(edition.format)}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[0.72rem] font-bold transition-colors"
                 style={{
-                  background: active ? "#171100" : "transparent",
-                  color: active ? "#ffffff" : "rgba(0,0,0,0.5)",
+                  background: active ? "rgb(var(--vp-accent-rgb))" : "transparent",
+                  color: active ? "#171100" : "rgba(0,0,0,0.5)",
                 }}
               >
                 {isEbook ? <Download size={13} strokeWidth={2.5} /> : <Truck size={13} strokeWidth={2.5} />}
@@ -142,15 +159,16 @@ export default function BuyBox({
         </>
       )}
 
-      <button
-        type="button"
+      <Button
+        variant="primary"
+        size="md"
         onClick={handleAddToCart}
         disabled={!selected}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#171100] py-3.5 text-sm font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-50"
+        className="mt-4 w-full"
       >
         <ShoppingCart size={16} strokeWidth={2.25} />
         {selected ? "Add to Cart" : "Not available yet"}
-      </button>
+      </Button>
 
       {selected?.format === "Ebook" ? (
         <p className="mt-2.5 text-center text-[0.68rem] leading-relaxed text-black/40">
@@ -165,9 +183,13 @@ export default function BuyBox({
         )
       )}
 
+      {/* Raw brand gold reads too light against white for text this
+          small (fails contrast) — #171100 is the same dark ink the
+          gold buttons already use for their own text, so this still
+          reads as "on brand" without the legibility problem. */}
       <Link
         href="/cart"
-        className="mt-3 block text-center text-[0.78rem] font-bold text-black/50 hover:text-black/70"
+        className="mt-3 block text-center text-[0.78rem] font-bold text-[#171100]/60 hover:text-[#171100]"
       >
         View Cart →
       </Link>

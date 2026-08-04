@@ -11,6 +11,7 @@ import Image from "next/image";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BuyBox from "@/components/storefront/BuyBox";
+import ProductReviews from "@/components/storefront/ProductReviews";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
 
@@ -31,6 +32,8 @@ interface PublicBook {
   has_ebook: boolean;
   description: string;
   author_name: string;
+  average_rating: number | null;
+  review_count: number;
 }
 
 async function fetchPublicBook(slug: string): Promise<PublicBook | null> {
@@ -114,7 +117,7 @@ export default async function BookPage({
               </p>
             )}
 
-            <div className="mt-8 max-w-xs">
+            <div className="mt-8">
               <BuyBox
                 bookId={book.id}
                 slug={slug}
@@ -124,6 +127,12 @@ export default async function BookPage({
                 hasPaperback={book.has_paperback}
                 hasHardback={book.has_hardback}
                 hasEbook={book.has_ebook}
+              />
+
+              <ProductReviews
+                slug={slug}
+                initialAverageRating={book.average_rating}
+                initialReviewCount={book.review_count}
               />
             </div>
           </div>

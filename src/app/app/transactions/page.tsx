@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   PlusCircle,
   Package,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -82,6 +83,7 @@ const SOURCE_ICON: Record<TxSource, LucideIcon> = {
   withdrawal: RefreshCcw,
   quote_payment: Receipt,
   reprint: Package,
+  format_request: Layers,
   transfer: Send,
   deposit: PlusCircle,
 };
@@ -94,6 +96,7 @@ const CATEGORIES: { id: "all" | TxSource; label: string; Icon: LucideIcon }[] =
     { id: "withdrawal", label: "Withdrawals", Icon: RefreshCcw },
     { id: "quote_payment", label: "Payments", Icon: Receipt },
     { id: "reprint", label: "Reorders", Icon: Package },
+    { id: "format_request", label: "New Formats", Icon: Layers },
     { id: "transfer", label: "Transfers", Icon: Send },
     { id: "deposit", label: "Deposits", Icon: PlusCircle },
   ];
@@ -119,11 +122,13 @@ function titleFor(tx: WalletTransaction) {
           ? "Quote Payment"
           : tx.source === "reprint"
             ? "Reprint Payment"
-            : tx.source === "transfer"
-              ? "Wallet Transfer"
-              : tx.source === "deposit"
-                ? "Wallet Deposit"
-                : "Withdrawal")
+            : tx.source === "format_request"
+              ? "New Format Payment"
+              : tx.source === "transfer"
+                ? "Wallet Transfer"
+                : tx.source === "deposit"
+                  ? "Wallet Deposit"
+                  : "Withdrawal")
   );
 }
 
