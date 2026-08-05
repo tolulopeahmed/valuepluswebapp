@@ -277,6 +277,19 @@ export function requestBookFormat(bookId: string, format: PhysicalFormat) {
   });
 }
 
+// Takes a live title off its own public page (/book/<slug>) and out of
+// the /books catalog, without touching any of its content/pricing/sales
+// history — just status, back to Draft. See republishBook for the
+// reverse; both 400 (via ApiError) if the book isn't already in the
+// state they expect.
+export function unpublishBook(bookId: string) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/unpublish/`, { method: "POST" });
+}
+
+export function republishBook(bookId: string) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/republish/`, { method: "POST" });
+}
+
 // The author's own self-service edit of the same `description` field
 // staff can already set directly on the Book change form in Django
 // admin — the backend caps it at 50 words (see BookDescriptionSerializer),
@@ -353,6 +366,7 @@ export function deleteBookCoupon(bookId: string) {
 }
 
 export interface ReprintRequest {
+  format: PhysicalFormat;
   copies: number;
   paperType: "cream" | "white";
   nylonSeals: boolean;
@@ -365,6 +379,7 @@ export function requestReprint(bookId: string, request: ReprintRequest) {
   return apiFetch<{ received: boolean }>(`/books/mine/${bookId}/reorder/`, {
     method: "POST",
     body: JSON.stringify({
+      format: request.format,
       copies: request.copies,
       paper_type: request.paperType,
       nylon_seals: request.nylonSeals,

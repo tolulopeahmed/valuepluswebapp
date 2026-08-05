@@ -5,7 +5,7 @@ import Modal from "./Modal";
 import Button from "./buttons/buttons";
 import { notify } from "../lib/snackbar";
 import { ApiError } from "../lib/api";
-import { requestReprint, type MyBook } from "../hooks/useMyBooks";
+import { requestReprint, type MyBook, type PhysicalFormat } from "../hooks/useMyBooks";
 
 // Same admin line used everywhere else (Transactions.tsx, Sidebar.tsx,
 // Settings.tsx, book/[id]/page.tsx's own WhatsApp reorder link).
@@ -17,6 +17,16 @@ function defaultPaperType(book: MyBook): PaperType {
   const ids = book.quotation?.selected_services.map((s) => s.id) ?? [];
   if (ids.includes("white")) return "white";
   return "cream";
+}
+
+// Paperback wins as the default when a book sells both — same "primary
+// edition" convention used everywhere else (see useMyBooks.tsx's
+// displayPrice) — but only ever one this book actually has a physical
+// edition for (see BookFormatRequestView for how a NEW edition gets
+// added; this modal is only ever for reordering more of one that
+// already exists).
+function defaultFormat(book: MyBook): PhysicalFormat {
+  return book.has_paperback ? "Paperback" : "Hardback";
 }
 
 function ToggleOption({
@@ -54,6 +64,7 @@ export default function ReorderPrintsModal({
   book: MyBook;
 }) {
   const [view, setView] = useState<"form" | "success">("form");
+  const [format, setFormat] = useState<PhysicalFormat>(() => defaultFormat(book));
   const [copies, setCopies] = useState("");
   const [paperType, setPaperType] = useState<PaperType>(() => defaultPaperType(book));
   // Nylon seals default to on regardless of what the original quote
@@ -66,6 +77,7 @@ export default function ReorderPrintsModal({
 
   const reset = () => {
     setView("form");
+    setFormat(defaultFormat(book));
     setCopies("");
     setPaperType(defaultPaperType(book));
     setNylonSeals(true);
@@ -84,7 +96,7 @@ export default function ReorderPrintsModal({
     }
     setSubmitting(true);
     try {
-      await requestReprint(book.id, { copies: copiesValue, paperType, nylonSeals });
+      await requestReprint(book.id, { format, copies: copiesValue, paperType, nylonSeals });
       setView("success");
     } catch (err) {
       if (!(err instanceof ApiError)) {
@@ -95,7 +107,7 @@ export default function ReorderPrintsModal({
     }
   };
 
-  const followUpMessage = `Hi ValuePlus! I'd like to reorder ${copiesValue || "some"} ${
+  const followUpMessage = `Hi ValuePlus! I'd like to reorder ${copiesValue || "some"} ${format} ${
     copiesValue === 1 ? "copy" : "copies"
   } of "${book.title}" — ${paperType === "cream" ? "Cream Paper" : "White Paper"}, ${
     nylonSeals ? "with" : "without"
@@ -139,6 +151,29 @@ export default function ReorderPrintsModal({
               email soon.
             </p>
           </div>
+
+          {/* Only shown when there's actually a choice to make — a book
+              selling just one physical format has nothing to pick
+              between, so the toggle would just be redundant chrome. */}
+          {book.has_paperback && book.has_hardback && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.68rem] font-black uppercase tracking-[0.1em] text-white/45">
+                Format
+              </span>
+              <div className="flex gap-2">
+                <ToggleOption
+                  label="Paperback"
+                  active={format === "Paperback"}
+                  onClick={() => setFormat("Paperback")}
+                />
+                <ToggleOption
+                  label="Hardback"
+                  active={format === "Hardback"}
+                  onClick={() => setFormat("Hardback")}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <span className="text-[0.68rem] font-black uppercase tracking-[0.1em] text-white/45">

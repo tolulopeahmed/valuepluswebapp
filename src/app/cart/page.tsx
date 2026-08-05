@@ -131,7 +131,7 @@ export default function CartPage() {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-vp-ink text-white">
+    <main className="vp-product-page-bg min-h-screen overflow-x-hidden text-white">
       <div className="noise-layer" />
       <Navbar />
 

@@ -15,13 +15,16 @@ import {
   BookOpen,
   Calendar,
   Check,
+  Copy,
   Download,
+  EyeOff,
   ExternalLink,
   FileStack,
   FolderOpen,
   Layers,
   Pencil,
   Printer,
+  Share2,
   Tag,
   Trash2,
   TrendingUp,
@@ -49,6 +52,7 @@ import {
   saveBookCoupon,
   deleteBookCoupon,
   requestBookFormat,
+  unpublishBook,
   suggestedPrice,
   suggestedPriceFromPrintCost,
   suggestedPriceFromPaperback,
@@ -1027,6 +1031,219 @@ function PhysicalFormatCard({
   );
 }
 
+// lucide has no WhatsApp glyph — same local fill-based SVG duplicated
+// in Sidebar.tsx/Transactions.tsx/BookDetailsModal.tsx for the same
+// reason.
+function WhatsAppIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M16.02 4C9.4 4 4 9.33 4 15.9c0 2.1.56 4.15 1.62 5.95L4 28l6.32-1.58A12.17 12.17 0 0 0 16.02 28C22.65 28 28 22.67 28 16.1 28 9.53 22.65 4 16.02 4Zm0 21.86c-1.78 0-3.52-.47-5.03-1.36l-.36-.21-3.75.94 1-3.62-.24-.38a9.86 9.86 0 0 1-1.5-5.23c0-5.38 4.43-9.76 9.88-9.76 5.45 0 9.88 4.38 9.88 9.76s-4.43 9.86-9.88 9.86Z" />
+      <path d="M21.42 18.55c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.46-.88-.78-1.47-1.74-1.64-2.04-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.08-.15-.67-1.6-.92-2.19-.24-.58-.49-.5-.67-.5h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.01-1.04 2.46s1.06 2.86 1.21 3.06c.15.2 2.09 3.17 5.07 4.45.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+    </svg>
+  );
+}
+
+function ActionsMenuRow({
+  icon,
+  label,
+  description,
+  destructive = false,
+  onClick,
+}: {
+  icon: ReactNode;
+  label: string;
+  description: string;
+  destructive?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors active:bg-white/[0.07]"
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        borderColor: destructive ? "rgba(248,113,113,0.25)" : "rgba(255,255,255,0.08)",
+      }}
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+        style={{
+          background: destructive ? "rgba(248,113,113,0.14)" : "rgba(var(--vp-accent-rgb),0.16)",
+          color: destructive ? "#F87171" : "rgb(var(--vp-accent-rgb))",
+        }}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <p
+          className="text-[0.85rem] font-black leading-tight"
+          style={{ color: destructive ? "#F87171" : "#ffffff" }}
+        >
+          {label}
+        </p>
+        <p className="mt-0.5 text-[0.68rem] leading-snug text-white/40">{description}</p>
+      </span>
+    </button>
+  );
+}
+
+// The pencil on each Paperback/Hardback/Ebook card opens this instead
+// of jumping straight into inline price editing — "Edit Price" is still
+// one tap away, but Copy Link/Share/Remove are book-level actions (the
+// public page/URL is the same regardless of which card's pencil you
+// tapped), so this menu is shared across all three rather than each
+// format getting its own narrower version.
+function BookActionsMenu({
+  format,
+  book,
+  onClose,
+  onEditPrice,
+  onUnpublish,
+}: {
+  format: "Paperback" | "Hardback" | "Ebook" | null;
+  book: MyBook;
+  onClose: () => void;
+  onEditPrice: (format: "Paperback" | "Hardback" | "Ebook") => void;
+  onUnpublish: () => Promise<void>;
+}) {
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const publicUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/book/${book.slug}` : "";
+
+  // Resets the confirm step every time the menu opens for a different
+  // card, closes, or re-opens — without this, cancelling a removal and
+  // then opening a different (or the same) card's pencil again would
+  // silently reopen straight into the confirm screen, since this
+  // component itself never unmounts (only the Modal's own children do)
+  // and so its state would otherwise just carry over. Adjusting state
+  // during render, guarded on `format` itself changing, same "reset on
+  // prop change" pattern used throughout this file rather than an effect.
+  const [confirmingForFormat, setConfirmingForFormat] = useState<typeof format>(null);
+  if (format !== confirmingForFormat) {
+    setConfirmingForFormat(format);
+    setConfirmingRemove(false);
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      notify("Public link copied!", "success");
+    } catch {
+      notify("Could not copy the link. Please try again.", "error");
+    }
+    onClose();
+  };
+
+  const handleShare = async () => {
+    const shareData = { title: book.title, url: publicUrl };
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the native share sheet — not an error.
+      }
+      onClose();
+      return;
+    }
+    const message = `Check out "${book.title}" on ValuePlus: ${publicUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    onClose();
+  };
+
+  const handleConfirmUnpublish = async () => {
+    setUnpublishing(true);
+    try {
+      await onUnpublish();
+    } finally {
+      setUnpublishing(false);
+    }
+  };
+
+  return (
+    <Modal open={format !== null} onClose={onClose}>
+      {confirmingRemove ? (
+        <div className="flex flex-col items-center text-center">
+          <div
+            className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border"
+            style={{ background: "rgba(248,113,113,0.14)", borderColor: "rgba(248,113,113,0.3)" }}
+          >
+            <EyeOff size={22} strokeWidth={1.8} style={{ color: "#F87171" }} />
+          </div>
+          <h3 className="text-[1.05rem] font-black text-white">Remove from public page?</h3>
+          <p className="mt-2 text-[0.8rem] leading-relaxed text-white/50">
+            &ldquo;{book.title}&rdquo; will come off {publicUrl.replace(/^https?:\/\//, "")} and
+            the /books catalog right away — buyers won&apos;t be able to find or purchase it
+            until you republish. Nothing else about the book changes.
+          </p>
+          <div className="mt-5 flex w-full gap-2.5">
+            <Button
+              variant="secondary"
+              size="md"
+              className="flex-1"
+              onClick={() => setConfirmingRemove(false)}
+              disabled={unpublishing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-1 !bg-[#F87171]"
+              loading={unpublishing}
+              onClick={handleConfirmUnpublish}
+            >
+              Remove
+            </Button>
+          </div>
+        </div>
+      ) : (
+        format && (
+          <div className="flex flex-col gap-2.5">
+            <h3 className="mb-1 text-[1.05rem] font-black text-white">{format} Edition</h3>
+
+            <ActionsMenuRow
+              icon={<Pencil size={15} strokeWidth={2.2} />}
+              label="Edit Price"
+              description="Set or change the sale price"
+              onClick={() => {
+                onEditPrice(format);
+                onClose();
+              }}
+            />
+            <ActionsMenuRow
+              icon={<Copy size={15} strokeWidth={2.2} />}
+              label="Copy Public Link"
+              description="Share it anywhere yourself"
+              onClick={handleCopyLink}
+            />
+            <ActionsMenuRow
+              icon={
+                typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
+                  <Share2 size={15} strokeWidth={2.2} />
+                ) : (
+                  <WhatsAppIcon size={15} />
+                )
+              }
+              label="Share"
+              description="Post to social media, WhatsApp, and more"
+              onClick={handleShare}
+            />
+            <ActionsMenuRow
+              icon={<Trash2 size={15} strokeWidth={2.2} />}
+              label="Remove Book from Public Page"
+              description="Take the whole title down — not just this edition"
+              destructive
+              onClick={() => setConfirmingRemove(true)}
+            />
+          </div>
+        )
+      )}
+    </Modal>
+  );
+}
+
 function CenteredMessage({
   title,
   subtitle,
@@ -1072,6 +1289,11 @@ export default function BookLivePage() {
   const [couponOpen, setCouponOpen] = useState(false);
   const [earningsOpen, setEarningsOpen] = useState(false);
   const [ebookOpen, setEbookOpen] = useState(false);
+  // Which format card's pencil opened the actions menu (Edit Price/Copy
+  // Link/Share/Remove from Public Page) — see BookActionsMenu.
+  const [actionsMenuFor, setActionsMenuFor] = useState<
+    "Paperback" | "Hardback" | "Ebook" | null
+  >(null);
 
   // Not part of `book` (a separate resource — see BookCouponView), so it
   // needs its own fetch once the book id is known. Silently stays null
@@ -1177,6 +1399,31 @@ export default function BookLivePage() {
       }
     } finally {
       setRequestingFormat(null);
+    }
+  };
+
+  const handleEditPriceFromMenu = (format: "Paperback" | "Hardback" | "Ebook") => {
+    if (format === "Ebook") {
+      setEbookOpen(true);
+      return;
+    }
+    handleStartEditPrice(format);
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      await unpublishBook(book.id);
+      await refetch();
+      setActionsMenuFor(null);
+      // This page only ever renders for a PUBLISHED book (see the
+      // status check above) — staying here after unpublishing would
+      // just re-render the "Not live yet" screen with no way back to
+      // the rest of the dashboard.
+      router.push("/app/publish");
+    } catch (err) {
+      if (!(err instanceof ApiError)) {
+        notify("Could not remove the book from your public page. Please try again.", "error");
+      }
     }
   };
 
@@ -1371,7 +1618,7 @@ export default function BookLivePage() {
           priceInput={priceInput}
           saving={savingPrice}
           requesting={requestingFormat === "Paperback"}
-          onStartEdit={() => handleStartEditPrice("Paperback")}
+          onStartEdit={() => setActionsMenuFor("Paperback")}
           onPriceInputChange={setPriceInput}
           onSave={handleSavePrice}
           onCancelEdit={() => setEditingFormat(null)}
@@ -1391,8 +1638,8 @@ export default function BookLivePage() {
             </div>
             <button
               type="button"
-              onClick={() => setEbookOpen(true)}
-              aria-label={book.has_ebook ? "Edit Ebook edition" : "Set up Ebook edition"}
+              onClick={() => (book.has_ebook ? setActionsMenuFor("Ebook") : setEbookOpen(true))}
+              aria-label={book.has_ebook ? "Ebook edition actions" : "Set up Ebook edition"}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
               style={{
                 background: "rgba(var(--vp-accent-rgb),0.16)",
@@ -1425,7 +1672,7 @@ export default function BookLivePage() {
           priceInput={priceInput}
           saving={savingPrice}
           requesting={requestingFormat === "Hardback"}
-          onStartEdit={() => handleStartEditPrice("Hardback")}
+          onStartEdit={() => setActionsMenuFor("Hardback")}
           onPriceInputChange={setPriceInput}
           onSave={handleSavePrice}
           onCancelEdit={() => setEditingFormat(null)}
@@ -1511,6 +1758,14 @@ export default function BookLivePage() {
         onClose={() => setEbookOpen(false)}
         book={book}
         onSaved={refetch}
+      />
+
+      <BookActionsMenu
+        format={actionsMenuFor}
+        book={book}
+        onClose={() => setActionsMenuFor(null)}
+        onEditPrice={handleEditPriceFromMenu}
+        onUnpublish={handleUnpublish}
       />
 
       <EarningsModal

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Gift,
   Wallet,
@@ -18,6 +19,7 @@ import Button from "../../../components/buttons/buttons";
 import Modal from "../../../components/Modal";
 import WithdrawModal from "../../../components/WithdrawModal";
 import AddFundsModal from "../../../components/AddFundsModal";
+import { RECENT_TRANSACTIONS_LIMIT } from "../../../components/Transactions";
 import GlassCard from "../GlassCard";
 import { useAppShell } from "../AppShellContext";
 import { useMyBooks } from "../../../hooks/useMyBooks";
@@ -497,12 +499,16 @@ function EarningDetailsModal({
 function AllEarningsSection({
   groups,
   loading,
+  hasMore,
   onSelect,
 }: {
   groups: EarningGroup[];
   loading: boolean;
+  hasMore: boolean;
   onSelect: (e: Earning) => void;
 }) {
+  const router = useRouter();
+
   if (loading) {
     return (
       <div className="flex flex-col gap-2">
@@ -551,6 +557,16 @@ function AllEarningsSection({
           </div>
         ))}
       </div>
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => router.push("/app/transactions")}
+          className="mx-auto mt-1 text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-white/50 md:text-[0.62rem]"
+        >
+          Show all transactions
+        </button>
+      )}
     </div>
   );
 }
@@ -568,7 +584,11 @@ export default function EarnPage() {
   const { balance, loading: balanceLoading, refetch: refetchBalance } = useWalletBalance();
   const { transactions, loading: transactionsLoading, refetch: refetchTransactions } =
     useTransactions();
-  const earningGroups = groupEarnings(transactions);
+  // Filtered (wallet-relevant sources only) before slicing, not after —
+  // otherwise a run of quote_payment/reprint rows inside the first 5 raw
+  // transactions could quietly shrink the preview below 5 real entries.
+  const walletTransactions = transactions.filter((tx) => WALLET_SOURCES.has(tx.source));
+  const earningGroups = groupEarnings(walletTransactions.slice(0, RECENT_TRANSACTIONS_LIMIT));
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
@@ -593,6 +613,7 @@ export default function EarnPage() {
         <AllEarningsSection
           groups={earningGroups}
           loading={transactionsLoading}
+          hasMore={walletTransactions.length > RECENT_TRANSACTIONS_LIMIT}
           onSelect={setSelected}
         />
       </div>

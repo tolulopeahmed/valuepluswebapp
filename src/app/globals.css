@@ -693,6 +693,18 @@ header {
    HERO
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
+/* Same gradient stack as .hero-concentric-glow below, minus its pulse
+   animation and the drifting .hero-glass-orb elements — a calmer,
+   static version for full page backgrounds (public book/cart/checkout/
+   catalog pages) that were reading as flat solid black against the
+   landing page's richer, warmer dark. */
+.vp-product-page-bg {
+  background:
+    radial-gradient(circle at 78% 0%, rgba(239, 199, 0, 0.14), transparent 38%),
+    radial-gradient(circle at 8% 8%, rgba(29, 155, 240, 0.11), transparent 32%),
+    linear-gradient(140deg, #070b12 0%, #0b1220 48%, #090711 100%);
+}
+
 .hero-concentric-glow {
   pointer-events: none;
   position: absolute;

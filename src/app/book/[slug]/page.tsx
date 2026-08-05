@@ -62,7 +62,7 @@ export default async function BookPage({
   const ebookPrice = book.ebook_price !== null ? Number(book.ebook_price) : null;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-vp-ink text-white">
+    <main className="vp-product-page-bg min-h-screen overflow-x-hidden text-white">
       <div className="noise-layer" />
 
       <Navbar />

@@ -475,11 +475,20 @@ function TransactionDetailsModal({
   );
 }
 
+// Every preview list on the dashboard (this component's own "My recent
+// transactions" on Home, EarnPage's "All earnings" on Wallet) caps at
+// this many before handing off to the full /app/transactions page
+// instead — a home-screen widget showing a book's entire multi-year
+// history isn't a preview anymore.
+export const RECENT_TRANSACTIONS_LIMIT = 5;
+
 export default function Transactions() {
   const router = useRouter();
   const [selected, setSelected] = useState<Transaction | null>(null);
   const { transactions, loading } = useTransactions();
-  const groups = groupByMonth(transactions);
+  // Already newest-first from the backend (Transaction.Meta.ordering),
+  // so the first 5 are exactly the 5 most recent regardless of month.
+  const groups = groupByMonth(transactions.slice(0, RECENT_TRANSACTIONS_LIMIT));
 
   return (
     <div className="flex min-w-0 flex-col gap-2">
@@ -513,13 +522,13 @@ export default function Transactions() {
         </div>
       )}
 
-      {groups.length > 0 && (
+      {transactions.length > 0 && (
         <button
           type="button"
           onClick={() => router.push("/app/transactions")}
-          className="mx-auto mt-1 text-[0.68rem] font-semibold uppercase tracking-widest text-white/40 transition-colors hover:text-white/60"
+          className="mx-auto mt-1 text-[0.68rem] font-black uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-white/50 md:text-[0.62rem]"
         >
-          View all transactions...
+          Show all transactions
         </button>
       )}
 

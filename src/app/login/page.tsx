@@ -296,11 +296,15 @@ function LoginPageInner() {
           "radial-gradient(circle at 18% 0%, rgba(29,155,240,.13), transparent 32%), radial-gradient(circle at 84% 16%, rgba(239,199,0,.11), transparent 30%), linear-gradient(145deg, #070b12 0%, #0d1420 52%, #080711 100%)",
       }}
     >
+      {/* Faint blue glass tint (same rgba(29,155,240,...) the landing
+          page's "The A—Z of Publishing" badge uses — see .verified-badge
+          in globals.css) instead of the old near-black-on-near-black
+          fill, which barely separated from the page behind it. */}
       <div
-        className="relative z-10 w-full max-w-[26rem] rounded-[1.55rem] border border-white/[0.11] px-6 pb-6 pt-7 shadow-[0_40px_110px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
+        className="relative z-10 w-full max-w-[26rem] rounded-[1.55rem] border border-[rgba(29,155,240,0.28)] px-6 pb-6 pt-7 shadow-[0_40px_110px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
         style={{
           background:
-            "linear-gradient(180deg, rgba(255,255,255,.072), rgba(255,255,255,.025)), #0a0f1a",
+            "linear-gradient(160deg, rgba(29,155,240,.16), rgba(29,155,240,.05) 45%, rgba(255,255,255,.03) 100%), #0d1a2b",
         }}
       >
         <span className="pointer-events-none absolute inset-x-6 top-0 h-px rounded-full bg-gradient-to-r from-transparent via-white/30 to-transparent" />
