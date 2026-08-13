@@ -2,8 +2,20 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-export const VP_PAGE_BG = "#080d22";
 export const VP_CARD_BG = "#2D375A";
+
+// Same family as the login page's own card backdrop (see the
+// rgba(29,155,240,...) over #0d1a2b in src/app/login/page.tsx) — not the
+// login page's outer margin gradient, which is nearly black and only
+// reads as blue in the thin sliver around that card. Tuned down from
+// that card's exact values (.16/.05 tint, #0d1a2b base) since the same
+// fill reads noticeably brighter stretched across a full page than it
+// does behind a small ~26rem card. "Bluer but darker": the earlier
+// #081019 base was too neutral grey to read as blue at low lightness —
+// swapped for a base where blue is the clearly dominant channel even at
+// a lower overall lightness, so it reads bluer without getting brighter.
+export const VP_APP_BG =
+  "linear-gradient(160deg, rgba(29,155,240,.17), rgba(29,155,240,.06) 45%, rgba(255,255,255,.01) 100%), #040a26";
 
 export default function GlassCard({
   children,

@@ -121,9 +121,7 @@ export default function MainTab() {
       // corners when Home or More is active.
       className="fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-[2.25rem] border-t border-white/10 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
       style={{
-        // Solid black bar, like the reference — kept a hair of blue-black
-        // warmth so it doesn't read flat against pure-black screens.
-        background: "rgba(4,5,10,0.92)",
+        background: "black",
         boxShadow:
           "0 -12px 32px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06)",
       }}

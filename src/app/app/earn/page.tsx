@@ -10,6 +10,8 @@ import {
   BookOpen,
   Send,
   RefreshCcw,
+  Eye,
+  EyeOff,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -210,6 +212,8 @@ function EarningsHero({
   titleCount: number;
   onAddFunds?: () => void;
 }) {
+  const [balanceHidden, setBalanceHidden] = useState(false);
+
   return (
     <GlassCard accent className="flex min-h-[9.5rem] flex-col p-3.5">
       <div className="flex items-center gap-2">
@@ -223,13 +227,30 @@ function EarningsHero({
           <Wallet size={14} strokeWidth={2} />
         </span>
         <SectionLabel style={{ marginBottom: 0 }}>Wallet</SectionLabel>
+
+        <button
+          type="button"
+          onClick={() => setBalanceHidden((v) => !v)}
+          aria-label={balanceHidden ? "Show balance" : "Hide balance"}
+          className="ml-auto flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-white/40 transition-colors hover:bg-white/10 hover:text-white/70 active:scale-90"
+        >
+          {balanceHidden ? (
+            <EyeOff size={14} strokeWidth={2} />
+          ) : (
+            <Eye size={14} strokeWidth={2} />
+          )}
+        </button>
       </div>
 
       <p
         className="mt-1 text-5xl font-bold leading-none text-white md:text-4xl"
         style={{ fontFamily: "Proxima Nova" }}
       >
-        <NairaAmount value={totalEarned} />
+        {balanceHidden ? (
+          <span aria-label="Balance hidden">••••••</span>
+        ) : (
+          <NairaAmount value={totalEarned} />
+        )}
       </p>
 
       {/* Bottom row — stats left, Add Funds pill right, both sitting on
@@ -348,12 +369,6 @@ function EarningRow({
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5">
-        <span
-          className="text-[0.95rem] font-black"
-          style={{ color: amountColorFor(earning) }}
-        >
-          {earning.type === "credit" ? "+" : "-"}
-        </span>
         <NairaAmount
           value={earning.amount}
           className="text-right text-[1.1rem] font-black leading-none"
@@ -414,12 +429,6 @@ function EarningDetailsModal({
         </div>
 
         <div className="inline-flex items-baseline gap-1">
-          <span
-            className="text-4xl font-black leading-none"
-            style={{ color: amountColorFor(earning) }}
-          >
-            {earning.type === "credit" ? "+" : "-"}
-          </span>
           <NairaAmount
             value={earning.amount}
             className="text-4xl font-black leading-none"

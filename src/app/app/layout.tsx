@@ -12,7 +12,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useStudentProfile, deriveLevel } from "../../hooks/useAcademy";
 import { useUnreadNotificationCount } from "../../hooks/useNotifications";
 import { MyBooksProvider } from "../../hooks/useMyBooks";
-import { VP_PAGE_BG } from "./GlassCard";
+import { VP_APP_BG } from "./GlassCard";
 import { LEARNER_MODE_ENABLED } from "../../lib/featureFlags";
 
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
@@ -66,14 +66,14 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const prevBg = document.body.style.background;
-    document.body.style.background = VP_PAGE_BG;
+    document.body.style.background = VP_APP_BG;
     return () => {
       document.body.style.background = prevBg;
     };
   }, []);
 
   const rootStyle: CSSVars = {
-    background: `radial-gradient(circle at 50% -10%, rgba(var(--vp-accent-rgb),0.05), transparent 40%), linear-gradient(180deg, #12163a 0%, ${VP_PAGE_BG} 45%, #090b22 100%)`,
+    background: `radial-gradient(circle at 50% -10%, rgba(var(--vp-accent-rgb),0.05), transparent 40%), ${VP_APP_BG}`,
     fontFamily: "'Product Sans', 'Proxima Nova', sans-serif",
     "--vp-accent-rgb": ACCENT_RGB[mode],
     // --vp-accent backs .btn-primary/.btn-accent's solid fill (globals.css)
@@ -87,7 +87,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   // no session (redirect above is in flight), don't flash the real shell.
   if (isLoading || !isAuthenticated || !user) {
     return (
-      <div className="grid min-h-svh place-items-center" style={{ background: VP_PAGE_BG }}>
+      <div className="grid min-h-svh place-items-center" style={{ background: VP_APP_BG }}>
         <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
       </div>
     );

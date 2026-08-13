@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 function WhatsAppIcon() {
@@ -146,9 +147,19 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 px-6 py-5 text-center text-xs text-white/30">
-        © {new Date().getFullYear()} ValuePlus Media Limited. All Rights
-        Reserved.
+      <div className="flex flex-col items-center gap-3 border-t border-white/10 px-6 py-5 text-center text-xs text-white/30 sm:flex-row sm:justify-between">
+        <p>
+          © {new Date().getFullYear()} ValuePlus Media Limited. All Rights
+          Reserved.
+        </p>
+        <div className="flex items-center gap-4">
+          <Link href="/privacy-policy" className="hover:text-white/60">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-white/60">
+            Terms of Service
+          </Link>
+        </div>
       </div>
 
       <a

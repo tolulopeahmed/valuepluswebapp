@@ -232,13 +232,7 @@ export default function Profile() {
   };
 
   return (
-    <div
-      className="relative px-5 pb-12 pt-5"
-      style={{
-        background:
-          "radial-gradient(120% 70% at 15% 0%, rgba(var(--vp-accent-rgb),0.32), transparent 55%), radial-gradient(90% 60% at 100% 0%, rgba(var(--vp-accent-rgb),0.14), transparent 60%), linear-gradient(180deg, #232a4d 0%, #171d38 60%, #12172c 100%)",
-      }}
-    >
+    <div className="relative px-5 pb-12 pt-5">
       {/* Edit Profile — same solid-accent pill treatment as the Earn
           page's Withdraw button (EarningsHero in earn/page.tsx). The
           positioning lives on this wrapper, not the Button itself —

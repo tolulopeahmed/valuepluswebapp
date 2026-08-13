@@ -174,13 +174,13 @@ function BookGridTile({
       </button>
 
       {/* Inset within the card, matching the home shelf's corner badge
-          (.vp-shelf-status-badge: top/right 0.5rem = top-2/right-2) —
+          (.vp-shelf-status-badge: top/right 0.625rem = top-2.5/right-2.5) —
           poking the badge up above the edge (the old -top-2) looked
           like it was straddling the border instead of sitting neatly
           in the corner. Still a sibling of the cover button rather than
           a child, just so it never risks being clipped by the button's
           own overflow-hidden rounded corners. */}
-      <span className="absolute top-2 right-2 z-10">
+      <span className="absolute top-2.5 right-2.5 z-10">
         <StatusBadge status={book.status} />
       </span>
 

@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import ManageAccountModal from "./ManageAccountModal";
 import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../lib/featureFlags";
+import { VP_APP_BG } from "../app/app/GlassCard";
 
 type Mode = "learner" | "publisher";
 
@@ -175,13 +176,13 @@ export default function Sidebar({
   // the active state used to carry, now demoted to a hover cue.
   const HOVER_TINT = "rgba(var(--vp-accent-rgb),0.11)";
 
-  // Deep navy base — matches the app shell's background (~rgb(10,14,27),
-  // same family as the ProfileAvatar fallback gradient #3a4763 → #232e47)
-  // instead of the old brown/copper tone. Accent glow still swaps gold
-  // (Learner) / copper (Publisher) via --vp-accent-rgb.
+  // Same base fill as the rest of the app shell (VP_APP_BG — the login
+  // page's own blue) instead of its own separate navy gradient, so the
+  // sidebar reads as part of one continuous background. Accent glow on
+  // top still swaps gold (Learner) / copper (Publisher) via
+  // --vp-accent-rgb.
   const asideStyle: CSSVars = {
-    background:
-      "radial-gradient(circle at 12% 0%, rgba(var(--vp-accent-rgb),0.26), transparent 46%), radial-gradient(circle at 100% 100%, rgba(58,71,99,0.38), transparent 42%), linear-gradient(155deg, #1b2440 0%, #121a30 48%, #0a0e1b 100%)",
+    background: `radial-gradient(circle at 12% 0%, rgba(var(--vp-accent-rgb),0.26), transparent 46%), ${VP_APP_BG}`,
     borderRight: "1px solid rgba(var(--vp-accent-rgb),0.2)",
     boxShadow: "18px 0 40px rgba(0,0,0,0.45)",
     "--vp-accent-rgb": ACCENT_RGB[mode],

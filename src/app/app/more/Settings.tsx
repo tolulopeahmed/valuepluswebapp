@@ -14,6 +14,8 @@ import {
   ShieldCheck,
   // KeyRound, — only used by the commented-out Transaction PIN row below
   HelpCircle,
+  FileText,
+  ScrollText,
   LogOut,
   ChevronRight,
   type LucideIcon,
@@ -335,6 +337,22 @@ function buildItems({
       subtitle: "Get instant support via WhatsApp",
       Icon: WhatsAppIcon,
       href: ADMIN_WHATSAPP_URL,
+      external: true,
+    },
+    {
+      id: "privacy-policy",
+      label: "Privacy Policy",
+      subtitle: "How we collect, use, and protect your data",
+      Icon: FileText,
+      href: "/privacy-policy",
+      external: true,
+    },
+    {
+      id: "terms",
+      label: "Terms of Service",
+      subtitle: "The terms and conditions for using ValuePlus",
+      Icon: ScrollText,
+      href: "/terms",
       external: true,
     },
     {

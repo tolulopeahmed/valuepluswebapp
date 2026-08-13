@@ -132,9 +132,13 @@ export const MY_BOOK_STATUS_LABEL: Record<MyBook["status"], string> = {
 // pending uses the same orange + glow as the home shelf's "not live yet"
 // corner badge (ShelfStatusBadge in PublisherBooks.tsx) — one consistent
 // "still in progress" signal across both pages, instead of a third color.
+// Same dark-solid-fill + bright-text contrast pattern as `published`
+// below (dark backing color in the same hue, bright accent text on top)
+// — the old translucent 16%-alpha fill let the cover art underneath
+// bleed through and killed the contrast against busy covers.
 export const MY_BOOK_STATUS_BADGE_CLASS: Record<MyBook["status"], string> = {
   pending:
-    "bg-[rgba(251,146,60,0.16)] text-[#fb923c] border border-[rgba(251,146,60,0.5)] vp-badge-glow",
+    "bg-[rgba(42,21,3,0.9)] text-[#fb923c] border border-[rgba(251,146,60,0.5)] vp-badge-glow",
   draft: "bg-[#3a3f52] text-white border border-white/25",
   in_progress:
     "bg-[rgb(var(--vp-accent-rgb))] text-[#171100] border border-[rgba(255,255,255,0.35)]",

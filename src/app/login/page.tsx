@@ -532,6 +532,28 @@ function LoginPageInner() {
               </button>
             )}
 
+            {mode === "signup" && (
+              <p className="text-center text-[0.68rem] leading-relaxed text-white/40">
+                By creating an account, you agree to ValuePlus&apos;s{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="font-black text-[rgba(239,199,0,0.82)] hover:text-[rgb(239,199,0)]"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/privacy-policy"
+                  target="_blank"
+                  className="font-black text-[rgba(239,199,0,0.82)] hover:text-[rgb(239,199,0)]"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            )}
+
             <Button
               type="submit"
               variant="primary"

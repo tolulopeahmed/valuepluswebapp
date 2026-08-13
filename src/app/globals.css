@@ -2007,8 +2007,8 @@ header {
 
 .vp-shelf-status-badge {
   position: absolute;
-  right: 0.5rem;
-  top: 0.5rem;
+  right: 0.625rem;
+  top: 0.625rem;
   z-index: 1;
   display: grid;
   height: 1.6rem;
