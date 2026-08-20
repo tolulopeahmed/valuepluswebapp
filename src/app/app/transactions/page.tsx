@@ -297,17 +297,20 @@ function TransactionRow({
         >
           {row.title}
         </p>
-        <p className="mt-1 text-[0.62rem] text-white/40">{row.date}</p>
-        <span
-          className="mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide"
-          style={{
-            background: status.bg,
-            borderColor: status.border,
-            color: status.text,
-          }}
-        >
-          {row.status}
-        </span>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span
+            className="inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide"
+            style={{
+              background: status.bg,
+              borderColor: status.border,
+              color: status.text,
+            }}
+          >
+            {row.status}
+          </span>
+          <span className="text-[0.55rem] text-white/30">·</span>
+          <p className="text-[0.62rem] text-white/40">{row.date}</p>
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center">

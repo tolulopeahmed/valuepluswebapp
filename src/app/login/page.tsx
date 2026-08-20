@@ -13,12 +13,16 @@ import { Gift, KeyRound, Lock, Mail, User } from "lucide-react";
 import Button from "@/components/buttons/buttons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import {
   getStoredReferrerEmail,
   clearStoredReferrerEmail,
 } from "@/lib/referral";
+import {
+  getStoredLearnerIntent,
+  clearStoredLearnerIntent,
+} from "@/lib/learnerIntent";
 
 type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
 
@@ -93,6 +97,10 @@ function LoginPageInner() {
   const [referrerEmail, setReferrerEmail] = useState(() =>
     getStoredReferrerEmail(),
   );
+  // Lazy initializer for the same reason as referrerEmail above — reads
+  // ?intent=learner (set by the pricing page's GET STARTED links) before
+  // anything else has a chance to run.
+  const [learnerIntent] = useState(() => getStoredLearnerIntent());
 
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -135,6 +143,24 @@ function LoginPageInner() {
     setShowPw(false);
   }
 
+  // Tags the account as a learner (if they arrived via a "Get Started" link
+  // on the pricing page) before handing off to the app, so preferred_mode
+  // reflects their intent from the very first dashboard load.
+  async function goToApp() {
+    if (learnerIntent) {
+      try {
+        await apiFetch("/auth/me/", {
+          method: "PATCH",
+          body: JSON.stringify({ preferred_mode: "learner" }),
+        });
+      } catch {
+        // Best-effort — a failed tag shouldn't block getting into the app.
+      }
+      clearStoredLearnerIntent();
+    }
+    router.push("/app");
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
@@ -148,16 +174,22 @@ function LoginPageInner() {
 
     setLoading(true);
 
+    // Email is never case- or whitespace-sensitive — only the password
+    // is. Normalizing here (rather than the `email` state itself) keeps
+    // the field showing exactly what was typed while every request still
+    // goes out trimmed and lowercased.
+    const normalizedEmail = email.trim().toLowerCase();
+
     try {
       if (mode === "login") {
-        await login(email, password);
-        router.push("/app");
+        await login(normalizedEmail, password);
+        await goToApp();
         return;
       }
 
       if (mode === "signup") {
         await registerDirect({
-          email,
+          email: normalizedEmail,
           first_name: firstName,
           last_name: lastName,
           password,
@@ -171,7 +203,7 @@ function LoginPageInner() {
       }
 
       if (mode === "forgot") {
-        await requestPasswordReset(email);
+        await requestPasswordReset(normalizedEmail);
         setOtpCode("");
         setPassword("");
         setConfirmPassword("");
@@ -180,14 +212,14 @@ function LoginPageInner() {
       }
 
       if (mode === "otp") {
-        await verifyEmail({ email, code: otpCode });
-        router.push("/app");
+        await verifyEmail({ email: normalizedEmail, code: otpCode });
+        await goToApp();
         return;
       }
 
       if (mode === "reset") {
         await confirmPasswordReset({
-          email,
+          email: normalizedEmail,
           code: otpCode,
           new_password: password,
           new_password_confirm: confirmPassword,
@@ -224,7 +256,7 @@ function LoginPageInner() {
       setLoading(true);
       try {
         await verifyEmail({ email, code: otpCode });
-        if (!cancelled) router.push("/app");
+        if (!cancelled) await goToApp();
       } catch (err) {
         if (!cancelled && !(err instanceof ApiError)) {
           notify("Something went wrong. Please try again.", "error");

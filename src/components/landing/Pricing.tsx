@@ -134,7 +134,7 @@ export default function Pricing() {
               </div>
 
               <a
-                href="/pricing"
+                href="/login?mode=signup&intent=learner"
                 className="mt-8 block text-[0.72rem] font-black uppercase tracking-widest"
               >
                 GET STARTED

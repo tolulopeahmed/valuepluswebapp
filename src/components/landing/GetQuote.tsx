@@ -621,6 +621,7 @@ export default function GetQuote({
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const [bookTitle, setBookTitle] = useState("");
+  const [bookSubtitle, setBookSubtitle] = useState("");
   const [category, setCategory] = useState("");
   const [bookSize, setBookSize] = useState("");
   // Only used once "Other" is picked from the bookSizes dropdown — the
@@ -1230,6 +1231,7 @@ export default function GetQuote({
           email,
           whatsapp_number: whatsapp,
           book_title: bookTitle,
+          book_subtitle: bookSubtitle.trim() || undefined,
           category: category || undefined,
           book_size:
             (bookSize === "Other" ? customBookSize.trim() : bookSize) ||
@@ -2053,6 +2055,32 @@ export default function GetQuote({
 
                       {shouldShowFieldTag("title", bookTitle) && (
                         <span className="vpgq-field-tag">Title</span>
+                      )}
+                    </div>
+
+                    <div
+                      className={getFieldClassName(
+                        "subtitle",
+                        bookSubtitle,
+                        "vpgq-wide",
+                      )}
+                    >
+                      <FieldIcon>
+                        <BookOpen size={16} strokeWidth={2} />
+                      </FieldIcon>
+                      <input
+                        value={bookSubtitle}
+                        onChange={(event) => setBookSubtitle(event.target.value)}
+                        onFocus={() => setFocusedField("subtitle")}
+                        onBlur={() =>
+                          markFieldComplete("subtitle", bookSubtitle)
+                        }
+                        placeholder="Subtitle (optional)"
+                        autoComplete="off"
+                      />
+
+                      {shouldShowFieldTag("subtitle", bookSubtitle) && (
+                        <span className="vpgq-field-tag">Subtitle</span>
                       )}
                     </div>
 

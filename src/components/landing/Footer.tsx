@@ -85,7 +85,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <h4 className="footer-col-heading">Academy</h4>
+          <h4 className="footer-col-heading">Learn Publishing</h4>
 
           <ul className="footer-links">
             <li>
@@ -104,7 +104,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <h4 className="footer-col-heading">Publishing</h4>
+          <h4 className="footer-col-heading">Manage Your Books</h4>
 
           <ul className="footer-links">
             <li>

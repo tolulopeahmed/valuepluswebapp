@@ -85,7 +85,7 @@ function BankPickerCard({
     <button
       type="button"
       onClick={onSelect}
-      className="vp-card-in relative flex w-52 shrink-0 flex-col overflow-hidden rounded-2xl p-3.5 text-left transition-transform active:scale-[0.98]"
+      className="vp-card-in relative flex w-52 shrink-0 flex-col overflow-hidden rounded-2xl p-3 text-left transition-transform active:scale-[0.98]"
       style={{
         background: getBankCardGradient(account.bankName, account.bankCode),
         outline: selected
@@ -114,24 +114,27 @@ function BankPickerCard({
         </span>
       )}
 
-      <span className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/5">
-        {logo ? (
-          <Image
-            src={logo}
-            alt={bankName}
-            width={36}
-            height={36}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Landmark size={16} className="text-white/40" />
-        )}
-      </span>
+      <div className="relative z-10 flex items-center gap-2">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-white/5">
+          {logo ? (
+            <Image
+              src={logo}
+              alt={bankName}
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <Landmark size={16} className="text-white/40" />
+          )}
+        </span>
 
-      <p className="relative z-10 mt-2 truncate text-[0.78rem] font-black text-white">
-        {bankName}
-      </p>
-      <p className="relative z-10 mt-0.5 truncate text-[0.86rem] font-black tracking-[0.06em] text-white/85">
+        <p className="truncate text-[0.82rem] font-black text-white">
+          {bankName}
+        </p>
+      </div>
+
+      <p className="relative z-10 mt-2 truncate text-[0.86rem] font-black tracking-[0.06em] text-white/85">
         {maskAccountNumber(account.accountNumber)}
       </p>
       <p className="relative z-10 mt-0.5 truncate text-[0.58rem] font-bold uppercase tracking-[0.06em] text-white/40">
@@ -543,7 +546,7 @@ export default function WithdrawModal({
                   Loading your bank accounts…
                 </div>
               ) : (
-                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 py-1.5">
                   {accounts.map((account) => (
                     <BankPickerCard
                       key={account.id}
