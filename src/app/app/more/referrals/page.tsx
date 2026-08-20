@@ -97,35 +97,41 @@ function ReferralRow({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        <p className="truncate text-[0.92rem] font-bold leading-tight text-white/85">
+        <p
+          className="truncate text-[0.92rem] font-bold leading-tight text-white/85"
+          style={{ marginBottom: -5 }}
+        >
           {name}
         </p>
-        <p className="mt-0.5 text-[0.62rem] text-white/40">
-          {formatDate(item.created_at)}
-        </p>
-        <span
-          className="mt-1 inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.44rem] font-black uppercase tracking-wide"
-          style={
-            isConfirmed
-              ? {
-                  background: "rgba(52,211,153,0.12)",
-                  borderColor: "rgba(52,211,153,0.35)",
-                  color: "#34D399",
-                }
-              : {
-                  background: "rgba(255,255,255,0.06)",
-                  borderColor: "rgba(255,255,255,0.14)",
-                  color: "rgba(255,255,255,0.55)",
-                }
-          }
-        >
-          {item.status}
-        </span>
+        <div className="mt-1 flex items-center gap-1.5">
+          <span
+            className="inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 text-[0.55rem] font-black uppercase tracking-wide"
+            style={
+              isConfirmed
+                ? {
+                    background: "rgba(52,211,153,0.12)",
+                    borderColor: "rgba(52,211,153,0.35)",
+                    color: "#34D399",
+                  }
+                : {
+                    background: "rgba(255,255,255,0.06)",
+                    borderColor: "rgba(255,255,255,0.14)",
+                    color: "rgba(255,255,255,0.55)",
+                  }
+            }
+          >
+            {item.status}
+          </span>
+          <span className="text-[0.55rem] text-white/30">·</span>
+          <p className="text-[0.62rem] text-white/40">
+            {formatDate(item.created_at)}
+          </p>
+        </div>
       </div>
 
       <div className="shrink-0 text-right">
         <p
-          className="text-[1rem] font-black leading-none"
+          className="text-[1.1rem] font-black leading-none"
           style={{ color: isConfirmed ? "#34D399" : "rgba(255,255,255,0.35)" }}
         >
           {isConfirmed ? naira(item.amount_earned) : "—"}
@@ -244,16 +250,16 @@ export default function ReferralsPage() {
             No referrals yet — share your email above to start earning.
           </div>
         ) : (
-          <div className="flex flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
+          <div className="flex min-w-0 flex-col gap-3 rounded-3xl border border-white/6 bg-white/3 p-2.5">
             {groups.map((group) => (
-              <div key={group.month} className="flex flex-col gap-1.5">
+              <div key={group.month} className="flex min-w-0 flex-col gap-1.5">
                 <p
                   className="px-1 pb-0.5 text-[0.78rem] font-bold"
                   style={{ color: "rgb(var(--vp-accent-rgb))" }}
                 >
                   {group.month}
                 </p>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   {group.items.map((item) => (
                     <ReferralRow
                       key={item.id}

@@ -69,7 +69,7 @@ export default function Modal({
       <div
         className={`vp-modal-panel-in relative w-full overflow-hidden rounded-t-3xl border md:w-full md:max-w-md md:rounded-3xl ${className}`}
         style={{
-          borderColor: "rgba(239,199,0,0.22)",
+          borderColor: "rgba(var(--vp-accent-rgb), 0.4)",
           background:
             "radial-gradient(120% 55% at 15% 0%, rgba(239,199,0,0.16), transparent 62%), linear-gradient(180deg, #1B2340 0%, #10152A 45%, #0A0E1B 100%)",
           boxShadow: "0 24px 60px rgba(0,0,0,0.55)",

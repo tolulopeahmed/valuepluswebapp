@@ -38,7 +38,12 @@ type EarningType = "credit" | "debit";
 // Wallet.balance at all (see Transaction model docstring), so they
 // don't belong on a page about money actually moving through the
 // wallet. Every other source does.
-type EarningSource = "referral" | "book-sale" | "transfer" | "withdrawal" | "deposit";
+type EarningSource =
+  | "referral"
+  | "book-sale"
+  | "transfer"
+  | "withdrawal"
+  | "deposit";
 
 interface Earning {
   id: string;
@@ -121,7 +126,8 @@ function groupEarnings(transactions: WalletTransaction[]): EarningGroup[] {
       date,
       status: tx.status,
       amount: Number(tx.amount),
-      balanceBefore: tx.balance_before !== null ? Number(tx.balance_before) : null,
+      balanceBefore:
+        tx.balance_before !== null ? Number(tx.balance_before) : null,
       balanceAfter: tx.balance_after !== null ? Number(tx.balance_after) : null,
       Icon: SOURCE_ICON[source],
     };
@@ -130,7 +136,10 @@ function groupEarnings(transactions: WalletTransaction[]): EarningGroup[] {
     groups.get(month)!.push(earning);
   }
 
-  return Array.from(groups.entries()).map(([month, items]) => ({ month, items }));
+  return Array.from(groups.entries()).map(([month, items]) => ({
+    month,
+    items,
+  }));
 }
 
 const STATUS_STYLES: Record<
@@ -534,8 +543,8 @@ function AllEarningsSection({
       <div className="flex flex-col gap-2">
         <SectionLabel>Wallet Activity</SectionLabel>
         <div className="rounded-3xl border border-white/6 bg-white/3 px-4 py-8 text-center text-[0.78rem] text-white/40">
-          No wallet activity yet — book sales, referral rewards, deposits,
-          and withdrawals will show up here.
+          No wallet activity yet — book sales, referral rewards, deposits, and
+          withdrawals will show up here.
         </div>
       </div>
     );
@@ -590,20 +599,31 @@ export default function EarnPage() {
   // to the actual Transaction ledger at all, so a withdrawal or an
   // incoming transfer never moved it. Now it's the same number Withdraw
   // itself checks against.
-  const { balance, loading: balanceLoading, refetch: refetchBalance } = useWalletBalance();
-  const { transactions, loading: transactionsLoading, refetch: refetchTransactions } =
-    useTransactions();
+  const {
+    balance,
+    loading: balanceLoading,
+    refetch: refetchBalance,
+  } = useWalletBalance();
+  const {
+    transactions,
+    loading: transactionsLoading,
+    refetch: refetchTransactions,
+  } = useTransactions();
   // Filtered (wallet-relevant sources only) before slicing, not after —
   // otherwise a run of quote_payment/reprint rows inside the first 5 raw
   // transactions could quietly shrink the preview below 5 real entries.
-  const walletTransactions = transactions.filter((tx) => WALLET_SOURCES.has(tx.source));
-  const earningGroups = groupEarnings(walletTransactions.slice(0, RECENT_TRANSACTIONS_LIMIT));
+  const walletTransactions = transactions.filter((tx) =>
+    WALLET_SOURCES.has(tx.source),
+  );
+  const earningGroups = groupEarnings(
+    walletTransactions.slice(0, RECENT_TRANSACTIONS_LIMIT),
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-5">
       <div className="vp-card-in">
         <Title className="block">Earn</Title>
-        <Subtitle>Earn rewards sharing ValuePlus with friends</Subtitle>
+        <Subtitle>Earn from book sales and referrals</Subtitle>
       </div>
 
       <div className="vp-card-in" style={{ animationDelay: "60ms" }}>
