@@ -195,7 +195,7 @@ export default function Navbar() {
               >
                 <Image
                   src="/images/logos/valueplus-logo-white2.png"
-                  alt="ValuePlus Publishing"
+                  alt="ValuePlus"
                   width={150}
                   height={44}
                   priority
@@ -297,7 +297,7 @@ export default function Navbar() {
           >
             <Image
               src="/images/logos/valueplus-logo-white2.png"
-              alt="ValuePlus Publishing"
+              alt="ValuePlus"
               width={145}
               height={42}
               className="h-8 w-auto object-contain"

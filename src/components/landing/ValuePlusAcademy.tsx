@@ -128,7 +128,7 @@ export default function ValuePlusAcademy() {
           </p>
 
           <h2 className="display-heading section-heading text-vp-dark">
-            Professional Publisher{" "}
+            Professional Author{" "}
             <span className="text-[#fb9906]">in Just 6 Modules</span>
           </h2>
 

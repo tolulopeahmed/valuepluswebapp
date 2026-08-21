@@ -57,7 +57,7 @@ export default function ReferralDetailsModal({
   const initial = (user?.first_name.trim().charAt(0) || "?").toUpperCase();
   const isConfirmed = referral.status === "confirmed";
 
-  const whatsappMessage = `Hi ${user?.first_name ?? ""}! Just following up on your ValuePlus Publishing project 🙂`;
+  const whatsappMessage = `Hi ${user?.first_name ?? ""}! Just following up on your ValuePlus project 🙂`;
 
   return (
     <Modal open={!!referral} onClose={onClose}>

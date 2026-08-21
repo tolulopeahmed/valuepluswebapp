@@ -16,7 +16,7 @@ const heroChecks = [
 ];
 
 const stats = [
-  { value: 178, suffix: "", label: "Learners/Publishers" },
+  { value: 178, suffix: "", label: "Learners/Authors" },
   { value: 1954, suffix: "", label: "Completed Titles" },
   { value: 12, suffix: "", label: "Publishing Years" },
   { value: 1, suffix: "", label: "Account for Everything" },

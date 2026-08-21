@@ -68,7 +68,7 @@ export default function Footer() {
         <div>
           <Image
             src="/images/logos/valueplus-logo-white2.png"
-            alt="ValuePlus Publishing"
+            alt="ValuePlus"
             width={150}
             height={45}
             className="h-9 w-auto object-contain"
@@ -169,7 +169,7 @@ export default function Footer() {
         className={`whatsapp-admin-fab ${
           showWhatsApp ? "whatsapp-admin-fab-visible" : ""
         }`}
-        aria-label="Chat with ValuePlus Publishing admin on WhatsApp"
+        aria-label="Chat with ValuePlus admin on WhatsApp"
       >
         <span className="whatsapp-admin-icon">
           <WhatsAppIcon />

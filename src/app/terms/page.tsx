@@ -3,9 +3,9 @@ import Link from "next/link";
 import LegalDocument, { LegalSection } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | ValuePlus Publishing",
+  title: "Terms of Service | ValuePlus",
   description:
-    "The terms and conditions governing your use of the ValuePlus Publishing website and mobile app.",
+    "The terms and conditions governing your use of the ValuePlus website and mobile app.",
 };
 
 const LAST_UPDATED = "August 13, 2026";
@@ -14,14 +14,14 @@ export default function TermsPage() {
   return (
     <LegalDocument
       title="Terms of Service"
-      tagline="The terms and conditions for using ValuePlus Publishing."
+      tagline="The terms and conditions for using ValuePlus."
       lastUpdated={LAST_UPDATED}
       intro={
         <>
           These Terms of Service (&quot;Terms&quot;) are an agreement
           between you and ValuePlus Media Limited (&quot;ValuePlus,&quot;
           &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) governing your
-          use of the ValuePlus Publishing website, mobile app, and related
+          use of the ValuePlus website, mobile app, and related
           services (together, the &quot;Services&quot;). By creating an
           account or otherwise using the Services, you agree to be bound
           by these Terms and by our{" "}
@@ -56,7 +56,7 @@ export default function TermsPage() {
     >
       <LegalSection heading="What We Offer">
         <p>
-          ValuePlus Publishing offers: (1) publishing and printing services
+          ValuePlus offers: (1) publishing and printing services
           for authors, including manuscript editing, cover design,
           typesetting, print quotations, and physical printing/delivery of
           books; (2) a storefront where readers can buy published titles;

@@ -9,7 +9,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Gift, KeyRound, Lock, Mail, User } from "lucide-react";
+import { Gift, KeyRound, Lock, Mail, Megaphone, Phone, User } from "lucide-react";
 import Button from "@/components/buttons/buttons";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,20 @@ import {
 } from "@/lib/learnerIntent";
 
 type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
+
+// Matches server/apps/accounts/models.py's User.HeardAboutSource exactly.
+const HEARD_ABOUT_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "How did you hear about ValuePlus? (optional)" },
+  { value: "instagram", label: "Instagram" },
+  { value: "facebook", label: "Facebook" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "twitter", label: "Twitter / X" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "friend_family", label: "Friend or Family" },
+  { value: "google_search", label: "Google Search" },
+  { value: "youtube", label: "YouTube" },
+  { value: "other", label: "Other" },
+];
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -97,6 +111,8 @@ function LoginPageInner() {
   const [referrerEmail, setReferrerEmail] = useState(() =>
     getStoredReferrerEmail(),
   );
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [heardAbout, setHeardAbout] = useState("");
   // Lazy initializer for the same reason as referrerEmail above — reads
   // ?intent=learner (set by the pricing page's GET STARTED links) before
   // anything else has a chance to run.
@@ -164,10 +180,10 @@ function LoginPageInner() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    if (
-      (mode === "signup" || mode === "reset") &&
-      password !== confirmPassword
-    ) {
+    // Signup only collects one password field now (simpler UX) — the
+    // match check only still applies to Reset, which keeps its own
+    // confirm field since that's changing an existing password.
+    if (mode === "reset" && password !== confirmPassword) {
       notify("Passwords do not match.", "error");
       return;
     }
@@ -192,9 +208,14 @@ function LoginPageInner() {
           email: normalizedEmail,
           first_name: firstName,
           last_name: lastName,
+          phone_number: phoneNumber.trim() || undefined,
           password,
-          password_confirm: confirmPassword,
+          // No separate confirm-password field on signup anymore — the
+          // backend still expects this key, so it's just the same value
+          // twice rather than a second thing the user has to type.
+          password_confirm: password,
           referrer_email: referrerEmail.trim() || undefined,
+          heard_about: heardAbout || undefined,
         });
         clearStoredReferrerEmail();
         setOtpCode("");
@@ -494,23 +515,37 @@ function LoginPageInner() {
               </div>
             )}
 
-            {(mode === "signup" || mode === "reset") && (
+            {mode === "reset" && (
               <div className="relative">
                 <FieldIcon icon={<Lock size={16} strokeWidth={2} />} />
                 <input
                   type={showPw ? "text" : "password"}
                   value={confirmPassword}
-                  placeholder={
-                    mode === "reset"
-                      ? "Confirm new password"
-                      : "Confirm password"
-                  }
+                  placeholder="Confirm new password"
                   autoComplete="new-password"
                   onFocus={() => setFocused("pwConfirm")}
                   onBlur={() => markComplete("pwConfirm", confirmPassword)}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={`${inputBase} ${
                     isDone("pwConfirm", confirmPassword) ? inputDone : inputIdle
+                  }`}
+                />
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <div className="relative">
+                <FieldIcon icon={<Phone size={16} strokeWidth={2} />} />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  placeholder="Phone number (optional)"
+                  autoComplete="tel"
+                  onFocus={() => setFocused("phoneNumber")}
+                  onBlur={() => markComplete("phoneNumber", phoneNumber)}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className={`${inputBase} ${
+                    isDone("phoneNumber", phoneNumber) ? inputDone : inputIdle
                   }`}
                 />
               </div>
@@ -537,6 +572,25 @@ function LoginPageInner() {
                 {isDone("referrerEmail", referrerEmail) && (
                   <FieldTag label="Referral" />
                 )}
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <div className="relative">
+                <FieldIcon icon={<Megaphone size={16} strokeWidth={2} />} />
+                <select
+                  value={heardAbout}
+                  onChange={(e) => setHeardAbout(e.target.value)}
+                  className={`${inputBase} ${
+                    heardAbout ? inputDone : inputIdle
+                  } appearance-none`}
+                >
+                  {HEARD_ABOUT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 

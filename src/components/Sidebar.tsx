@@ -255,7 +255,7 @@ export default function Sidebar({
             {!logoFailed ? (
               <Image
                 src="/images/logos/valueplus-logo-white2.png"
-                alt="ValuePlus Publishing"
+                alt="ValuePlus"
                 width={160}
                 height={45}
                 className="h-9 w-auto object-contain"
@@ -290,7 +290,7 @@ export default function Sidebar({
               className="pl-1 text-[0.58rem] font-black uppercase tracking-[0.16em] transition-colors duration-500"
               style={{ color: "rgb(var(--vp-accent-rgb))" }}
             >
-              {mode === "learner" ? "Learner" : "Publisher"}
+              {mode === "learner" ? "Learner" : "Author"}
             </p>
 
             <button
@@ -313,8 +313,8 @@ export default function Sidebar({
                 !LEARNER_MODE_ENABLED
                   ? `Learner mode — coming soon, ready in ${LEARNER_MODE_ETA}`
                   : mode === "learner"
-                    ? "Learner mode"
-                    : "Publisher mode"
+                    ? "Learner"
+                    : "Author"
               }
             >
               <span

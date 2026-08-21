@@ -203,6 +203,24 @@ export function resolveBankAccount(accountNumber: string, bankCode: string) {
   );
 }
 
+export interface DetectedBankMatch {
+  bank_code: string;
+  bank_name: string;
+  account_name: string;
+}
+
+// Account-number-first flow (mirrors mobile's AddBankModal exactly, same
+// backend endpoint): given just a 10-digit number, probes a shortlist of
+// major banks server-side and returns every one that actually resolves a
+// name — almost always exactly one, since a real NUBAN only lives at one
+// bank.
+export function detectBankAccount(accountNumber: string) {
+  const params = new URLSearchParams({ account_number: accountNumber });
+  return apiFetch<{ matches: DetectedBankMatch[] }>(
+    `/wallet/bank-account/detect/?${params.toString()}`,
+  );
+}
+
 export interface WalletTransaction {
   id: string;
   book_id: string | null;

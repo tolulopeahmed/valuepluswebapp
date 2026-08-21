@@ -35,6 +35,7 @@ import {
 } from "../../../hooks/useWallet";
 import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
 import { useMyBooks } from "../../../hooks/useMyBooks";
+import { useLearnerCurriculum } from "../CurriculumModules";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
@@ -248,6 +249,9 @@ function buildItems({
   referralTotalEarned,
   referralPending,
   kycStatus,
+  isLearnerMode,
+  currentLessonTitle,
+  overallCurriculumPercent,
 }: {
   publishedCount: number;
   isBankLinked: boolean;
@@ -256,15 +260,22 @@ function buildItems({
   referralTotalEarned: string;
   referralPending: string;
   kycStatus: KYCStatus;
+  isLearnerMode: boolean;
+  currentLessonTitle: string | null;
+  overallCurriculumPercent: number;
 }): SettingItem[] {
   return [
     {
       id: "my-books",
-      label: "My Books",
-      subtitle: "See every title you've published",
+      label: isLearnerMode ? "Resume Lesson" : "My Books",
+      subtitle: isLearnerMode
+        ? currentLessonTitle ?? "Pick up where you left off"
+        : "See every title you've published",
       Icon: BookOpen,
-      href: "/app/more/books",
-      trailing: (
+      href: isLearnerMode ? "/app/learn" : "/app/more/books",
+      trailing: isLearnerMode ? (
+        <StatusChip tone="accent">{overallCurriculumPercent}%</StatusChip>
+      ) : (
         <StatusChip tone={publishedCount > 0 ? "accent" : "neutral"}>
           {publishedCount}
         </StatusChip>
@@ -458,6 +469,18 @@ export default function Settings() {
   // AppShellContext already uses to drive the accent color and the
   // homepage's Learner/Publisher view, so this stays in sync everywhere.
   const { mode, setMode } = useAppShell();
+  // Only meaningful in Learner mode — drives the "Resume Lesson" row's
+  // sublabel/status, same data source as the Learn tab itself so both
+  // always agree.
+  const { modules: curriculumModules, current: currentLesson } = useLearnerCurriculum();
+  const overallCurriculumPercent =
+    curriculumModules.length > 0
+      ? Math.round(
+          (curriculumModules.filter((m) => m.progress === 100).length /
+            curriculumModules.length) *
+            100,
+        )
+      : 0;
   const { logout } = useAuth();
   const router = useRouter();
   const { bankAccount, isLinked } = useBankAccount();
@@ -492,6 +515,9 @@ export default function Settings() {
     referralTotalEarned: referrals?.total_earned ?? "0",
     referralPending: referrals?.pending_amount ?? "0",
     kycStatus: kycProfile?.status ?? "not_started",
+    isLearnerMode: mode === "learner",
+    currentLessonTitle: currentLesson?.title ?? null,
+    overallCurriculumPercent,
   });
 
   const handleSelect = (id: string) => {
@@ -555,7 +581,7 @@ export default function Settings() {
       <div className="mt-8 flex flex-col items-center gap-2 border-t border-white/8 pt-7 text-center">
         <Image
           src="/images/logos/valueplus-logo-white2.png"
-          alt="ValuePlus Publishing"
+          alt="ValuePlus"
           width={130}
           height={38}
           className="h-8 w-auto object-contain opacity-80"

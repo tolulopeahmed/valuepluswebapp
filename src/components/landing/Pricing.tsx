@@ -22,7 +22,7 @@ const academyPricing = [
     perks: [
       "All 6 Modules",
       "Earn 15% Payment on all Referrals",
-      "Internship: Work with ValuePlus Publishing",
+      "Internship: Work with ValuePlus",
       "From Manuscript to Market (For Real)",
       "Publish Your First Book at the End",
       "Get a Professional Certificate",

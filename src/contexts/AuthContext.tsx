@@ -35,9 +35,11 @@ interface RegisterPayload {
   email: string;
   first_name: string;
   last_name: string;
+  phone_number?: string;
   password: string;
   password_confirm: string;
   referrer_email?: string;
+  heard_about?: string;
 }
 
 interface VerifyEmailPayload {

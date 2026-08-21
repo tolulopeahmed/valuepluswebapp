@@ -18,11 +18,11 @@ interface Faq {
 
 const GENERAL_FAQS: Faq[] = [
   {
-    q: "What is ValuePlus Publishing?",
+    q: "What is ValuePlus?",
     a: "A platform for two kinds of people — authors who want their book professionally published, and learners who want to learn the A–Z of publishing and eventually publish their own titles. You can do either, or both, from the same account.",
   },
   {
-    q: "How do I switch between Learner and Publisher mode?",
+    q: "How do I switch between Learner and Author mode?",
     a: "Use the mode switch in Settings, or the header. Your dashboard, navigation, and accent color all update to match, and the choice is saved to your account so it's remembered the next time you log in.",
   },
   {
@@ -58,7 +58,7 @@ const LEARNER_FAQS: Faq[] = [
   },
   {
     q: "Can I start publishing my own book after learning?",
-    a: "Absolutely. Switch to Publisher mode any time from Settings, then use \"Get a Quote\" to start your own book's publishing journey — everything you learn carries straight over.",
+    a: "Absolutely. Switch to Author mode any time from Settings, then use \"Get a Quote\" to start your own book's publishing journey — everything you learn carries straight over.",
   },
 ];
 

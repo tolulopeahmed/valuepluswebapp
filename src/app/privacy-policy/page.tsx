@@ -3,9 +3,9 @@ import Link from "next/link";
 import LegalDocument, { LegalSection } from "@/components/legal/LegalDocument";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | ValuePlus Publishing",
+  title: "Privacy Policy | ValuePlus",
   description:
-    "How ValuePlus Media Limited collects, uses, and protects your personal information across the ValuePlus Publishing website and mobile app.",
+    "How ValuePlus Media Limited collects, uses, and protects your personal information across the ValuePlus website and mobile app.",
 };
 
 const LAST_UPDATED = "August 13, 2026";
@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
           This Privacy Policy explains how ValuePlus Media Limited
           (&quot;ValuePlus,&quot; &quot;we,&quot; &quot;us,&quot; or
           &quot;our&quot;) collects, uses, shares, and protects personal
-          information when you use the ValuePlus Publishing website at{" "}
+          information when you use the ValuePlus website at{" "}
           <span className="text-white">valuepluspublishing.com</span>, our
           mobile app, and related services (together, the
           &quot;Services&quot;). By creating an account or otherwise using
@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
     >
       <LegalSection heading="Who This Policy Covers">
         <p>
-          ValuePlus Publishing is a Nigerian platform for two kinds of
+          ValuePlus is a Nigerian platform for two kinds of
           users: authors who want their book professionally published and
           printed, and learners who want to study our Learn the A–Z of
           Publishing course and eventually publish their own titles. This
@@ -164,7 +164,7 @@ export default function PrivacyPolicyPage() {
         <ul className="list-disc space-y-2 pl-5">
           <li>
             create and manage your account, and let you switch between
-            Author/Publisher and Learner modes;
+            Author and Learner modes;
           </li>
           <li>
             provide our core services — editing, typesetting, printing,
