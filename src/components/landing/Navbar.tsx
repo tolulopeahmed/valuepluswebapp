@@ -9,7 +9,7 @@ import { getCartCount, subscribeToCartChanges } from "@/lib/cart";
 
 const menuItems = [
   { label: "Books", href: "/books" },
-  { label: "Learn Publishing", href: "/pricing" },
+  { label: "Learn Publishing · Mobile App", href: "/download" },
   { label: "Portfolio", href: "/#portfolio" },
   { label: "Get Quote", href: "/getQuote" },
 ];

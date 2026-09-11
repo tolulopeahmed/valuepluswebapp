@@ -31,6 +31,12 @@ interface TokenResponse {
   user: AuthUser;
 }
 
+export interface GoogleAuthResponse extends Partial<TokenResponse> {
+  account_exists: boolean;
+  email?: string;
+  is_new_user?: boolean;
+}
+
 interface RegisterPayload {
   email: string;
   first_name: string;
@@ -61,6 +67,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (idToken: string, confirmCreate?: boolean) => Promise<GoogleAuthResponse>;
   registerDirect: (data: RegisterPayload) => Promise<void>;
   verifyEmail: (data: VerifyEmailPayload) => Promise<void>;
   resendVerification: (email: string) => Promise<void>;
@@ -128,6 +135,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     setTokens({ access: data.access, refresh: data.refresh });
     setUser(data.user);
+  }, []);
+
+  const loginWithGoogle = useCallback(async (idToken: string, confirmCreate = false) => {
+    const data = await apiFetch<GoogleAuthResponse>("/auth/google/", {
+      method: "POST",
+      skipAuth: true,
+      body: JSON.stringify({ id_token: idToken, confirm_create: confirmCreate }),
+    });
+    if (data.account_exists && data.access && data.refresh && data.user) {
+      setTokens({ access: data.access, refresh: data.refresh });
+      setUser(data.user);
+    }
+    return data;
   }, []);
 
   const registerDirect = useCallback(async (payload: RegisterPayload) => {
@@ -216,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        loginWithGoogle,
         registerDirect,
         verifyEmail,
         resendVerification,

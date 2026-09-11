@@ -83,7 +83,8 @@ export default function BuyBox({
 
   const handleAddToCart = () => {
     if (!selected) return;
-    addToCart(bookId, slug, selected.format, quantity);
+    const affiliateCode = new URLSearchParams(window.location.search).get("affiliate") ?? undefined;
+    addToCart(bookId, slug, selected.format, quantity, affiliateCode);
     notify(`Added ${quantity} to cart!`, "success");
   };
 

@@ -108,6 +108,8 @@ export interface MyBook {
   pages: number | null;
   sales: number;
   earned: string;
+  affiliate_enabled: boolean;
+  affiliate_percentage: string;
   date_published: string | null;
   description: string;
   // Google Drive link to production files — blank until staff set it in
@@ -366,6 +368,40 @@ export function saveBookCoupon(bookId: string, input: BookCouponInput) {
 export function deleteBookCoupon(bookId: string) {
   return apiFetch<void>(`/books/mine/${bookId}/coupon/`, {
     method: "DELETE",
+  });
+}
+
+export interface BookAffiliate {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  code: string;
+  commission_percentage: string;
+  is_active: boolean;
+  orders_referred: number;
+  units_sold: number;
+  revenue_generated: string;
+  earnings: string;
+  share_url: string;
+  created_at: string;
+}
+
+export interface AffiliateProgram {
+  affiliate_enabled: boolean;
+  affiliate_percentage: string;
+  platform_percentage: string;
+  affiliates: BookAffiliate[];
+}
+
+export function fetchAffiliateProgram(bookId: string) {
+  return apiFetch<AffiliateProgram>(`/books/mine/${bookId}/affiliates/`);
+}
+
+export function saveAffiliateProgram(bookId: string, enabled: boolean, percentage: number) {
+  return apiFetch<AffiliateProgram & { message: string }>(`/books/mine/${bookId}/affiliates/`, {
+    method: "PUT",
+    body: JSON.stringify({ affiliate_enabled: enabled, affiliate_percentage: percentage }),
   });
 }
 

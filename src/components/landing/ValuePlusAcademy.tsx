@@ -86,7 +86,7 @@ export default function ValuePlusAcademy() {
 
           <div className="mt-5 space-y-3">
             {academyLessons.map((lesson, i) => (
-              <Link key={lesson} href="/pricing" className="lesson-item group">
+              <Link key={lesson} href="/download" className="lesson-item group">
                 <div className="lesson-check">✓</div>
 
                 <p>{lesson}</p>
@@ -155,7 +155,7 @@ export default function ValuePlusAcademy() {
           </div>
 
           <Button
-            href="/pricing"
+            href="/download"
             variant="light"
             size="lg"
             className="mt-8"
@@ -179,7 +179,7 @@ export default function ValuePlusAcademy() {
           {academyModules.map((mod) => (
             <Link
               key={mod.number}
-              href="/pricing"
+              href="/download"
               className="module-card group block cursor-pointer"
             >
               <span className="module-card-num">{mod.number}</span>

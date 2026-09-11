@@ -5,10 +5,12 @@ import Link from "next/link";
 import {
   Suspense,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
 } from "react";
+import Script from "next/script";
 import { Gift, KeyRound, Lock, Mail, Megaphone, Phone, User } from "lucide-react";
 import Button from "@/components/buttons/buttons";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -26,9 +28,22 @@ import {
 
 type AuthMode = "login" | "signup" | "forgot" | "otp" | "reset";
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: { client_id: string; callback: (response: { credential: string }) => void }) => void;
+          renderButton: (element: HTMLElement, options: Record<string, string | number>) => void;
+        };
+      };
+    };
+  }
+}
+
 // Matches server/apps/accounts/models.py's User.HeardAboutSource exactly.
 const HEARD_ABOUT_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "How did you hear about ValuePlus? (optional)" },
+  { value: "", label: "How did you hear about ValuePlus?" },
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
   { value: "tiktok", label: "TikTok" },
@@ -121,18 +136,67 @@ function LoginPageInner() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [focused, setFocused] = useState<string | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const router = useRouter();
   const {
     login,
+    loginWithGoogle,
     registerDirect,
     verifyEmail,
     resendVerification,
     requestPasswordReset,
     confirmPasswordReset,
   } = useAuth();
+
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID ?? "";
+
+  async function handleGoogleCredential(idToken: string) {
+    setGoogleLoading(true);
+    try {
+      let result = await loginWithGoogle(idToken);
+      if (!result.account_exists) {
+        const create = window.confirm(
+          `No ValuePlus account exists for ${result.email ?? "this Google account"}. Create one now?`,
+        );
+        if (!create) return;
+        result = await loginWithGoogle(idToken, true);
+      }
+      if (result.account_exists) {
+        clearStoredReferrerEmail();
+        if (result.is_new_user) router.push("/complete-registration");
+        else await goToApp();
+      }
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Google sign-in could not be completed.", "error");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  function renderGoogleButton() {
+    if (!googleClientId || !window.google || !googleButtonRef.current) return;
+    googleButtonRef.current.replaceChildren();
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: ({ credential }) => handleGoogleCredential(credential),
+    });
+    const buttonWidth = Math.min(368, googleButtonRef.current.clientWidth || 368);
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      type: "standard", theme: "outline", size: "large", text: mode === "signup" ? "signup_with" : "continue_with",
+      shape: "pill", width: buttonWidth, logo_alignment: "left",
+    });
+  }
+
+  useEffect(() => {
+    if (mode !== "login" && mode !== "signup") return;
+    renderGoogleButton();
+    // Google owns the rendered button DOM; re-render only when auth mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, googleClientId]);
 
   function markComplete(id: string, value: string) {
     setFocused(null);
@@ -335,6 +399,15 @@ function LoginPageInner() {
 
   const { h, sub } = titles[mode];
 
+  // Only heard-about and referrer-email are optional — everything else
+  // signup collects is required, marked with "*" on its placeholder.
+  const canSubmitSignup =
+    !!firstName.trim() &&
+    !!lastName.trim() &&
+    !!email.trim() &&
+    !!password.trim() &&
+    !!phoneNumber.trim();
+
   const inputBase =
     "w-full min-h-[2.85rem] rounded-[0.8rem] border bg-[#f4f5f7] pl-[2.5rem] pr-[2.9rem] py-[0.75rem] text-[#14181f] text-[0.86rem] outline-none placeholder:text-[rgba(20,24,31,0.42)] transition-all duration-150 focus:border-[rgba(239,199,0,0.55)] focus:shadow-[0_0_0_3px_rgba(239,199,0,0.16)]";
 
@@ -396,6 +469,18 @@ function LoginPageInner() {
         )}
 
         <>
+          {(mode === "login" || mode === "signup") && (
+            <>
+              <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={renderGoogleButton} />
+              <div className="mb-4">
+                <div ref={googleButtonRef} className={`flex min-h-11 justify-center ${googleLoading ? "pointer-events-none opacity-60" : ""}`} />
+                {!googleClientId && (
+                  <p className="mt-2 text-center text-[0.65rem] text-amber-300/70">Google sign-in needs the web client ID configured.</p>
+                )}
+                <div className="mt-4 flex items-center gap-3 text-[0.62rem] font-bold uppercase tracking-widest text-white/25"><span className="h-px flex-1 bg-white/10" />or continue with email<span className="h-px flex-1 bg-white/10" /></div>
+              </div>
+            </>
+          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
             {mode === "signup" && (
               <div className="grid gap-[0.6rem] sm:grid-cols-2">
@@ -404,7 +489,7 @@ function LoginPageInner() {
                   <input
                     type="text"
                     value={firstName}
-                    placeholder="First name"
+                    placeholder="First name*"
                     autoComplete="given-name"
                     onFocus={() => setFocused("firstName")}
                     onBlur={() => markComplete("firstName", firstName)}
@@ -422,7 +507,7 @@ function LoginPageInner() {
                   <input
                     type="text"
                     value={lastName}
-                    placeholder="Last name"
+                    placeholder="Last name*"
                     autoComplete="family-name"
                     onFocus={() => setFocused("lastName")}
                     onBlur={() => markComplete("lastName", lastName)}
@@ -443,7 +528,7 @@ function LoginPageInner() {
                 <input
                   type="email"
                   value={email}
-                  placeholder="Email address"
+                  placeholder="Email address*"
                   autoComplete="email"
                   readOnly={mode === "reset"}
                   onFocus={() => setFocused("email")}
@@ -487,10 +572,10 @@ function LoginPageInner() {
                   value={password}
                   placeholder={
                     mode === "signup"
-                      ? "Create a password"
+                      ? "Create a password*"
                       : mode === "reset"
-                        ? "Choose a new password"
-                        : "Password"
+                        ? "Choose a new password*"
+                        : "Password*"
                   }
                   autoComplete={
                     mode === "login" ? "current-password" : "new-password"
@@ -521,7 +606,7 @@ function LoginPageInner() {
                 <input
                   type={showPw ? "text" : "password"}
                   value={confirmPassword}
-                  placeholder="Confirm new password"
+                  placeholder="Confirm new password*"
                   autoComplete="new-password"
                   onFocus={() => setFocused("pwConfirm")}
                   onBlur={() => markComplete("pwConfirm", confirmPassword)}
@@ -539,7 +624,7 @@ function LoginPageInner() {
                 <input
                   type="tel"
                   value={phoneNumber}
-                  placeholder="Phone number (optional)"
+                  placeholder="Phone number*"
                   autoComplete="tel"
                   onFocus={() => setFocused("phoneNumber")}
                   onBlur={() => markComplete("phoneNumber", phoneNumber)}
@@ -557,7 +642,7 @@ function LoginPageInner() {
                 <input
                   type="email"
                   value={referrerEmail}
-                  placeholder="Referrer's email (optional)"
+                  placeholder="Referrer's email"
                   autoComplete="off"
                   onFocus={() => setFocused("referrerEmail")}
                   onBlur={() => markComplete("referrerEmail", referrerEmail)}
@@ -646,7 +731,10 @@ function LoginPageInner() {
               size="md"
               className="mt-1 w-full"
               loading={loading}
-              disabled={mode === "login" && (!email.trim() || !password.trim())}
+              disabled={
+                (mode === "login" && (!email.trim() || !password.trim())) ||
+                (mode === "signup" && !canSubmitSignup)
+              }
             >
               {loading
                 ? "Please wait…"

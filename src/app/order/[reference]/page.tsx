@@ -16,6 +16,7 @@ import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
 import { apiFetch } from "@/lib/api";
 import { clearCart } from "@/lib/cart";
+import { notify } from "@/lib/snackbar";
 
 interface OrderItem {
   book_title: string;
@@ -35,6 +36,7 @@ interface OrderStatus {
   discount_amount: string;
   total: string;
   items: OrderItem[];
+  distributor_links: { book_title: string; code: string; commission_percentage: string; url: string }[];
 }
 
 function naira(value: number) {
@@ -137,6 +139,24 @@ export default function OrderStatusPage() {
                         Access &ldquo;{item.book_title}&rdquo;
                       </a>
                     ))}
+                </div>
+              )}
+              {order.distributor_links.length > 0 && (
+                <div className="mt-5 rounded-xl border border-[#EFC700]/40 bg-[#EFC700]/10 p-4 text-left">
+                  <p className="font-black">You&apos;re now a distributor!</p>
+                  <p className="mt-1 text-xs text-black/55">Share your link and earn the displayed percentage of the author&apos;s net share.</p>
+                  {order.distributor_links.map((affiliate) => (
+                    <div key={affiliate.code} className="mt-3">
+                      <p className="text-xs font-bold">{affiliate.book_title} · {affiliate.commission_percentage}%</p>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(affiliate.url).then(() => notify("Affiliate link copied!", "success"))}
+                        className="mt-1 w-full break-all rounded-lg bg-black/[0.06] px-3 py-2 text-left text-xs font-semibold"
+                      >
+                        {affiliate.url}
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 

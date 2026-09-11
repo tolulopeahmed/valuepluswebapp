@@ -75,19 +75,28 @@ export function extractErrorMessage(body: unknown): string {
 
   const record = body as Record<string, unknown>;
 
-  if (typeof record.detail === "string") return record.detail;
-  if (typeof record.message === "string") return record.message;
+  if (typeof record.detail === "string") return translateFieldError(record.detail);
+  if (typeof record.message === "string") return translateFieldError(record.message);
 
   const firstKey = Object.keys(record)[0];
   if (firstKey) {
     const value = record[firstKey];
     if (Array.isArray(value) && typeof value[0] === "string") {
-      return value[0];
+      return translateFieldError(value[0]);
     }
-    if (typeof value === "string") return value;
+    if (typeof value === "string") return translateFieldError(value);
   }
 
   return "Something went wrong. Please try again.";
+}
+
+// DRF's literal wording assumes the reader already knows which field —
+// our forms mark required fields with "*", so point back at that instead.
+function translateFieldError(message: string): string {
+  if (message === "This field may not be blank.") {
+    return "Please fill in all fields marked with *.";
+  }
+  return message;
 }
 
 async function refreshAccessToken(): Promise<string | null> {

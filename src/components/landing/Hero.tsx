@@ -187,7 +187,7 @@ export default function Hero() {
           </div>
 
           <div className="reveal-up mt-7 flex flex-col gap-3 sm:flex-row">
-            <Button href="/pricing" variant="primary">
+            <Button href="/download" variant="primary">
               Start Publishing Course
             </Button>
             <Button href="/getQuote" variant="secondary">
@@ -236,11 +236,11 @@ export default function Hero() {
       {/* Path cards */}
       <div className="relative z-20 mx-auto mt-1 max-w-7xl md:mt-28 lg:mt-32">
         <div className="hero-path-row">
-          <a href="/pricing" className="path-card path-card-learn">
+          <a href="/download" className="path-card path-card-learn">
             <div className="path-icon">🎓</div>
 
             <div className="path-copy">
-              <p>For Learners</p>
+              <p>For Learners · Available on the mobile app</p>
               <h3>Learn the A—Z of Publishing</h3>
               <span>
                 Become a professional publisher in just 6 courses — publish your

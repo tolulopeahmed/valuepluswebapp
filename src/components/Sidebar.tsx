@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import ManageAccountModal from "./ManageAccountModal";
-import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../lib/featureFlags";
+import { LEARNER_MODE_ENABLED } from "../lib/featureFlags";
 import { VP_APP_BG } from "../app/app/GlassCard";
 
 type Mode = "learner" | "publisher";
@@ -299,7 +299,7 @@ export default function Sidebar({
               aria-checked={mode === "publisher"}
               aria-label={
                 !LEARNER_MODE_ENABLED
-                  ? "Learner mode — coming soon"
+                  ? "Learner mode is available on the ValuePlus mobile app"
                   : mode === "learner"
                     ? "Switch to publisher view"
                     : "Switch to learner view"
@@ -311,7 +311,7 @@ export default function Sidebar({
               className={`relative h-6 w-11 shrink-0 rounded-full border border-white/12 bg-black/20 transition-colors active:scale-95 ${!LEARNER_MODE_ENABLED ? "cursor-not-allowed opacity-40" : ""}`}
               title={
                 !LEARNER_MODE_ENABLED
-                  ? `Learner mode — coming soon, ready in ${LEARNER_MODE_ETA}`
+                  ? "Learner mode is available on the ValuePlus mobile app"
                   : mode === "learner"
                     ? "Learner"
                     : "Author"
@@ -337,14 +337,14 @@ export default function Sidebar({
           </div>
 
           {!LEARNER_MODE_ENABLED && (
-            <p className="mt-1.5 pl-1 text-[0.62rem] leading-relaxed text-white/35">
-              Learner mode is coming in {LEARNER_MODE_ETA}.
-            </p>
+            <a href="/download" className="mt-1.5 block pl-1 text-[0.62rem] font-semibold leading-relaxed text-white/45 hover:text-white/70">
+              Learner mode is available on the ValuePlus mobile app →
+            </a>
           )}
         </div>
 
         <nav className="mt-12 flex-1 overflow-y-auto px-3 pb-4">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-2.5">
             {MAIN_ITEMS.map((item, i) => {
               const isActive = item.key === activeKey;
 
@@ -354,7 +354,7 @@ export default function Sidebar({
                   onClick={() => handleNavigate(item.path)}
                   className={`vp-nav-row ${
                     isActive ? "vp-nav-row-active" : ""
-                  } flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-black uppercase tracking-[0.08em] transition-[color,background,transform] duration-200 active:scale-[0.98] ${
+                  } flex items-center gap-4 rounded-xl px-4 py-4 text-left text-[0.98rem] font-black uppercase tracking-[0.08em] transition-[color,background,transform] duration-200 active:scale-[0.98] ${
                     isActive
                       ? "text-[#171100]"
                       : "text-white/70 hover:text-white"
@@ -378,7 +378,7 @@ export default function Sidebar({
                   }}
                 >
                   <span className="vp-nav-icon grid place-items-center">
-                    <Icon path={item.icon} size={18} />
+                    <Icon path={item.icon} size={22} />
                   </span>
                   {item.label}
                 </button>
@@ -388,12 +388,12 @@ export default function Sidebar({
 
           <div className="mx-3 my-8 h-px bg-white/12" />
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-4">
             <a
               href={ADMIN_WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="vp-nav-row flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-normal text-white/62 transition-[color,background] duration-200 hover:text-white active:scale-[0.98]"
+              className="vp-nav-row flex items-center gap-4 rounded-xl px-4 py-5 text-left text-[1.02rem] font-normal text-white/62 transition-[color,background] duration-200 hover:text-white active:scale-[0.98]"
               style={{ animationDelay: "240ms" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = HOVER_TINT;
@@ -403,7 +403,7 @@ export default function Sidebar({
               }}
             >
               <span className="vp-nav-icon grid place-items-center">
-                <WhatsAppIcon size={18} />
+                <WhatsAppIcon size={24} />
               </span>
               Chat Admin
             </a>
@@ -412,10 +412,10 @@ export default function Sidebar({
               <button
                 type="button"
                 onClick={() => setShowLogoutConfirm(true)}
-                className="group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[0.9rem] font-normal text-red-300/85 transition-[color,background] duration-200 hover:bg-red-500/10 hover:text-red-200 active:scale-[0.98]"
+                className="group flex w-full items-center gap-4 rounded-xl px-4 py-5 text-left text-[1.02rem] font-normal text-red-300/85 transition-[color,background] duration-200 hover:bg-red-500/10 hover:text-red-200 active:scale-[0.98]"
               >
                 <span className="grid place-items-center transition-transform duration-200 group-hover:translate-x-0.5">
-                  <Icon path={ICONS.logout} size={18} />
+                  <Icon path={ICONS.logout} size={24} />
                 </span>
                 Log Out
               </button>
@@ -423,16 +423,23 @@ export default function Sidebar({
           </div>
         </nav>
 
-        <div className="px-5 pb-7">
+        <div className="px-5 pb-8 pt-2">
+          {/* Accent-tinted border/icon so this reads as part of the same
+              per-mode accent system as the toggle above (gold in Learner,
+              copper in Publisher) instead of a flat neutral-grey button. */}
           <button
             type="button"
             onClick={() => setShowManageAccount(true)}
-            className="group flex w-full items-center justify-center gap-3 rounded-[0.95rem] border border-white/10 bg-white/8 px-4 py-3 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]"
+            className="group flex w-full items-center justify-center gap-4 rounded-[0.95rem] border bg-white/8 px-4 py-4 text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]"
+            style={{ borderColor: "rgba(var(--vp-accent-rgb),0.3)" }}
           >
-            <span className="transition-transform duration-300 group-hover:rotate-45">
-              <Icon path={ICONS.settings} size={19} />
+            <span
+              className="transition-transform duration-300 group-hover:rotate-45"
+              style={{ color: "rgb(var(--vp-accent-rgb))" }}
+            >
+              <Icon path={ICONS.settings} size={22} />
             </span>
-            <span className="text-sm font-semibold">Manage Account</span>
+            <span className="text-base font-semibold">Manage Account</span>
           </button>
         </div>
       </aside>

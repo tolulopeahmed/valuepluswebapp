@@ -65,6 +65,7 @@ interface TransactionGroup {
 
 const SOURCE_ICON: Record<WalletTransaction["source"], LucideIcon> = {
   book_sale: BookOpen,
+  affiliate: Users,
   referral: Users,
   withdrawal: RefreshCcw,
   quote_payment: Receipt,

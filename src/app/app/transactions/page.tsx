@@ -79,6 +79,7 @@ interface RowGroup {
 
 const SOURCE_ICON: Record<TxSource, LucideIcon> = {
   book_sale: BookOpen,
+  affiliate: Users,
   referral: Users,
   withdrawal: RefreshCcw,
   quote_payment: Receipt,
@@ -92,6 +93,7 @@ const CATEGORIES: { id: "all" | TxSource; label: string; Icon: LucideIcon }[] =
   [
     { id: "all", label: "All", Icon: ListFilter },
     { id: "book_sale", label: "Sales", Icon: BookOpen },
+    { id: "affiliate", label: "Affiliate", Icon: Users },
     { id: "referral", label: "Referrals", Icon: Users },
     { id: "withdrawal", label: "Withdrawals", Icon: RefreshCcw },
     { id: "quote_payment", label: "Payments", Icon: Receipt },

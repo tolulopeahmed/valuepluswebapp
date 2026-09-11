@@ -24,6 +24,7 @@ export interface CartItem {
   // twice: once as an Ebook line, once as a physical line.
   format: string;
   quantity: number;
+  affiliateCode?: string;
 }
 
 function readCart(): CartItem[] {
@@ -46,13 +47,14 @@ export function getCart(): CartItem[] {
   return readCart();
 }
 
-export function addToCart(bookId: string, slug: string, format: string, quantity: number) {
+export function addToCart(bookId: string, slug: string, format: string, quantity: number, affiliateCode?: string) {
   const items = readCart();
   const existing = items.find((i) => i.bookId === bookId && i.format === format);
   if (existing) {
     existing.quantity += quantity;
+    if (affiliateCode) existing.affiliateCode = affiliateCode;
   } else {
-    items.push({ bookId, slug, format, quantity });
+    items.push({ bookId, slug, format, quantity, affiliateCode });
   }
   writeCart(items);
 }

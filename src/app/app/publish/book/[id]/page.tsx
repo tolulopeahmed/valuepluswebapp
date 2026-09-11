@@ -15,6 +15,7 @@ import {
   BookOpen,
   Calendar,
   Check,
+  ChevronLeft,
   Copy,
   Download,
   EyeOff,
@@ -28,6 +29,7 @@ import {
   Tag,
   Trash2,
   TrendingUp,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -51,6 +53,8 @@ import {
   fetchBookCoupon,
   saveBookCoupon,
   deleteBookCoupon,
+  fetchAffiliateProgram,
+  saveAffiliateProgram,
   requestBookFormat,
   unpublishBook,
   suggestedPrice,
@@ -58,6 +62,7 @@ import {
   suggestedPriceFromPaperback,
   type MyBook,
   type BookCoupon,
+  type AffiliateProgram,
   type PhysicalFormat,
   type FormatRequestStatus,
 } from "../../../../../hooks/useMyBooks";
@@ -636,6 +641,82 @@ function CouponModal({
   );
 }
 
+function AffiliateProgramModal({ open, onClose, book, onSaved }: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+  onSaved: () => void;
+}) {
+  const [program, setProgram] = useState<AffiliateProgram | null>(null);
+  const [enabled, setEnabled] = useState(book.affiliate_enabled);
+  const [percentage, setPercentage] = useState(book.affiliate_percentage || "20");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    fetchAffiliateProgram(book.id).then((data) => {
+      setProgram(data);
+      setEnabled(data.affiliate_enabled);
+      setPercentage(data.affiliate_percentage);
+    }).catch(() => {});
+  }, [book.id, open]);
+
+  const save = async () => {
+    const value = Number(percentage);
+    if (!Number.isFinite(value) || value < 1 || value > 50) {
+      notify("Choose an affiliate share between 1% and 50%.", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await saveAffiliateProgram(book.id, enabled, value);
+      const refreshed = await fetchAffiliateProgram(book.id);
+      setProgram(refreshed);
+      onSaved();
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Could not update the affiliate programme.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open={open} onClose={() => !saving && onClose()}>
+      <h3 className="text-[1.05rem] font-black text-white">Affiliate programme</h3>
+      <p className="mt-1 text-[0.75rem] leading-relaxed text-white/45">
+        ValuePlus keeps {program?.platform_percentage ?? "30"}% of each sale. Your affiliate receives this percentage of your remaining share.
+      </p>
+      <button type="button" onClick={() => setEnabled((v) => !v)} className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 px-3.5 py-3">
+        <span className="text-sm font-bold text-white">Accept new distributors</span>
+        <span className={`rounded-full px-2.5 py-1 text-[0.65rem] font-black ${enabled ? "bg-green-500/20 text-green-300" : "bg-white/10 text-white/45"}`}>{enabled ? "ON" : "OFF"}</span>
+      </button>
+      <label className="mt-3 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">Affiliate share of your earnings</label>
+      <div className="mt-1 flex items-center rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5">
+        <input value={percentage} onChange={(e) => setPercentage(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" className="min-w-0 flex-1 bg-transparent font-black text-white outline-none" />
+        <span className="text-sm text-white/45">%</span>
+      </div>
+      <Button variant="primary" size="md" onClick={save} loading={saving} className="mt-4 w-full">Save programme</Button>
+
+      <div className="mt-5 border-t border-white/10 pt-4">
+        <p className="text-[0.68rem] font-black uppercase tracking-wide text-white/45">Affiliate performance</p>
+        {!program ? <p className="mt-3 text-xs text-white/35">Loading…</p> : program.affiliates.length === 0 ? (
+          <p className="mt-3 text-xs text-white/35">No distributors have joined yet.</p>
+        ) : (
+          <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">
+            {program.affiliates.map((affiliate) => (
+              <div key={affiliate.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex justify-between gap-3"><span className="truncate text-sm font-bold text-white">{affiliate.name}</span><span className="text-sm font-black text-green-300">{naira(affiliate.earnings)}</span></div>
+                <p className="mt-0.5 truncate text-[0.68rem] text-white/40">{affiliate.email}</p>
+                <p className="mt-2 text-[0.68rem] text-white/55">{affiliate.orders_referred} orders · {affiliate.units_sold} units · {naira(affiliate.revenue_generated)} sales</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 // Same amount-color rule the Transactions page/home dashboard use
 // (Transactions.tsx's amountColorFor): pending is always grey regardless
 // of credit/debit (nothing's actually moved yet), failed is red, and
@@ -1043,6 +1124,32 @@ function WhatsAppIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+// lucide has no brand glyphs for any of these either — same reasoning as
+// WhatsAppIcon above, one local SVG per platform the Share panel offers.
+function XIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.22-6.82-5.97 6.82H1.66l7.73-8.84L1.25 2.25h6.83l4.71 6.23zm-1.16 17.52h1.83L7.08 4.13H5.12z" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.51 1.49-3.89 3.78-3.89 1.1 0 2.24.19 2.24.19v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.45 2.89h-2.33v6.99A10 10 0 0 0 22 12Z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.34V9h3.42v1.56h.05c.48-.9 1.64-1.85 3.38-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12ZM7.12 20.45H3.56V9h3.56v11.45Z" />
+    </svg>
+  );
+}
+
 function ActionsMenuRow({
   icon,
   label,
@@ -1108,22 +1215,32 @@ function BookActionsMenu({
   onUnpublish: () => Promise<void>;
 }) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  // Its own step (not just a Web-Share-API-or-WhatsApp fallback in
+  // handleShare) so an author gets explicit one-tap buttons for every
+  // major platform regardless of browser support — navigator.share only
+  // exists on Safari/Edge/mobile browsers, so desktop Chrome/Firefox
+  // users used to get nothing but a WhatsApp link.
+  const [sharing, setSharing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const publicUrl =
     typeof window !== "undefined" ? `${window.location.origin}/book/${book.slug}` : "";
+  const shareMessage = `Check out "${book.title}" on ValuePlus: ${publicUrl}`;
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
-  // Resets the confirm step every time the menu opens for a different
-  // card, closes, or re-opens — without this, cancelling a removal and
-  // then opening a different (or the same) card's pencil again would
-  // silently reopen straight into the confirm screen, since this
-  // component itself never unmounts (only the Modal's own children do)
-  // and so its state would otherwise just carry over. Adjusting state
-  // during render, guarded on `format` itself changing, same "reset on
-  // prop change" pattern used throughout this file rather than an effect.
+  // Resets the confirm/share steps every time the menu opens for a
+  // different card, closes, or re-opens — without this, cancelling a
+  // removal (or backing out of Share) and then opening a different (or
+  // the same) card's pencil again would silently reopen straight into
+  // that same screen, since this component itself never unmounts (only
+  // the Modal's own children do) and so its state would otherwise just
+  // carry over. Adjusting state during render, guarded on `format`
+  // itself changing, same "reset on prop change" pattern used throughout
+  // this file rather than an effect.
   const [confirmingForFormat, setConfirmingForFormat] = useState<typeof format>(null);
   if (format !== confirmingForFormat) {
     setConfirmingForFormat(format);
     setConfirmingRemove(false);
+    setSharing(false);
   }
 
   const handleCopyLink = async () => {
@@ -1136,19 +1253,17 @@ function BookActionsMenu({
     onClose();
   };
 
-  const handleShare = async () => {
-    const shareData = { title: book.title, url: publicUrl };
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share(shareData);
-      } catch {
-        // User cancelled the native share sheet — not an error.
-      }
-      onClose();
-      return;
+  const handleNativeShare = async () => {
+    try {
+      await navigator.share({ title: book.title, url: publicUrl });
+    } catch {
+      // User cancelled the native share sheet — not an error.
     }
-    const message = `Check out "${book.title}" on ValuePlus: ${publicUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
+    onClose();
+  };
+
+  const openShareIntent = (url: string) => {
+    window.open(url, "_blank", "noopener,noreferrer");
     onClose();
   };
 
@@ -1198,6 +1313,87 @@ function BookActionsMenu({
             </Button>
           </div>
         </div>
+      ) : sharing ? (
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={() => setSharing(false)}
+            className="flex items-center gap-1 self-start text-[0.75rem] font-bold text-white/50 transition-colors hover:text-white"
+          >
+            <ChevronLeft size={14} strokeWidth={2.4} />
+            Back
+          </button>
+
+          <div>
+            <h3 className="text-[1.05rem] font-black text-white">Share this book</h3>
+            <p className="mt-1 text-[0.78rem] leading-relaxed text-white/50">
+              &ldquo;{book.title}&rdquo; is live — post it anywhere your readers already are.
+            </p>
+          </div>
+
+          {canNativeShare && (
+            <ActionsMenuRow
+              icon={<Share2 size={15} strokeWidth={2.2} />}
+              label="More sharing options"
+              description="Use this device's own share sheet"
+              onClick={handleNativeShare}
+            />
+          )}
+
+          <div className="grid grid-cols-4 gap-2.5">
+            {[
+              {
+                key: "x",
+                label: "X",
+                icon: <XIcon size={18} />,
+                url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                  `Check out "${book.title}" on ValuePlus`,
+                )}&url=${encodeURIComponent(publicUrl)}`,
+              },
+              {
+                key: "facebook",
+                label: "Facebook",
+                icon: <FacebookIcon size={18} />,
+                url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(publicUrl)}`,
+              },
+              {
+                key: "whatsapp",
+                label: "WhatsApp",
+                icon: <WhatsAppIcon size={18} />,
+                url: `https://wa.me/?text=${encodeURIComponent(shareMessage)}`,
+              },
+              {
+                key: "linkedin",
+                label: "LinkedIn",
+                icon: <LinkedInIcon size={18} />,
+                url: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(publicUrl)}`,
+              },
+            ].map((platform) => (
+              <button
+                key={platform.key}
+                type="button"
+                onClick={() => openShareIntent(platform.url)}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 transition-colors active:bg-white/[0.07]"
+                style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.08)" }}
+              >
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-full"
+                  style={{ background: "rgba(var(--vp-accent-rgb),0.16)", color: "rgb(var(--vp-accent-rgb))" }}
+                >
+                  {platform.icon}
+                </span>
+                <span className="text-[0.66rem] font-bold text-white/70">{platform.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <ActionsMenuRow
+            icon={<Copy size={15} strokeWidth={2.2} />}
+            label="Copy Public Link"
+            description="Paste it in wherever you like"
+            onClick={handleCopyLink}
+          />
+        </div>
       ) : (
         format && (
           <div className="flex flex-col gap-2.5">
@@ -1219,16 +1415,10 @@ function BookActionsMenu({
               onClick={handleCopyLink}
             />
             <ActionsMenuRow
-              icon={
-                typeof navigator !== "undefined" && typeof navigator.share === "function" ? (
-                  <Share2 size={15} strokeWidth={2.2} />
-                ) : (
-                  <WhatsAppIcon size={15} />
-                )
-              }
+              icon={<Share2 size={15} strokeWidth={2.2} />}
               label="Share"
-              description="Post to social media, WhatsApp, and more"
-              onClick={handleShare}
+              description="Post to X, Facebook, WhatsApp, LinkedIn and more"
+              onClick={() => setSharing(true)}
             />
             <ActionsMenuRow
               icon={<Trash2 size={15} strokeWidth={2.2} />}
@@ -1288,6 +1478,7 @@ export default function BookLivePage() {
   const [coupon, setCoupon] = useState<BookCoupon | null>(null);
   const [couponOpen, setCouponOpen] = useState(false);
   const [earningsOpen, setEarningsOpen] = useState(false);
+  const [affiliatesOpen, setAffiliatesOpen] = useState(false);
   const [ebookOpen, setEbookOpen] = useState(false);
   // Which format card's pencil opened the actions menu (Edit Price/Copy
   // Link/Share/Remove from Public Page) — see BookActionsMenu.
@@ -1708,7 +1899,7 @@ export default function BookLivePage() {
 
       {/* Actions */}
       <div
-        className="vp-card-in mt-5 grid gap-3 sm:grid-cols-3"
+        className="vp-card-in mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
         style={{ animationDelay: "140ms" }}
       >
         <ActionCard
@@ -1728,6 +1919,12 @@ export default function BookLivePage() {
           label="View Public Link"
           description="See it live, like on Amazon"
           href={publicHref}
+        />
+        <ActionCard
+          icon={<Users size={18} strokeWidth={1.9} />}
+          label="Affiliates"
+          description={book.affiliate_enabled ? `${book.affiliate_percentage}% share enabled` : "Set distributor profit share"}
+          onClick={() => setAffiliatesOpen(true)}
         />
       </div>
 
@@ -1772,6 +1969,12 @@ export default function BookLivePage() {
         open={earningsOpen}
         onClose={() => setEarningsOpen(false)}
         book={book}
+      />
+      <AffiliateProgramModal
+        open={affiliatesOpen}
+        onClose={() => setAffiliatesOpen(false)}
+        book={book}
+        onSaved={refetch}
       />
 
       <ReorderPrintsModal

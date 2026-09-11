@@ -24,7 +24,6 @@ import SectionLabel from "../../../components/SectionLabel";
 import { useAppShell } from "../AppShellContext";
 import {
   LEARNER_MODE_ENABLED,
-  LEARNER_MODE_ETA,
 } from "../../../lib/featureFlags";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getShortBankName } from "../../../lib/bankOptions";
@@ -560,12 +559,17 @@ export default function Settings() {
           sublabel={
             LEARNER_MODE_ENABLED
               ? undefined
-              : `Learner mode is coming in ${LEARNER_MODE_ETA}`
+              : "Available on the ValuePlus mobile app"
           }
           checked={mode === "publisher"}
           onChange={(v) => setMode(v ? "publisher" : "learner")}
           disabled={!LEARNER_MODE_ENABLED}
         />
+        {!LEARNER_MODE_ENABLED && (
+          <a href="/download" className="-mt-2 mb-2 block pl-4 text-[0.68rem] font-bold text-white/45 hover:text-white/70">
+            Download ValuePlus to use Learner mode →
+          </a>
+        )}
       </div>
 
       <SectionLabel className="mt-4">Settings</SectionLabel>

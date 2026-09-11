@@ -12,6 +12,7 @@ import {
   RefreshCcw,
   Eye,
   EyeOff,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import Title from "../../../components/Title";
@@ -40,6 +41,7 @@ type EarningType = "credit" | "debit";
 // wallet. Every other source does.
 type EarningSource =
   | "referral"
+  | "affiliate"
   | "book-sale"
   | "transfer"
   | "withdrawal"
@@ -66,6 +68,7 @@ interface EarningGroup {
 
 const SOURCE_ICON: Record<EarningSource, LucideIcon> = {
   referral: Gift,
+  affiliate: Users,
   "book-sale": BookOpen,
   transfer: Send,
   withdrawal: RefreshCcw,
@@ -75,6 +78,7 @@ const SOURCE_ICON: Record<EarningSource, LucideIcon> = {
 const WALLET_SOURCES = new Set<WalletTransaction["source"]>([
   "book_sale",
   "referral",
+  "affiliate",
   "withdrawal",
   "transfer",
   "deposit",
@@ -108,6 +112,8 @@ function groupEarnings(transactions: WalletTransaction[]): EarningGroup[] {
     const source: EarningSource =
       tx.source === "book_sale"
         ? "book-sale"
+        : tx.source === "affiliate"
+          ? "affiliate"
         : tx.source === "transfer"
           ? "transfer"
           : tx.source === "withdrawal"

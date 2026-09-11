@@ -17,6 +17,7 @@ interface PublicBook {
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
+  affiliate_enabled: boolean;
 }
 
 async function fetchPublicBook(slug: string): Promise<PublicBook | null> {
@@ -33,7 +34,7 @@ function naira(value: number) {
 
 function CheckoutForm() {
   const searchParams = useSearchParams();
-  const [books, setBooks] = useState<{ id: string; title: string; price: number; quantity: number; format: string }[] | null>(null);
+  const [books, setBooks] = useState<{ id: string; title: string; price: number; quantity: number; format: string; affiliateEnabled: boolean; affiliateCode?: string }[] | null>(null);
   const [couponCode] = useState(searchParams.get("coupon") ?? "");
   const [discountAmount, setDiscountAmount] = useState(Number(searchParams.get("discount") ?? 0));
 
@@ -42,6 +43,7 @@ function CheckoutForm() {
   const [buyerPhone, setBuyerPhone] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
   const [deliveryCostAck, setDeliveryCostAck] = useState(false);
+  const [becomeDistributor, setBecomeDistributor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -66,6 +68,8 @@ function CheckoutForm() {
           price: Number(price),
           quantity: item.quantity,
           format: item.format,
+          affiliateEnabled: book.affiliate_enabled,
+          affiliateCode: item.affiliateCode,
         };
       }),
     ).then((resolved) => setBooks(resolved.filter((b): b is NonNullable<typeof b> => b !== null)));
@@ -101,13 +105,14 @@ function CheckoutForm() {
           skipAuth: true,
           method: "POST",
           body: JSON.stringify({
-            items: books.map((b) => ({ book_id: b.id, format: b.format, quantity: b.quantity })),
+            items: books.map((b) => ({ book_id: b.id, format: b.format, quantity: b.quantity, affiliate_code: b.affiliateCode ?? "" })),
             coupon_code: couponCode,
             buyer_name: buyerName.trim(),
             buyer_email: buyerEmail.trim(),
             buyer_phone: buyerPhone.trim(),
             shipping_address: shippingAddress.trim(),
             delivery_cost_acknowledged: deliveryCostAck,
+            become_distributor: becomeDistributor,
           }),
         },
       );
@@ -207,6 +212,20 @@ function CheckoutForm() {
                       </span>
                     </label>
                   </>
+                )}
+                {books.some((book) => book.affiliateEnabled) && (
+                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#EFC700]/30 bg-[#EFC700]/[0.08] px-3.5 py-3">
+                    <input
+                      type="checkbox"
+                      checked={becomeDistributor}
+                      onChange={(e) => setBecomeDistributor(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#EFC700]"
+                    />
+                    <span className="text-xs leading-relaxed text-black/65">
+                      <strong className="block text-black/80">Become a distributor</strong>
+                      Get a personal link after payment and earn a share when people buy through it.
+                    </span>
+                  </label>
                 )}
               </div>
 

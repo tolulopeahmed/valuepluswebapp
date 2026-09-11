@@ -63,14 +63,14 @@ export default function Pricing() {
   return (
     <section id="pricing" className="bg-vp-ink px-4 py-20 md:py-28">
       <div className="mx-auto max-w-7xl text-center">
-        <p className="eyebrow">Academy plans</p>
+        <p className="eyebrow">ON VALUEPLUS MOBILE APP</p>
 
         <h2 className="display-heading section-heading mx-auto text-white">
           Start Free. <span className="text-[#fbbf24]">Pay After</span>
         </h2>
 
         <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-white/50">
-          Pay in Naira or Dollars. No commitment to start.
+          Download ValuePlus to start learning. Pay in Naira or Dollars with no commitment to start.
         </p>
 
         <div className="mx-auto mt-10 grid max-w-3xl gap-6 md:grid-cols-2">
@@ -134,7 +134,7 @@ export default function Pricing() {
               </div>
 
               <a
-                href="/login?mode=signup&intent=learner"
+                href="/download"
                 className="mt-8 block text-[0.72rem] font-black uppercase tracking-widest"
               >
                 GET STARTED

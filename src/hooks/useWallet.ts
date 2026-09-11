@@ -227,6 +227,7 @@ export interface WalletTransaction {
   type: "credit" | "debit";
   source:
     | "book_sale"
+    | "affiliate"
     | "referral"
     | "withdrawal"
     | "quote_payment"
