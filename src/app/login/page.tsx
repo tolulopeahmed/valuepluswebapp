@@ -469,18 +469,6 @@ function LoginPageInner() {
         )}
 
         <>
-          {(mode === "login" || mode === "signup") && (
-            <>
-              <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={renderGoogleButton} />
-              <div className="mb-4">
-                <div ref={googleButtonRef} className={`flex min-h-11 justify-center ${googleLoading ? "pointer-events-none opacity-60" : ""}`} />
-                {!googleClientId && (
-                  <p className="mt-2 text-center text-[0.65rem] text-amber-300/70">Google sign-in needs the web client ID configured.</p>
-                )}
-                <div className="mt-4 flex items-center gap-3 text-[0.62rem] font-bold uppercase tracking-widest text-white/25"><span className="h-px flex-1 bg-white/10" />or continue with email<span className="h-px flex-1 bg-white/10" /></div>
-              </div>
-            </>
-          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-[0.6rem]">
             {mode === "signup" && (
               <div className="grid gap-[0.6rem] sm:grid-cols-2">
@@ -749,6 +737,32 @@ function LoginPageInner() {
                         : "Send code →"}
             </Button>
           </form>
+
+          {(mode === "login" || mode === "signup") && (
+            <>
+              <Script
+                src="https://accounts.google.com/gsi/client"
+                strategy="afterInteractive"
+                onLoad={renderGoogleButton}
+              />
+              <div className="mt-4">
+                <div className="mb-4 flex items-center gap-3 text-[0.62rem] font-bold uppercase tracking-widest text-white/25">
+                  <span className="h-px flex-1 bg-white/10" />
+                  or continue with
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <div
+                  ref={googleButtonRef}
+                  className={`flex min-h-11 justify-center ${googleLoading ? "pointer-events-none opacity-60" : ""}`}
+                />
+                {!googleClientId && (
+                  <p className="mt-2 text-center text-[0.65rem] text-amber-300/70">
+                    Google sign-in needs the web client ID configured.
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
           <p className="mt-5 text-center text-[0.76rem] text-white/40">
             {mode === "login" ? (
