@@ -100,9 +100,11 @@ export default function BooksPage() {
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const search = useCallback(async (q: string) => {
     setLoading(true);
+    setLoadError(false);
     try {
       const params = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : "";
       const data = await apiFetch<PaginatedBooks>(`/books/public/${params}`, {
@@ -115,6 +117,7 @@ export default function BooksPage() {
       setBooks([]);
       setCount(0);
       setNextUrl(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -173,6 +176,11 @@ export default function BooksPage() {
         <div className="mt-8">
           {loading ? (
             <p className="text-sm text-white/40">Loading books…</p>
+          ) : loadError ? (
+            <div className="rounded-xl border border-red-400/20 bg-red-400/[0.06] p-4">
+              <p className="text-sm text-red-200/80">We couldn&apos;t load the book catalogue.</p>
+              <button type="button" onClick={() => search(query)} className="mt-2 text-xs font-black text-[rgb(var(--vp-accent-rgb))]">Try again</button>
+            </div>
           ) : books.length === 0 ? (
             <p className="text-sm text-white/40">
               {query.trim() ? `No books found for "${query.trim()}".` : "No books published yet."}

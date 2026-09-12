@@ -25,13 +25,21 @@ export interface CartItem {
   format: string;
   quantity: number;
   affiliateCode?: string;
+  affiliateAt?: string;
 }
 
 function readCart(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    const items = raw ? (JSON.parse(raw) as CartItem[]) : [];
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return items.map((item) => {
+      if (item.affiliateAt && new Date(item.affiliateAt).getTime() < cutoff) {
+        return { ...item, affiliateCode: undefined, affiliateAt: undefined };
+      }
+      return item;
+    });
   } catch {
     return [];
   }
@@ -52,9 +60,12 @@ export function addToCart(bookId: string, slug: string, format: string, quantity
   const existing = items.find((i) => i.bookId === bookId && i.format === format);
   if (existing) {
     existing.quantity += quantity;
-    if (affiliateCode) existing.affiliateCode = affiliateCode;
+    if (affiliateCode) {
+      existing.affiliateCode = affiliateCode;
+      existing.affiliateAt = new Date().toISOString();
+    }
   } else {
-    items.push({ bookId, slug, format, quantity, affiliateCode });
+    items.push({ bookId, slug, format, quantity, affiliateCode, affiliateAt: affiliateCode ? new Date().toISOString() : undefined });
   }
   writeCart(items);
 }

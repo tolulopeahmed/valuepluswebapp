@@ -198,6 +198,7 @@ export default function HomeScreen() {
             mode={mode}
             onNavigate={(dest) => {
               if (dest === "refer") router.push("/app/more/referrals");
+              if (dest === "affiliates") router.push("/app/more/affiliates");
               // Quick Actions only ever shows this row when no account is
               // linked yet (see QuickActions.tsx) — so landing here should
               // go straight into adding one, not just the list view.

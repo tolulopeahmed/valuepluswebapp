@@ -89,16 +89,16 @@ export default function Footer() {
 
           <ul className="footer-links">
             <li>
-              <a href="/download">About the Course · Mobile App</a>
+              <a href="/pricing">About the Course · Mobile App</a>
             </li>
             <li>
-              <a href="/download">The 6 Modules · Mobile App</a>
+              <a href="/pricing">The 6 Modules · Mobile App</a>
             </li>
             <li>
               <a href="/download">Enrol on Mobile App</a>
             </li>
             <li>
-              <a href="/download">Intern Track · Mobile App</a>
+              <a href="/pricing">Intern Track · Mobile App</a>
             </li>
           </ul>
         </div>

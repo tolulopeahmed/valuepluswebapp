@@ -135,8 +135,17 @@ export default function Pricing() {
 
               <a
                 href="/download"
-                className="mt-8 block text-[0.72rem] font-black uppercase tracking-widest"
+                className="relative mt-10 flex items-center text-[0.72rem] font-black uppercase tracking-widest"
               >
+                <span
+                  className={`absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2.5 py-1 text-[0.52rem] font-black tracking-[0.12em] ${
+                    plan.featured
+                      ? "border-[#EFC700] bg-[#171100] text-[#EFC700]"
+                      : "border-[#171100]/20 bg-[#EFC700] text-[#171100]"
+                  }`}
+                >
+                  MOBILE APP
+                </span>
                 GET STARTED
               </a>
             </div>

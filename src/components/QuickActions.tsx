@@ -5,6 +5,7 @@ import {
   Landmark,
   ShieldCheck,
   UserPlus,
+  Users,
   Flame,
   ChevronDown,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
   useWalletBalance,
 } from "../hooks/useWallet";
 import { useKYCProfile, type KYCStatus } from "../hooks/useKYC";
+import { useAffiliates } from "../hooks/useAffiliates";
 
 type Mode = "learner" | "publisher";
 type BadgeTone = "neutral" | "warning" | "danger";
@@ -88,6 +90,13 @@ function useQuickActions(mode: Mode): QuickAction[] {
   // backend account.
   const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
+  const { affiliates } = useAffiliates();
+  const affiliateAction: QuickAction[] = [{
+    id: "affiliates",
+    label: "Distributors",
+    Icon: Users,
+    badge: affiliates.length > 0 ? String(affiliates.length) : undefined,
+  }];
   const { profile: kycProfile } = useKYCProfile();
   // The real wallet balance (see useWalletBalance's own docstring) — the
   // "Withdraw Earnings" badge used to sum books.earned, which had no
@@ -138,6 +147,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
         Icon: UserPlus,
         badge: naira(walletBalance),
       },
+      ...affiliateAction,
       ...bankAction,
       ...kycAction,
       // No Streaks row here — streaks/XP are a learner-progress concept,
@@ -147,6 +157,7 @@ function useQuickActions(mode: Mode): QuickAction[] {
   }
 
   return [
+    ...affiliateAction,
     {
       id: "refer",
       label: "Refer & Earn",

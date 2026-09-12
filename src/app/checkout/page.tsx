@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Script from "next/script";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
@@ -10,6 +11,8 @@ import Button from "@/components/buttons/buttons";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import { getCart } from "@/lib/cart";
+import { useAuth } from "@/contexts/AuthContext";
+import LoadingModal, { type LoadingStep } from "@/components/LoadingModal";
 
 interface PublicBook {
   id: string;
@@ -18,6 +21,7 @@ interface PublicBook {
   hardback_price: string | null;
   ebook_price: string | null;
   affiliate_enabled: boolean;
+  affiliate_percentage: string;
 }
 
 async function fetchPublicBook(slug: string): Promise<PublicBook | null> {
@@ -34,7 +38,8 @@ function naira(value: number) {
 
 function CheckoutForm() {
   const searchParams = useSearchParams();
-  const [books, setBooks] = useState<{ id: string; title: string; price: number; quantity: number; format: string; affiliateEnabled: boolean; affiliateCode?: string }[] | null>(null);
+  const { user, loginWithGoogle } = useAuth();
+  const [books, setBooks] = useState<{ id: string; title: string; price: number; quantity: number; format: string; affiliateEnabled: boolean; affiliatePercentage: string; affiliateCode?: string; affiliateAt?: string }[] | null>(null);
   const [couponCode] = useState(searchParams.get("coupon") ?? "");
   const [discountAmount, setDiscountAmount] = useState(Number(searchParams.get("discount") ?? 0));
 
@@ -45,6 +50,65 @@ function CheckoutForm() {
   const [deliveryCostAck, setDeliveryCostAck] = useState(false);
   const [becomeDistributor, setBecomeDistributor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([]);
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID ?? "";
+
+  useEffect(() => {
+    if (!user) return;
+    setBuyerEmail(user.email);
+    setBuyerName(`${user.first_name} ${user.last_name}`.trim());
+    if (user.phone_number) setBuyerPhone(user.phone_number);
+  }, [user]);
+
+  async function handleGoogleCredential(idToken: string) {
+    setLoadingSteps([{ label: "Verifying your Google account...", done: false }]);
+    setGoogleLoading(true);
+    try {
+      let result = await loginWithGoogle(idToken);
+      if (!result.account_exists) {
+        setGoogleLoading(false);
+        if (!window.confirm(`Create a ValuePlus account for ${result.email ?? "this Google account"} and continue?`)) return;
+        setLoadingSteps([
+          { label: "Verifying your Google account...", done: true },
+          { label: "Creating your ValuePlus account...", done: false },
+        ]);
+        setGoogleLoading(true);
+        result = await loginWithGoogle(idToken, true);
+      }
+      if (result.account_exists && result.user) {
+        setBuyerEmail(result.user.email);
+        setBuyerName(`${result.user.first_name} ${result.user.last_name}`.trim());
+        if (result.user.phone_number) setBuyerPhone(result.user.phone_number);
+        setLoadingSteps((steps) => steps.map((step) => ({ ...step, done: true })));
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Google sign-in could not be completed.", "error");
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
+
+  function renderGoogleButton() {
+    if (!becomeDistributor || user || !googleClientId || !window.google || !googleButtonRef.current) return;
+    googleButtonRef.current.replaceChildren();
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: ({ credential }) => handleGoogleCredential(credential),
+    });
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      type: "standard", theme: "outline", size: "large", text: "continue_with",
+      shape: "pill", width: Math.min(520, googleButtonRef.current.clientWidth || 520), logo_alignment: "left",
+    });
+  }
+
+  useEffect(() => {
+    renderGoogleButton();
+    // Google owns the rendered button DOM.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [becomeDistributor, user, googleClientId]);
 
   useEffect(() => {
     const items = getCart();
@@ -69,7 +133,9 @@ function CheckoutForm() {
           quantity: item.quantity,
           format: item.format,
           affiliateEnabled: book.affiliate_enabled,
+          affiliatePercentage: book.affiliate_percentage,
           affiliateCode: item.affiliateCode,
+          affiliateAt: item.affiliateAt,
         };
       }),
     ).then((resolved) => setBooks(resolved.filter((b): b is NonNullable<typeof b> => b !== null)));
@@ -96,16 +162,20 @@ function CheckoutForm() {
       notify("Please confirm you understand you'll pay the delivery cost.", "error");
       return;
     }
+    if (becomeDistributor && !user) {
+      notify("Continue with Google to create or log in to your distributor account.", "error");
+      return;
+    }
 
+    setLoadingSteps([{ label: "Preparing your secure payment...", done: false }]);
     setSubmitting(true);
     try {
       const result = await apiFetch<{ authorization_url: string; reference: string }>(
         "/storefront/checkout/initiate/",
         {
-          skipAuth: true,
           method: "POST",
           body: JSON.stringify({
-            items: books.map((b) => ({ book_id: b.id, format: b.format, quantity: b.quantity, affiliate_code: b.affiliateCode ?? "" })),
+            items: books.map((b) => ({ book_id: b.id, format: b.format, quantity: b.quantity, affiliate_code: b.affiliateCode ?? "", affiliate_at: b.affiliateAt ?? null })),
             coupon_code: couponCode,
             buyer_name: buyerName.trim(),
             buyer_email: buyerEmail.trim(),
@@ -116,6 +186,11 @@ function CheckoutForm() {
           }),
         },
       );
+      setLoadingSteps([
+        { label: "Preparing your secure payment...", done: true },
+        { label: "Opening Paystack...", done: false },
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 250));
       window.location.href = result.authorization_url;
     } catch (err) {
       if (!(err instanceof ApiError)) {
@@ -213,19 +288,42 @@ function CheckoutForm() {
                     </label>
                   </>
                 )}
-                {books.some((book) => book.affiliateEnabled) && (
-                  <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-[#EFC700]/30 bg-[#EFC700]/[0.08] px-3.5 py-3">
-                    <input
-                      type="checkbox"
-                      checked={becomeDistributor}
-                      onChange={(e) => setBecomeDistributor(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#EFC700]"
-                    />
-                    <span className="text-xs leading-relaxed text-black/65">
-                      <strong className="block text-black/80">Become a distributor</strong>
-                      Get a personal link after payment and earn a share when people buy through it.
-                    </span>
-                  </label>
+                {books.some((book) => book.affiliateEnabled) ? (
+                  <div className="rounded-xl border border-[#EFC700]/30 bg-[#EFC700]/[0.08] px-3.5 py-3">
+                    <label className="flex cursor-pointer items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={becomeDistributor}
+                        onChange={(e) => setBecomeDistributor(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#EFC700]"
+                      />
+                      <span className="text-xs leading-relaxed text-black/65">
+                        <strong className="block text-black/80">Become a distributor</strong>
+                        Get a personal link after payment and earn {Math.min(...books.filter((book) => book.affiliateEnabled).map((book) => Number(book.affiliatePercentage)))}% or more of each author&apos;s net share when people buy through it.
+                      </span>
+                    </label>
+                    {becomeDistributor && !user && (
+                      <div className="mt-3 border-t border-black/10 pt-3">
+                        <p className="mb-2 text-center text-[0.7rem] font-semibold text-black/55">
+                          A free ValuePlus account is required so we can credit your earnings.
+                        </p>
+                        <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={renderGoogleButton} />
+                        <div ref={googleButtonRef} className="flex min-h-11 justify-center" />
+                      </div>
+                    )}
+                    {becomeDistributor && user && (
+                      <p className="mt-3 border-t border-black/10 pt-3 text-center text-[0.72rem] font-bold text-green-700">
+                        Distributor account ready: {user.email}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3">
+                    <p className="text-xs leading-relaxed text-black/55">
+                      <strong className="block text-black/70">Distributor programme unavailable</strong>
+                      The author has not enabled affiliate distribution for this title yet.
+                    </p>
+                  </div>
                 )}
               </div>
 
@@ -234,7 +332,7 @@ function CheckoutForm() {
                 size="md"
                 onClick={handleSubmit}
                 loading={submitting}
-                disabled={hasPhysicalItem && !deliveryCostAck}
+                disabled={(hasPhysicalItem && !deliveryCostAck) || (becomeDistributor && !user)}
                 className="mt-5 w-full"
               >
                 {submitting ? "Redirecting to payment…" : `Pay ${naira(total)}`}
@@ -245,6 +343,7 @@ function CheckoutForm() {
       </div>
 
       <Footer />
+      <LoadingModal open={googleLoading || submitting} steps={loadingSteps} />
     </main>
   );
 }

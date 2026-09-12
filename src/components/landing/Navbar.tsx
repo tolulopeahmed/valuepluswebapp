@@ -9,7 +9,7 @@ import { getCartCount, subscribeToCartChanges } from "@/lib/cart";
 
 const menuItems = [
   { label: "Books", href: "/books" },
-  { label: "Learn Publishing · Mobile App", href: "/download" },
+  { label: "Learn Publishing", badge: "Mobile App", href: "/pricing" },
   { label: "Portfolio", href: "/#portfolio" },
   { label: "Get Quote", href: "/getQuote" },
 ];
@@ -223,7 +223,12 @@ export default function Navbar() {
             <div className="hidden items-center gap-7 text-[0.7rem] font-black uppercase tracking-widest text-white/60 md:flex">
               {menuItems.map((item) => (
                 <Link key={item.label} className="nav-link" href={item.href}>
-                  {item.label}
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-2 rounded-full bg-[rgb(var(--vp-accent-rgb))] px-2 py-1 text-[0.48rem] font-black tracking-[0.12em] text-[#171100]">
+                      {item.badge}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -322,7 +327,14 @@ export default function Navbar() {
                 onClick={closeMenu}
                 className="mobile-menu-link"
               >
-                <span>{item.label}</span>
+                <span className="flex items-center gap-2">
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="rounded-full bg-[rgb(var(--vp-accent-rgb))] px-2 py-1 text-[0.5rem] font-black uppercase tracking-[0.12em] text-[#171100]">
+                      {item.badge}
+                    </span>
+                  )}
+                </span>
                 <b>›</b>
               </Link>
             ))}

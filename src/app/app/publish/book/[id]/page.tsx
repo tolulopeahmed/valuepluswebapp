@@ -649,7 +649,7 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
 }) {
   const [program, setProgram] = useState<AffiliateProgram | null>(null);
   const [enabled, setEnabled] = useState(book.affiliate_enabled);
-  const [percentage, setPercentage] = useState(book.affiliate_percentage || "20");
+  const [percentage, setPercentage] = useState(book.affiliate_percentage || "40");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -663,8 +663,8 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
 
   const save = async () => {
     const value = Number(percentage);
-    if (!Number.isFinite(value) || value < 1 || value > 50) {
-      notify("Choose an affiliate share between 1% and 50%.", "error");
+    if (!Number.isFinite(value) || value < 30 || value > 100) {
+      notify("Choose an affiliate share between 30% and 100%.", "error");
       return;
     }
     setSaving(true);
@@ -673,6 +673,8 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
       const refreshed = await fetchAffiliateProgram(book.id);
       setProgram(refreshed);
       onSaved();
+      notify("Distributor programme saved.", "success");
+      onClose();
     } catch (err) {
       if (!(err instanceof ApiError)) notify("Could not update the affiliate programme.", "error");
     } finally {
@@ -682,7 +684,7 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
 
   return (
     <Modal open={open} onClose={() => !saving && onClose()}>
-      <h3 className="text-[1.05rem] font-black text-white">Affiliate programme</h3>
+      <h3 className="text-[1.05rem] font-black text-white">Distributor programme</h3>
       <p className="mt-1 text-[0.75rem] leading-relaxed text-white/45">
         ValuePlus keeps {program?.platform_percentage ?? "30"}% of each sale. Your affiliate receives this percentage of your remaining share.
       </p>
@@ -695,10 +697,13 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
         <input value={percentage} onChange={(e) => setPercentage(e.target.value.replace(/[^\d.]/g, ""))} inputMode="decimal" className="min-w-0 flex-1 bg-transparent font-black text-white outline-none" />
         <span className="text-sm text-white/45">%</span>
       </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">{[["30","Conservative"],["40","Recommended"],["50","Growth"],["70","Aggressive"],["100","Full Distribution"]].map(([value,label]) => <button key={value} type="button" onClick={() => setPercentage(value)} className={`rounded-full border px-2.5 py-1 text-[0.6rem] font-bold ${percentage === value ? "border-[rgb(var(--vp-accent-rgb))] text-[rgb(var(--vp-accent-rgb))]" : "border-white/10 text-white/40"}`}>{value}% · {label}</button>)}</div>
+      {percentage === "100" && <p className="mt-2 text-xs text-amber-300">At 100%, you receive ₦0 from the author pool on attributed sales.</p>}
       <Button variant="primary" size="md" onClick={save} loading={saving} className="mt-4 w-full">Save programme</Button>
 
       <div className="mt-5 border-t border-white/10 pt-4">
         <p className="text-[0.68rem] font-black uppercase tracking-wide text-white/45">Affiliate performance</p>
+        {program?.summary && <div className="mt-3 grid grid-cols-2 gap-2 text-xs">{[["Gross sales",program.summary.gross_revenue],["ValuePlus fees",program.summary.platform_fees],["Distributor commission",program.summary.distributor_commissions],["Your net revenue",program.summary.net_author_revenue]].map(([label,value]) => <div key={label} className="rounded-lg bg-white/5 p-2 text-white/45">{label}<strong className="block text-white">{naira(String(value))}</strong></div>)}</div>}
         {!program ? <p className="mt-3 text-xs text-white/35">Loading…</p> : program.affiliates.length === 0 ? (
           <p className="mt-3 text-xs text-white/35">No distributors have joined yet.</p>
         ) : (
@@ -1922,7 +1927,7 @@ export default function BookLivePage() {
         />
         <ActionCard
           icon={<Users size={18} strokeWidth={1.9} />}
-          label="Affiliates"
+          label="Distributors"
           description={book.affiliate_enabled ? `${book.affiliate_percentage}% share enabled` : "Set distributor profit share"}
           onClick={() => setAffiliatesOpen(true)}
         />

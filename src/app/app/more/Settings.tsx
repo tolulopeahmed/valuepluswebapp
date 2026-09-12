@@ -11,6 +11,7 @@ import {
   BookOpen,
   Landmark,
   UserPlus,
+  Users,
   ShieldCheck,
   // KeyRound, — only used by the commented-out Transaction PIN row below
   HelpCircle,
@@ -36,6 +37,7 @@ import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
 import { useMyBooks } from "../../../hooks/useMyBooks";
 import { useLearnerCurriculum } from "../CurriculumModules";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
+import { useAffiliates } from "../../../hooks/useAffiliates";
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
   not_started: "Not started",
@@ -251,6 +253,7 @@ function buildItems({
   isLearnerMode,
   currentLessonTitle,
   overallCurriculumPercent,
+  affiliateCount,
 }: {
   publishedCount: number;
   isBankLinked: boolean;
@@ -262,8 +265,9 @@ function buildItems({
   isLearnerMode: boolean;
   currentLessonTitle: string | null;
   overallCurriculumPercent: number;
+  affiliateCount: number;
 }): SettingItem[] {
-  return [
+  const items: SettingItem[] = [
     {
       id: "my-books",
       label: isLearnerMode ? "Resume Lesson" : "My Books",
@@ -291,6 +295,14 @@ function buildItems({
           {isBankLinked ? bankName : "Not added"}
         </StatusChip>
       ),
+    },
+    {
+      id: "affiliates",
+      label: affiliateCount > 0 ? `Distributors (${affiliateCount})` : "Distributors",
+      subtitle: "Manage programmes, share links, and track sales",
+      Icon: Users,
+      href: "/app/more/affiliates",
+      trailing: affiliateCount > 0 ? <StatusChip tone="accent">Active</StatusChip> : undefined,
     },
     {
       id: "referrals",
@@ -373,6 +385,7 @@ function buildItems({
       danger: true,
     },
   ];
+  return items;
 }
 
 function SettingRow({
@@ -487,6 +500,7 @@ export default function Settings() {
   // writes, so this row's status chip always agrees with that page.
   const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
+  const { affiliates } = useAffiliates();
   const { profile: kycProfile } = useKYCProfile();
   // Same shared books list the Publish tab/Published Books page read, so
   // this row's count always agrees with those.
@@ -517,6 +531,7 @@ export default function Settings() {
     isLearnerMode: mode === "learner",
     currentLessonTitle: currentLesson?.title ?? null,
     overallCurriculumPercent,
+    affiliateCount: affiliates.length,
   });
 
   const handleSelect = (id: string) => {
@@ -566,7 +581,7 @@ export default function Settings() {
           disabled={!LEARNER_MODE_ENABLED}
         />
         {!LEARNER_MODE_ENABLED && (
-          <a href="/download" className="-mt-2 mb-2 block pl-4 text-[0.68rem] font-bold text-white/45 hover:text-white/70">
+          <a href="/pricing" className="-mt-2 mb-2 block pl-4 text-[0.68rem] font-bold text-white/45 hover:text-white/70">
             Download ValuePlus to use Learner mode →
           </a>
         )}

@@ -392,6 +392,7 @@ export interface AffiliateProgram {
   affiliate_percentage: string;
   platform_percentage: string;
   affiliates: BookAffiliate[];
+  summary: Record<"units_sold" | "gross_revenue" | "platform_fees" | "distributor_commissions" | "net_author_revenue" | "direct_sales" | "affiliate_sales" | "pending_commissions" | "reversed_commissions", string>;
 }
 
 export function fetchAffiliateProgram(bookId: string) {
