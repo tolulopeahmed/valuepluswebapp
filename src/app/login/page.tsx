@@ -13,6 +13,7 @@ import {
 import Script from "next/script";
 import { Gift, KeyRound, Lock, Mail, Megaphone, Phone, User } from "lucide-react";
 import Button from "@/components/buttons/buttons";
+import LoadingModal, { type LoadingStep } from "@/components/LoadingModal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -137,6 +138,7 @@ function LoginPageInner() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([]);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const [focused, setFocused] = useState<string | null>(null);
@@ -155,17 +157,34 @@ function LoginPageInner() {
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID ?? "";
 
   async function handleGoogleCredential(idToken: string) {
+    setLoadingSteps([{ label: "Verifying your Google account...", done: false }]);
     setGoogleLoading(true);
     try {
       let result = await loginWithGoogle(idToken);
       if (!result.account_exists) {
+        setGoogleLoading(false);
         const create = window.confirm(
           `No ValuePlus account exists for ${result.email ?? "this Google account"}. Create one now?`,
         );
         if (!create) return;
+        setLoadingSteps([
+          { label: "Verifying your Google account...", done: true },
+          { label: "Creating your ValuePlus account...", done: false },
+        ]);
+        setGoogleLoading(true);
         result = await loginWithGoogle(idToken, true);
       }
       if (result.account_exists) {
+        setLoadingSteps((steps) => [
+          ...steps.map((step) => ({ ...step, done: true })),
+          {
+            label: result.is_new_user ? "Preparing your profile..." : "Preparing your dashboard...",
+            done: false,
+          },
+        ]);
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        setLoadingSteps((steps) => steps.map((step) => ({ ...step, done: true })));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         clearStoredReferrerEmail();
         if (result.is_new_user) router.push("/complete-registration");
         else await goToApp();
@@ -252,6 +271,14 @@ function LoginPageInner() {
       return;
     }
 
+    const initialStep: Record<AuthMode, string> = {
+      login: "Verifying your credentials...",
+      signup: "Creating your ValuePlus account...",
+      forgot: "Sending your reset code...",
+      otp: "Verifying your email address...",
+      reset: "Updating your password...",
+    };
+    setLoadingSteps([{ label: initialStep[mode], done: false }]);
     setLoading(true);
 
     // Email is never case- or whitespace-sensitive — only the password
@@ -263,6 +290,10 @@ function LoginPageInner() {
     try {
       if (mode === "login") {
         await login(normalizedEmail, password);
+        setLoadingSteps([
+          { label: initialStep.login, done: true },
+          { label: "Preparing your dashboard...", done: false },
+        ]);
         await goToApp();
         return;
       }
@@ -281,6 +312,7 @@ function LoginPageInner() {
           referrer_email: referrerEmail.trim() || undefined,
           heard_about: heardAbout || undefined,
         });
+        setLoadingSteps([{ label: initialStep.signup, done: true }]);
         clearStoredReferrerEmail();
         setOtpCode("");
         switchMode("otp");
@@ -289,6 +321,7 @@ function LoginPageInner() {
 
       if (mode === "forgot") {
         await requestPasswordReset(normalizedEmail);
+        setLoadingSteps([{ label: initialStep.forgot, done: true }]);
         setOtpCode("");
         setPassword("");
         setConfirmPassword("");
@@ -298,6 +331,10 @@ function LoginPageInner() {
 
       if (mode === "otp") {
         await verifyEmail({ email: normalizedEmail, code: otpCode });
+        setLoadingSteps([
+          { label: initialStep.otp, done: true },
+          { label: "Preparing your dashboard...", done: false },
+        ]);
         await goToApp();
         return;
       }
@@ -309,6 +346,7 @@ function LoginPageInner() {
           new_password: password,
           new_password_confirm: confirmPassword,
         });
+        setLoadingSteps([{ label: initialStep.reset, done: true }]);
         setPassword("");
         setConfirmPassword("");
         switchMode("login");
@@ -338,10 +376,17 @@ function LoginPageInner() {
 
     let cancelled = false;
     (async () => {
+      setLoadingSteps([{ label: "Verifying your email address...", done: false }]);
       setLoading(true);
       try {
         await verifyEmail({ email, code: otpCode });
-        if (!cancelled) await goToApp();
+        if (!cancelled) {
+          setLoadingSteps([
+            { label: "Verifying your email address...", done: true },
+            { label: "Preparing your dashboard...", done: false },
+          ]);
+          await goToApp();
+        }
       } catch (err) {
         if (!cancelled && !(err instanceof ApiError)) {
           notify("Something went wrong. Please try again.", "error");
@@ -863,6 +908,7 @@ function LoginPageInner() {
         </svg>
         Back to ValuePlus
       </Link>
+      <LoadingModal open={loading || googleLoading} steps={loadingSteps} />
     </main>
   );
 }

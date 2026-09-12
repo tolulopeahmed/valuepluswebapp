@@ -11,6 +11,7 @@ import {
 import { KeyRound, Lock } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/buttons/buttons";
+import LoadingModal, { type LoadingStep } from "@/components/LoadingModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
@@ -38,6 +39,7 @@ function CompleteRegistrationForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [loadingSteps, setLoadingSteps] = useState<LoadingStep[]>([]);
   const [resending, setResending] = useState(false);
 
   // The email link already carries the code — opening it and clicking
@@ -58,6 +60,7 @@ function CompleteRegistrationForm() {
       return;
     }
 
+    setLoadingSteps([{ label: "Verifying your account details...", done: false }]);
     setLoading(true);
     try {
       await verifyEmail({
@@ -66,6 +69,11 @@ function CompleteRegistrationForm() {
         password,
         password_confirm: confirmPassword,
       });
+      setLoadingSteps([
+        { label: "Verifying your account details...", done: true },
+        { label: "Preparing your dashboard...", done: false },
+      ]);
+      await new Promise((resolve) => setTimeout(resolve, 450));
       router.push("/app");
     } catch (err) {
       if (!(err instanceof ApiError)) {
@@ -233,6 +241,7 @@ function CompleteRegistrationForm() {
         </svg>
         Back to ValuePlus
       </Link>
+      <LoadingModal open={loading} steps={loadingSteps} />
     </main>
   );
 }
