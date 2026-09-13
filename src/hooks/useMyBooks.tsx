@@ -110,6 +110,7 @@ export interface MyBook {
   earned: string;
   affiliate_enabled: boolean;
   affiliate_percentage: string;
+  distributor_count: number;
   date_published: string | null;
   description: string;
   // Google Drive link to production files — blank until staff set it in
@@ -375,6 +376,7 @@ export interface BookAffiliate {
   id: string;
   name: string;
   email: string;
+  avatar: string | null;
   phone: string;
   code: string;
   commission_percentage: string;
@@ -392,7 +394,7 @@ export interface AffiliateProgram {
   affiliate_percentage: string;
   platform_percentage: string;
   affiliates: BookAffiliate[];
-  summary: Record<"units_sold" | "gross_revenue" | "platform_fees" | "distributor_commissions" | "net_author_revenue" | "direct_sales" | "affiliate_sales" | "pending_commissions" | "reversed_commissions", string>;
+  summary: Record<"units_sold" | "gross_revenue" | "platform_fees" | "distributor_commissions" | "net_author_revenue" | "direct_sales" | "affiliate_sales" | "distributor_author_earnings" | "pending_commissions" | "reversed_commissions", string>;
 }
 
 export function fetchAffiliateProgram(bookId: string) {

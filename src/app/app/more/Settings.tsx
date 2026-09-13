@@ -37,7 +37,6 @@ import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
 import { useMyBooks } from "../../../hooks/useMyBooks";
 import { useLearnerCurriculum } from "../CurriculumModules";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
-import { useAffiliates } from "../../../hooks/useAffiliates";
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
   not_started: "Not started",
@@ -298,11 +297,11 @@ function buildItems({
     },
     {
       id: "affiliates",
-      label: affiliateCount > 0 ? `Distributors (${affiliateCount})` : "Distributors",
+      label: "Distributors",
       subtitle: "Manage programmes, share links, and track sales",
       Icon: Users,
       href: "/app/more/affiliates",
-      trailing: affiliateCount > 0 ? <StatusChip tone="accent">Active</StatusChip> : undefined,
+      trailing: <StatusChip tone={affiliateCount > 0 ? "accent" : "neutral"}>{affiliateCount}</StatusChip>,
     },
     {
       id: "referrals",
@@ -500,12 +499,15 @@ export default function Settings() {
   // writes, so this row's status chip always agrees with that page.
   const { accounts: bankAccounts } = useBankAccounts();
   const { referrals } = useReferrals();
-  const { affiliates } = useAffiliates();
   const { profile: kycProfile } = useKYCProfile();
   // Same shared books list the Publish tab/Published Books page read, so
   // this row's count always agrees with those.
   const { books } = useMyBooks();
   const publishedCount = books.filter((b) => b.status === "published").length;
+  const distributorCount = books.reduce(
+    (total, book) => total + (book.distributor_count ?? 0),
+    0,
+  );
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const defaultBankAccount =
@@ -531,7 +533,7 @@ export default function Settings() {
     isLearnerMode: mode === "learner",
     currentLessonTitle: currentLesson?.title ?? null,
     overallCurriculumPercent,
-    affiliateCount: affiliates.length,
+    affiliateCount: distributorCount,
   });
 
   const handleSelect = (id: string) => {
