@@ -86,6 +86,8 @@ export interface MyBook {
   // it alone can be set directly (see ebook_price/ebook_drive_link
   // below).
   paperback_price: string | null;
+  can_price_paperback: boolean;
+  can_price_hardback: boolean;
   hardback_price: string | null;
   ebook_price: string | null;
   paperback_request_status: FormatRequestStatus;

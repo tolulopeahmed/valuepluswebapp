@@ -989,6 +989,7 @@ function EbookModal({
 // unpriced (pencil now sets a sale price, pre-filled with a suggestion),
 // and priced (the normal editable price card, same UX Ebook already has).
 function PhysicalFormatCard({
+  canPrice,
   format,
   icon,
   price,
@@ -1006,6 +1007,7 @@ function PhysicalFormatCard({
   onRequestQuote,
   animationDelay,
 }: {
+  canPrice: boolean;
   format: PhysicalFormat;
   icon: ReactNode;
   price: string | null;
@@ -1024,7 +1026,7 @@ function PhysicalFormatCard({
   animationDelay: string;
 }) {
   const hasPrice = price !== null;
-  const isPaid = !hasPrice && requestStatus === "paid";
+  const isPaid = !hasPrice && (canPrice || requestStatus === "paid");
   const isQuoted = !hasPrice && requestStatus === "quoted";
   const isPending = !hasPrice && requestStatus === "pending";
   const canRequest = !hasPrice && requestStatus === "none";
@@ -1091,7 +1093,7 @@ function PhysicalFormatCard({
         <p className="mt-1 text-2xl font-black leading-tight text-white">{naira(price)}</p>
       ) : isPaid ? (
         <p className="mt-1.5 text-[0.7rem] leading-relaxed text-white/50">
-          Paid — tap the pencil to set your sale price.
+          Ready to add — tap the pencil to set your selling price.
         </p>
       ) : isQuoted ? (
         <>
@@ -1831,6 +1833,7 @@ export default function BookLivePage() {
           any subset of the three without the others blocking it. */}
       <div className="mt-5 grid grid-cols-3 gap-3">
         <PhysicalFormatCard
+          canPrice={book.can_price_paperback}
           format="Paperback"
           icon={<BookOpen size={13} strokeWidth={2.2} />}
           price={priceFor("Paperback")}
@@ -1841,7 +1844,7 @@ export default function BookLivePage() {
           priceInput={priceInput}
           saving={savingPrice}
           requesting={requestingFormat === "Paperback"}
-          onStartEdit={() => setActionsMenuFor("Paperback")}
+          onStartEdit={() => book.has_paperback ? setActionsMenuFor("Paperback") : handleStartEditPrice("Paperback")}
           onPriceInputChange={setPriceInput}
           onSave={handleSavePrice}
           onCancelEdit={() => setEditingFormat(null)}
@@ -1885,6 +1888,7 @@ export default function BookLivePage() {
         </GlassCard>
 
         <PhysicalFormatCard
+          canPrice={book.can_price_hardback}
           format="Hardback"
           icon={<BookMarked size={13} strokeWidth={2.2} />}
           price={priceFor("Hardback")}
@@ -1895,7 +1899,7 @@ export default function BookLivePage() {
           priceInput={priceInput}
           saving={savingPrice}
           requesting={requestingFormat === "Hardback"}
-          onStartEdit={() => setActionsMenuFor("Hardback")}
+          onStartEdit={() => book.has_hardback ? setActionsMenuFor("Hardback") : handleStartEditPrice("Hardback")}
           onPriceInputChange={setPriceInput}
           onSave={handleSavePrice}
           onCancelEdit={() => setEditingFormat(null)}
