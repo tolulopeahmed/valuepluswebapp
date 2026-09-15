@@ -61,13 +61,10 @@ export default function BuyBox({
       : []),
   ];
 
-  // Paperback still wins as the default selected tab (same "primary
-  // edition" convention used everywhere else — see e.g. useMyBooks.tsx's
-  // displayPrice) even though the tab row itself displays Ebook first;
-  // falls back to whichever edition actually exists first if this book
-  // has no Paperback at all.
+  // Prefer Ebook for purchase; the ordered editions provide a physical
+  // fallback when no ebook is available.
   const [selectedFormat, setSelectedFormat] = useState(
-    editions.find((e) => e.format === "Paperback")?.format ?? editions[0]?.format ?? "",
+    editions[0]?.format ?? "",
   );
   const selected = editions.find((e) => e.format === selectedFormat) ?? editions[0] ?? null;
   const minQty = minQuantityFor(selected?.format ?? "");
