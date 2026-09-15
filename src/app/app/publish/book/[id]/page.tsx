@@ -57,6 +57,7 @@ import {
   saveAffiliateProgram,
   requestBookFormat,
   unpublishBook,
+  removeBookFormat,
   suggestedPrice,
   suggestedPriceFromPrintCost,
   suggestedPriceFromPaperback,
@@ -1224,14 +1225,17 @@ function BookActionsMenu({
   onClose,
   onEditPrice,
   onUnpublish,
+  onRemoveFormat,
 }: {
   format: "Paperback" | "Hardback" | "Ebook" | null;
   book: MyBook;
   onClose: () => void;
   onEditPrice: (format: "Paperback" | "Hardback" | "Ebook") => void;
   onUnpublish: () => Promise<void>;
+  onRemoveFormat: (format: "Paperback" | "Hardback" | "Ebook") => Promise<void>;
 }) {
   const [confirmingRemove, setConfirmingRemove] = useState(false);
+  const [removingEdition, setRemovingEdition] = useState(false);
   // Its own step (not just a Web-Share-API-or-WhatsApp fallback in
   // handleShare) so an author gets explicit one-tap buttons for every
   // major platform regardless of browser support — navigator.share only
@@ -1287,7 +1291,10 @@ function BookActionsMenu({
   const handleConfirmUnpublish = async () => {
     setUnpublishing(true);
     try {
-      await onUnpublish();
+      if (removingEdition && format) await onRemoveFormat(format);
+      else await onUnpublish();
+    } catch (error) {
+      if (!(error instanceof ApiError)) notify("Could not remove this edition. Please try again.", "error");
     } finally {
       setUnpublishing(false);
     }
@@ -1303,11 +1310,12 @@ function BookActionsMenu({
           >
             <EyeOff size={22} strokeWidth={1.8} style={{ color: "#F87171" }} />
           </div>
-          <h3 className="text-[1.05rem] font-black text-white">Remove from public page?</h3>
+          <h3 className="text-[1.05rem] font-black text-white">{removingEdition ? `Remove ${format} only?` : "Unpublish the entire book?"}</h3>
           <p className="mt-2 text-[0.8rem] leading-relaxed text-white/50">
+            {removingEdition ? `Only the ${format} sale option will be removed. Your book, other editions and past purchases stay unchanged. At least one edition must remain for sale.` : <>
             &ldquo;{book.title}&rdquo; will come off {publicUrl.replace(/^https?:\/\//, "")} and
             the /books catalog right away — buyers won&apos;t be able to find or purchase it
-            until you republish. Nothing else about the book changes.
+            until you republish. Nothing else about the book changes.</>}
           </p>
           <div className="mt-5 flex w-full gap-2.5">
             <Button
@@ -1439,10 +1447,17 @@ function BookActionsMenu({
             />
             <ActionsMenuRow
               icon={<Trash2 size={15} strokeWidth={2.2} />}
-              label="Remove Book from Public Page"
+              label={`Remove ${format} only`}
+              description="Keep your book and other editions live"
+              destructive
+              onClick={() => { setRemovingEdition(true); setConfirmingRemove(true); }}
+            />
+            <ActionsMenuRow
+              icon={<Trash2 size={15} strokeWidth={2.2} />}
+              label="Unpublish entire book"
               description="Take the whole title down — not just this edition"
               destructive
-              onClick={() => setConfirmingRemove(true)}
+              onClick={() => { setRemovingEdition(false); setConfirmingRemove(true); }}
             />
           </div>
         )
@@ -1980,6 +1995,7 @@ export default function BookLivePage() {
         onClose={() => setActionsMenuFor(null)}
         onEditPrice={handleEditPriceFromMenu}
         onUnpublish={handleUnpublish}
+        onRemoveFormat={async (format) => { await removeBookFormat(book.id, format); await refetch(); setActionsMenuFor(null); notify(`${format} removed. Other editions remain live.`, "success"); }}
       />
 
       <EarningsModal

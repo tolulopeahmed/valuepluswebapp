@@ -11,6 +11,7 @@ import { notify } from "../lib/snackbar";
 import { ApiError } from "../lib/api";
 import {
   naira,
+  republishBook,
   displayPrice,
   BookCover,
   uploadBookCover,
@@ -244,6 +245,12 @@ export default function BookDetailsModal({
   return (
     <>
       <Modal open={open && pendingImageSrc === null} onClose={onClose}>
+        {book?.status === "draft" && book.date_published && (
+          <Button variant="primary" size="md" className="mb-4 w-full" onClick={async () => {
+            try { await republishBook(book.id); await refetch(); onClose(); notify("Your book is live again.", "success"); }
+            catch (error) { if (!(error instanceof ApiError)) notify("Could not restore your book. Please try again.", "error"); }
+          }}>Restore book to live sales</Button>
+        )}
         {/* Cover on the left, details on the right — pricing/buttons stay
           full-width at the bottom regardless. */}
         <div className="flex gap-4">

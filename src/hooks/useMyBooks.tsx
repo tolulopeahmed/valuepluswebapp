@@ -293,6 +293,10 @@ export function unpublishBook(bookId: string) {
   return apiFetch<MyBook>(`/books/mine/${bookId}/unpublish/`, { method: "POST" });
 }
 
+export function removeBookFormat(bookId: string, format: "Paperback" | "Hardback" | "Ebook") {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/remove-format/`, { method: "POST", body: JSON.stringify({ format }) });
+}
+
 export function republishBook(bookId: string) {
   return apiFetch<MyBook>(`/books/mine/${bookId}/republish/`, { method: "POST" });
 }
