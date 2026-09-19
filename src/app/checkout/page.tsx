@@ -288,7 +288,7 @@ function CheckoutForm() {
                     </label>
                   </>
                 )}
-                {books.some((book) => book.affiliateEnabled) ? (
+                {books.some((book) => book.affiliateEnabled && book.format === "Ebook") ? (
                   <div className="rounded-xl border border-[#EFC700]/30 bg-[#EFC700]/[0.08] px-3.5 py-3">
                     <label className="flex cursor-pointer items-start gap-2.5">
                       <input
@@ -299,7 +299,7 @@ function CheckoutForm() {
                       />
                       <span className="text-xs leading-relaxed text-black/65">
                         <strong className="block text-black/80">Become a distributor</strong>
-                        Get a personal link after payment and earn {Math.min(...books.filter((book) => book.affiliateEnabled).map((book) => Number(book.affiliatePercentage)))}% or more of each author&apos;s net share when people buy through it.
+                        Ebook only, for now. Get a personal link after payment and earn {Math.min(...books.filter((book) => book.affiliateEnabled && book.format === "Ebook").map((book) => Number(book.affiliatePercentage)))}% or more of each author&apos;s net share when people buy through it.
                       </span>
                     </label>
                     {becomeDistributor && !user && (

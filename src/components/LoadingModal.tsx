@@ -48,7 +48,7 @@ export default function LoadingModal({
           <div className="vp-loading-ring absolute inset-0 rounded-full border-[3px] border-white/15 border-r-[rgb(239,199,0)] border-t-[rgb(239,199,0)]" />
           <div className="grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-white/[0.06] shadow-[0_0_28px_rgba(239,199,0,0.14)]">
             <Image
-              src="/images/logos/valueplus-logo-white2.png"
+              src="/images/logos/valueplus-mark.png"
               alt="ValuePlus"
               width={42}
               height={42}
