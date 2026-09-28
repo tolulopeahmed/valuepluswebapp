@@ -1,6 +1,6 @@
 import { notify } from "@/lib/snackbar";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
 
 // Loud, specific signal for exactly the failure mode that once took a

@@ -583,7 +583,7 @@ export default function Settings() {
           disabled={!LEARNER_MODE_ENABLED}
         />
         {!LEARNER_MODE_ENABLED && (
-          <a href="/pricing" className="-mt-2 mb-2 block pl-4 text-[0.68rem] font-bold text-white/45 hover:text-white/70">
+          <a href="/download" className="-mt-2 mb-2 block pl-4 text-[0.68rem] font-bold text-white/45 hover:text-white/70">
             Download ValuePlus to use Learner mode →
           </a>
         )}

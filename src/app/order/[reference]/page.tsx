@@ -10,15 +10,22 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, CheckCircle2, Clock, Copy, Download, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, Download, BookOpen, XCircle } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
 import Button from "@/components/buttons/buttons";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { clearCart } from "@/lib/cart";
 import { notify } from "@/lib/snackbar";
+import { openValuePlusApp } from "@/lib/openApp";
+
+interface EbookAccess {
+  token: string;
+  can_download: boolean;
+  can_read_in_app: boolean;
+}
 
 interface OrderItem {
   book_title: string;
@@ -30,6 +37,11 @@ interface OrderItem {
   // an Ebook line — see OrderItemSerializer.get_ebook_drive_link
   // server-side. Null before that, or if the book has no link set.
   ebook_drive_link: string | null;
+  // The new protected path (Book.ebook_file) — present alongside
+  // ebook_drive_link once the book has a real file uploaded. A fresh
+  // token every time this page (re)polls status, since it expires after
+  // 10 minutes — see OrderItemSerializer.get_ebook_access server-side.
+  ebook_access: EbookAccess | null;
 }
 
 interface OrderStatus {
@@ -141,18 +153,69 @@ export default function OrderStatusPage() {
                 ))}
               </div>
 
-              {order.items.some((item) => item.ebook_drive_link) && (
-                <div className="mt-4 flex flex-col gap-2 border-t border-black/5 pt-4">
-                  {order.items
-                    .filter((item) => item.ebook_drive_link)
-                    .map((item, i) => (
-                      <Button key={i} href={item.ebook_drive_link!} variant="primary" size="md" className="w-full">
-                        <span className="inline-flex items-center gap-2">
-                          <Download size={16} strokeWidth={2.25} />
-                          Access &ldquo;{item.book_title}&rdquo;
-                        </span>
-                      </Button>
-                    ))}
+              {order.items.some((item) => item.ebook_access || item.ebook_drive_link) && (
+                <div className="mt-4 flex flex-col gap-3 border-t border-black/5 pt-4">
+                  {order.items.map((item, i) => {
+                    if (item.ebook_access) {
+                      const { token, can_download, can_read_in_app } = item.ebook_access;
+                      return (
+                        <div key={i} className="flex flex-col gap-2">
+                          {order.items.length > 1 && (
+                            <p className="text-xs font-bold text-black/50">&ldquo;{item.book_title}&rdquo;</p>
+                          )}
+                          {can_download && (
+                            <Button
+                              href={`${API_BASE_URL}/storefront/library/read/${token}/?mode=download`}
+                              variant="primary"
+                              size="md"
+                              className="w-full"
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <Download size={16} strokeWidth={2.25} />
+                                Download PDF
+                              </span>
+                            </Button>
+                          )}
+                          {can_read_in_app && (
+                            <Button
+                              variant="secondary"
+                              size="md"
+                              // .btn-secondary is white-text-on-dark-glass,
+                              // tuned for the app shell's dark background —
+                              // invisible (blank white pill) on this
+                              // page's white card, so it's overridden here
+                              // to match the card's own light/dark-ink look
+                              // instead (same border/ink-text pattern the
+                              // rest of this page already uses).
+                              className="w-full border! border-black/15! bg-white! text-[#14181f]! shadow-none!"
+                              onClick={openValuePlusApp}
+                            >
+                              <span className="inline-flex items-center gap-2">
+                                <BookOpen size={16} strokeWidth={2.25} />
+                                Read in ValuePlus App
+                              </span>
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    }
+                    if (item.ebook_drive_link) {
+                      return (
+                        <Button key={i} href={item.ebook_drive_link} variant="primary" size="md" className="w-full">
+                          <span className="inline-flex items-center gap-2">
+                            <Download size={16} strokeWidth={2.25} />
+                            Access &ldquo;{item.book_title}&rdquo;
+                          </span>
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })}
+                  {order.items.some((item) => item.ebook_access?.can_download && item.ebook_access?.can_read_in_app) && (
+                    <p className="text-center text-[0.7rem] text-black/35">
+                      Your purchase includes both options at no extra cost.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -201,7 +264,9 @@ export default function OrderStatusPage() {
             <div className="rounded-2xl border border-black/10 bg-white p-5 text-center">
               <p className="text-xs leading-relaxed text-black/40">
                 A receipt has been emailed to you
-                {order.items.some((item) => item.ebook_drive_link) ? " with your ebook access link" : ""}
+                {order.items.some((item) => item.ebook_access || item.ebook_drive_link)
+                  ? " with your ebook access link"
+                  : ""}
                 . Physical copies ship to the address you provided.
               </p>
               <Link href="/" className="mt-4 inline-block text-sm font-bold underline underline-offset-4">

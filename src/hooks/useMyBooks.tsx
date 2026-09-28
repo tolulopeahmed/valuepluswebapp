@@ -104,9 +104,20 @@ export interface MyBook {
   // handed to a buyer after purchase; here (the author's own book list)
   // it's fine to see it, since they're the one who set it.
   ebook_drive_link: string;
+  // The first-party-hosted PDF (see Book.ebook_file's docstring
+  // server-side) — an ImageKit URL when set, blank otherwise. Kept
+  // alongside ebook_drive_link rather than replacing it: a book can have
+  // either, both, or neither.
+  ebook_file: string | null;
+  // Author-configurable per the two ways a purchase can grant access.
+  // Only meaningful once ebook_file is actually set — see
+  // has_ebook_file below.
+  allow_ebook_download: boolean;
+  allow_ebook_app_reading: boolean;
   has_paperback: boolean;
   has_hardback: boolean;
   has_ebook: boolean;
+  has_ebook_file: boolean;
   pages: number | null;
   sales: number;
   earned: string;
@@ -318,9 +329,11 @@ export function updateBookDescription(bookId: string, description: string) {
 // Sets/changes this book's Ebook edition — independent of any physical
 // edition it has (see MyBook.format's own comment). Passing
 // ebookPrice: null removes the Ebook edition (and its link) entirely —
-// the backend enforces that a price always needs a link alongside it
-// (see BookEbookSerializer), so there's no way to end up with one but
-// not the other.
+// the backend enforces that a price always needs SOME delivery method
+// alongside it, either this link or an uploaded ebook_file (see
+// uploadBookEbookFile below and BookEbookSerializer server-side) — so a
+// book with a file already uploaded can set a price with the link left
+// blank.
 export function updateBookEbook(
   bookId: string,
   ebookPrice: number | null,
@@ -332,6 +345,34 @@ export function updateBookEbook(
       ebook_price: ebookPrice,
       ebook_drive_link: ebookPrice === null ? "" : ebookDriveLink,
     }),
+  });
+}
+
+// Uploads the actual PDF — what makes a protected download link and
+// in-app reading possible at all, unlike ebook_drive_link above (a
+// plain, unrevocable external link). Same FormData pattern as
+// uploadBookCover. Left alone by updateBookEbook's "clear the price"
+// path (removing the Ebook edition doesn't delete an already-uploaded
+// file — re-adding a price later shouldn't require re-uploading it).
+export function uploadBookEbookFile(bookId: string, file: File) {
+  const formData = new FormData();
+  formData.append("ebook_file", file);
+  return apiFetch<MyBook>(`/books/mine/${bookId}/ebook/`, {
+    method: "PATCH",
+    body: formData,
+  });
+}
+
+// The author's own per-book toggle for which of the two access methods
+// a purchase grants (see Book.allow_ebook_download/allow_ebook_app_reading
+// server-side) — independent of price/delivery-method above.
+export function updateBookEbookPermissions(
+  bookId: string,
+  permissions: { allow_ebook_download?: boolean; allow_ebook_app_reading?: boolean },
+) {
+  return apiFetch<MyBook>(`/books/mine/${bookId}/ebook/`, {
+    method: "PATCH",
+    body: JSON.stringify(permissions),
   });
 }
 

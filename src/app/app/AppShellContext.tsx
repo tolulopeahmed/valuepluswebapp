@@ -9,7 +9,7 @@ import {
 } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { apiFetch } from "../../lib/api";
-import { LEARNER_MODE_ENABLED, LEARNER_MODE_ETA } from "../../lib/featureFlags";
+import { LEARNER_MODE_ENABLED } from "../../lib/featureFlags";
 import { notify } from "../../lib/snackbar";
 
 export type Mode = "learner" | "publisher";
@@ -68,7 +68,14 @@ export function AppShellProvider({ children }: { children: ReactNode }) {
   // by any other path either, e.g. a direct /app/learn visit.
   const setMode = useCallback((m: Mode) => {
     if (m === "learner" && !LEARNER_MODE_ENABLED) {
-      notify(`Learner mode is coming in ${LEARNER_MODE_ETA}.`, "error");
+      // Learner mode is genuinely live on the ValuePlus mobile app (see
+      // mobile/src/lib/featureFlags.ts) - it's only the webapp's Academy
+      // build that isn't ready yet, so the useful next step for someone
+      // hitting this gate is getting the app, not being told a date.
+      // /download device-sniffs to the right store (or falls back to
+      // web signup) - see app/download/page.tsx.
+      notify("Learner mode is available on the ValuePlus mobile app - opening the download page.", "error");
+      window.open("/download", "_blank");
       return;
     }
     setModeState(m);

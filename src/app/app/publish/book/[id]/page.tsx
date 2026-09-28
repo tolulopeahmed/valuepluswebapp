@@ -50,6 +50,8 @@ import {
   updateBookPrice,
   updateBookDescription,
   updateBookEbook,
+  uploadBookEbookFile,
+  updateBookEbookPermissions,
   fetchBookCoupon,
   saveBookCoupon,
   deleteBookCoupon,
@@ -835,10 +837,13 @@ function EarningsModal({
 }
 
 // Sets/edits this book's Ebook edition — independent of any physical
-// edition it has (the Sale Price card above). A Drive link is required
-// alongside a price (enforced server-side too — see BookEbookSerializer)
-// since that link is what actually gets handed to a buyer the moment
-// they pay; there's no "priced but nothing to deliver" state possible.
+// edition it has (the Sale Price card above). A price needs SOME
+// delivery method alongside it (enforced server-side too — see
+// BookEbookSerializer): the legacy Drive link, an uploaded PDF, or
+// both — there's no "priced but nothing to deliver" state possible.
+// Uploading a real file is what unlocks the protected download link and
+// in-app reading in the ValuePlus app; the Drive link alone still works
+// exactly as before for a book that never gets one.
 function EbookModal({
   open,
   onClose,
@@ -852,15 +857,34 @@ function EbookModal({
 }) {
   const [priceInput, setPriceInput] = useState("");
   const [linkInput, setLinkInput] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [allowAppReading, setAllowAppReading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPriceInput(book.ebook_price ? String(Math.round(Number(book.ebook_price))) : "");
     setLinkInput(book.ebook_drive_link);
-  }, [open, book.ebook_price, book.ebook_drive_link]);
+    setPendingFile(null);
+    setAllowDownload(book.allow_ebook_download);
+    setAllowAppReading(book.allow_ebook_app_reading);
+  }, [open, book.ebook_price, book.ebook_drive_link, book.allow_ebook_download, book.allow_ebook_app_reading]);
+
+  const handleFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      notify("Please choose a PDF file.", "error");
+      return;
+    }
+    setPendingFile(file);
+  };
 
   const handleSave = async () => {
     const value = Number(priceInput.replace(/,/g, ""));
@@ -868,13 +892,23 @@ function EbookModal({
       notify("Enter a valid price.", "error");
       return;
     }
-    if (!linkInput.trim()) {
-      notify("Add the Google Drive link to the Ebook file.", "error");
+    if (!linkInput.trim() && !pendingFile && !book.has_ebook_file) {
+      notify("Add a Google Drive link or upload the PDF file.", "error");
       return;
     }
     setSaving(true);
     try {
       await updateBookEbook(book.id, value, linkInput.trim());
+      if (pendingFile) {
+        setUploadingFile(true);
+        await uploadBookEbookFile(book.id, pendingFile);
+      }
+      if (allowDownload !== book.allow_ebook_download || allowAppReading !== book.allow_ebook_app_reading) {
+        await updateBookEbookPermissions(book.id, {
+          allow_ebook_download: allowDownload,
+          allow_ebook_app_reading: allowAppReading,
+        });
+      }
       await onSaved();
       onClose();
     } catch (err) {
@@ -883,6 +917,7 @@ function EbookModal({
       }
     } finally {
       setSaving(false);
+      setUploadingFile(false);
     }
   };
 
@@ -901,14 +936,15 @@ function EbookModal({
     }
   };
 
-  const busy = saving || removing;
+  const busy = saving || removing || uploadingFile;
+  const hasFile = pendingFile || book.has_ebook_file;
 
   return (
     <Modal open={open} onClose={() => !busy && onClose()}>
       <h3 className="mb-1 text-[1.05rem] font-black text-white">Ebook Edition</h3>
       <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
-        Sell &ldquo;{book.title}&rdquo; as an Ebook too — buyers get this link the moment they
-        pay, on their order page and by email.
+        Sell &ldquo;{book.title}&rdquo; as an Ebook too — buyers get access the moment they pay,
+        on their order page and by email.
       </p>
 
       <div className="flex flex-col gap-3">
@@ -934,7 +970,36 @@ function EbookModal({
 
         <div>
           <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
-            Google Drive link
+            PDF file
+          </span>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full rounded-xl border border-dashed bg-white/5 px-3.5 py-3 text-left text-[0.8rem] text-white/70 transition-colors hover:bg-white/[0.07]"
+            style={{ borderColor: "rgba(255,255,255,0.18)" }}
+          >
+            {pendingFile
+              ? `Selected: ${pendingFile.name}`
+              : book.has_ebook_file
+                ? "Replace the uploaded PDF"
+                : "Upload the PDF file"}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/pdf"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
+          <p className="mt-1.5 text-[0.66rem] leading-relaxed text-white/35">
+            Uploading a real file (instead of, or alongside, a Drive link) is what lets buyers
+            read this book right inside the ValuePlus app, not just download it.
+          </p>
+        </div>
+
+        <div>
+          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+            Google Drive link {hasFile && <span className="normal-case text-white/30">(optional once a file is uploaded)</span>}
           </span>
           <input
             value={linkInput}
@@ -943,10 +1008,33 @@ function EbookModal({
             className="w-full rounded-xl border bg-white/5 px-3.5 py-2.5 text-[0.85rem] text-white outline-none placeholder:text-white/25"
             style={{ borderColor: "rgba(255,255,255,0.1)" }}
           />
-          <p className="mt-1.5 text-[0.66rem] leading-relaxed text-white/35">
-            Set sharing to &ldquo;Anyone with the link&rdquo; so buyers can actually open it.
-          </p>
         </div>
+
+        {hasFile && (
+          <div className="flex flex-col gap-2 rounded-xl border bg-white/5 p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+            <span className="text-[0.65rem] font-black uppercase tracking-wide text-white/45">
+              Buyer access
+            </span>
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="text-[0.8rem] text-white/80">Allow PDF download</span>
+              <input
+                type="checkbox"
+                checked={allowDownload}
+                onChange={(e) => setAllowDownload(e.target.checked)}
+                className="h-4 w-4 accent-[rgb(var(--vp-accent-rgb))]"
+              />
+            </label>
+            <label className="flex cursor-pointer items-center justify-between gap-3">
+              <span className="text-[0.8rem] text-white/80">Allow reading in the ValuePlus app</span>
+              <input
+                type="checkbox"
+                checked={allowAppReading}
+                onChange={(e) => setAllowAppReading(e.target.checked)}
+                className="h-4 w-4 accent-[rgb(var(--vp-accent-rgb))]"
+              />
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex gap-2">
@@ -954,7 +1042,7 @@ function EbookModal({
           variant="primary"
           size="md"
           className="flex-1"
-          loading={saving}
+          loading={saving || uploadingFile}
           disabled={removing}
           onClick={handleSave}
         >
