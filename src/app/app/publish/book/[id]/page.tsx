@@ -21,11 +21,13 @@ import {
   EyeOff,
   ExternalLink,
   FileStack,
+  Flag,
   FolderOpen,
   Layers,
   Pencil,
   Printer,
   Share2,
+  ShieldCheck,
   Tag,
   Trash2,
   TrendingUp,
@@ -60,6 +62,7 @@ import {
   requestBookFormat,
   unpublishBook,
   removeBookFormat,
+  reportLeakedCopy,
   suggestedPrice,
   suggestedPriceFromPrintCost,
   suggestedPriceFromPaperback,
@@ -893,16 +896,19 @@ function EbookModal({
       return;
     }
     if (!linkInput.trim() && !pendingFile && !book.has_ebook_file) {
-      notify("Add a Google Drive link or upload the PDF file.", "error");
+      notify("Upload the PDF file.", "error");
       return;
     }
     setSaving(true);
     try {
-      await updateBookEbook(book.id, value, linkInput.trim());
+      // File first: a price needs something to deliver, and the PDF is
+      // now the only way to add one (Drive links are legacy-only).
       if (pendingFile) {
         setUploadingFile(true);
         await uploadBookEbookFile(book.id, pendingFile);
+        setUploadingFile(false);
       }
+      await updateBookEbook(book.id, value, linkInput.trim());
       if (allowDownload !== book.allow_ebook_download || allowAppReading !== book.allow_ebook_app_reading) {
         await updateBookEbookPermissions(book.id, {
           allow_ebook_download: allowDownload,
@@ -991,24 +997,42 @@ function EbookModal({
             onChange={handleFileSelected}
             className="hidden"
           />
-          <p className="mt-1.5 text-[0.66rem] leading-relaxed text-white/35">
-            Uploading a real file (instead of, or alongside, a Drive link) is what lets buyers
-            read this book right inside the ValuePlus app, not just download it.
+          <p className="mt-1.5 flex items-start gap-1.5 text-[0.66rem] leading-relaxed text-white/35">
+            <ShieldCheck size={12} strokeWidth={2.2} className="mt-px shrink-0" />
+            Every buyer gets their own copy, watermarked with their name and email, readable in
+            the ValuePlus app.
           </p>
         </div>
 
-        <div>
-          <span className="mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45">
-            Google Drive link {hasFile && <span className="normal-case text-white/30">(optional once a file is uploaded)</span>}
-          </span>
-          <input
-            value={linkInput}
-            onChange={(e) => setLinkInput(e.target.value)}
-            placeholder="https://drive.google.com/..."
-            className="w-full rounded-xl border bg-white/5 px-3.5 py-2.5 text-[0.85rem] text-white outline-none placeholder:text-white/25"
-            style={{ borderColor: "rgba(255,255,255,0.1)" }}
-          />
-        </div>
+        {/* Drive links are retired as a delivery method — shown only so an
+            author with an old one can see and remove it. */}
+        {book.ebook_drive_link && (
+          <div
+            className="rounded-xl border p-3"
+            style={{ borderColor: "rgba(251,191,36,0.25)", background: "rgba(251,191,36,0.06)" }}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[0.65rem] font-black uppercase tracking-wide text-amber-200/70">
+                Legacy Drive link
+              </span>
+              <button
+                type="button"
+                onClick={() => setLinkInput(linkInput ? "" : book.ebook_drive_link)}
+                className="text-[0.7rem] font-bold text-white/55 underline underline-offset-2 transition-colors hover:text-white"
+              >
+                {linkInput ? "Remove" : "Undo"}
+              </button>
+            </div>
+            <p className={`mt-1 truncate text-[0.75rem] ${linkInput ? "text-white/60" : "text-white/25 line-through"}`}>
+              {book.ebook_drive_link}
+            </p>
+            <p className="mt-1.5 text-[0.66rem] leading-relaxed text-white/40">
+              {hasFile
+                ? "Buyers no longer receive this link — they get their own watermarked copy instead."
+                : "Every buyer gets this same unprotected file. Upload the PDF to give each buyer a watermarked, traceable copy."}
+            </p>
+          </div>
+        )}
 
         {hasFile && (
           <div className="flex flex-col gap-2 rounded-xl border bg-white/5 p-3" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
@@ -1016,7 +1040,14 @@ function EbookModal({
               Buyer access
             </span>
             <label className="flex cursor-pointer items-center justify-between gap-3">
-              <span className="text-[0.8rem] text-white/80">Allow PDF download</span>
+              <span className="flex flex-col">
+                <span className="text-[0.8rem] text-white/80">Allow PDF download</span>
+                <span className="text-[0.65rem] leading-snug text-white/35">
+                  {allowDownload
+                    ? "Buyers can get the watermarked PDF by email."
+                    : "Buyers read in the app, and can still request the PDF from you."}
+                </span>
+              </span>
               <input
                 type="checkbox"
                 checked={allowDownload}
@@ -1062,6 +1093,136 @@ function EbookModal({
         >
           {removing ? "Removing…" : "Remove Ebook edition"}
         </button>
+      )}
+    </Modal>
+  );
+}
+
+// Capture-only for now: the report is stored and flagged to staff, who
+// trace it via the copy ID printed in every buyer's PDF footer.
+function LeakReportModal({
+  open,
+  onClose,
+  book,
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+}) {
+  const [location, setLocation] = useState("");
+  const [copyId, setCopyId] = useState("");
+  const [details, setDetails] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocation("");
+    setCopyId("");
+    setDetails("");
+    setSent(false);
+  }, [open]);
+
+  const handleSubmit = async () => {
+    if (!location.trim()) {
+      notify("Tell us where you found the copy.", "error");
+      return;
+    }
+    setSending(true);
+    try {
+      await reportLeakedCopy(book.id, {
+        location: location.trim(),
+        copy_id: copyId.trim(),
+        details: details.trim(),
+      });
+      setSent(true);
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Could not send the report. Please try again.", "error");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const fieldClass =
+    "w-full rounded-xl border bg-white/5 px-3.5 py-2.5 text-[0.85rem] text-white outline-none placeholder:text-white/25";
+  const labelClass = "mb-1 block text-[0.65rem] font-black uppercase tracking-wide text-white/45";
+
+  return (
+    <Modal open={open} onClose={() => !sending && onClose()}>
+      {sent ? (
+        <div className="py-2 text-center">
+          <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-emerald-400/15 text-emerald-300">
+            <Check size={22} strokeWidth={2.5} />
+          </div>
+          <h3 className="text-[1.05rem] font-black text-white">Report received</h3>
+          <p className="mx-auto mt-1.5 max-w-xs text-[0.78rem] leading-relaxed text-white/50">
+            We&apos;ll trace the copy and follow up with you by email.
+          </p>
+          <Button variant="primary" size="md" className="mt-5 w-full" onClick={onClose}>
+            Done
+          </Button>
+        </div>
+      ) : (
+        <>
+          <h3 className="mb-1 text-[1.05rem] font-black text-white">Report a leaked copy</h3>
+          <p className="mb-4 text-[0.78rem] leading-relaxed text-white/45">
+            Found &ldquo;{book.title}&rdquo; shared somewhere it shouldn&apos;t be? Every copy
+            carries its buyer&apos;s details, so we can trace where it came from.
+          </p>
+          <div className="flex flex-col gap-3">
+            <div>
+              <span className={labelClass}>Where did you find it?</span>
+              <input
+                autoFocus
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Link, website, or group name"
+                maxLength={500}
+                className={fieldClass}
+                style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              />
+            </div>
+            <div>
+              <span className={labelClass}>
+                Copy ID <span className="normal-case text-white/30">(optional)</span>
+              </span>
+              <input
+                value={copyId}
+                onChange={(e) => setCopyId(e.target.value.toUpperCase())}
+                placeholder="e.g. 7KQ2M9XD"
+                maxLength={12}
+                className={`${fieldClass} font-mono tracking-wider`}
+                style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              />
+              <p className="mt-1 text-[0.65rem] text-white/35">
+                Printed at the bottom of every page of the leaked PDF.
+              </p>
+            </div>
+            <div>
+              <span className={labelClass}>
+                Details <span className="normal-case text-white/30">(optional)</span>
+              </span>
+              <textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="Anything that helps us look into it"
+                className={`${fieldClass} resize-none`}
+                style={{ borderColor: "rgba(255,255,255,0.1)" }}
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button variant="primary" size="md" className="flex-1" loading={sending} onClick={handleSubmit}>
+              Send report
+            </Button>
+            <Button variant="secondary" size="md" onClick={onClose} disabled={sending}>
+              Cancel
+            </Button>
+          </div>
+        </>
       )}
     </Modal>
   );
@@ -1602,6 +1763,7 @@ export default function BookLivePage() {
   const [earningsOpen, setEarningsOpen] = useState(false);
   const [affiliatesOpen, setAffiliatesOpen] = useState(false);
   const [ebookOpen, setEbookOpen] = useState(false);
+  const [leakReportOpen, setLeakReportOpen] = useState(false);
   // Which format card's pencil opened the actions menu (Edit Price/Copy
   // Link/Share/Remove from Public Page) — see BookActionsMenu.
   const [actionsMenuFor, setActionsMenuFor] = useState<
@@ -2021,6 +2183,57 @@ export default function BookLivePage() {
         />
       </div>
 
+      {/* Ebook protection — what an author gets from per-buyer
+          watermarking, and where to flag a copy that got out anyway. */}
+      {book.has_ebook && (
+        <div
+          className="vp-card-in mt-5 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center"
+          style={{
+            animationDelay: "120ms",
+            borderColor: "rgba(74,222,128,0.22)",
+            background: "linear-gradient(135deg, rgba(74,222,128,0.08), rgba(74,222,128,0.02))",
+          }}
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-400/15 text-emerald-300">
+              <ShieldCheck size={17} strokeWidth={2.2} />
+            </div>
+            {book.has_ebook_file ? (
+              <div className="min-w-0">
+                <p className="text-[0.85rem] font-black text-white">
+                  {book.watermarked_copies} {book.watermarked_copies === 1 ? "copy" : "copies"} delivered
+                </p>
+                <p className="mt-0.5 text-[0.72rem] leading-relaxed text-white/50">
+                  Each uniquely watermarked with its buyer&apos;s name and email, and traceable.
+                </p>
+              </div>
+            ) : (
+              <div className="min-w-0">
+                <p className="text-[0.85rem] font-black text-white">Your ebook isn&apos;t protected yet</p>
+                <p className="mt-0.5 text-[0.72rem] leading-relaxed text-white/50">
+                  Upload the PDF so every buyer gets their own watermarked, traceable copy.
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {!book.has_ebook_file && (
+              <Button variant="primary" size="sm" onClick={() => setEbookOpen(true)}>
+                Upload PDF
+              </Button>
+            )}
+            <button
+              type="button"
+              onClick={() => setLeakReportOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/12 px-3 py-1.5 text-[0.72rem] font-bold text-white/70 transition-colors hover:border-white/25 hover:text-white"
+            >
+              <Flag size={12} strokeWidth={2.3} />
+              Report a leaked copy
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div
         className="vp-card-in mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
@@ -2088,6 +2301,12 @@ export default function BookLivePage() {
         onEditPrice={handleEditPriceFromMenu}
         onUnpublish={handleUnpublish}
         onRemoveFormat={async (format) => { await removeBookFormat(book.id, format); await refetch(); setActionsMenuFor(null); notify(`${format} removed. Other editions remain live.`, "success"); }}
+      />
+
+      <LeakReportModal
+        open={leakReportOpen}
+        onClose={() => setLeakReportOpen(false)}
+        book={book}
       />
 
       <EarningsModal

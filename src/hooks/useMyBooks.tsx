@@ -100,9 +100,9 @@ export interface MyBook {
   hardback_request_status: FormatRequestStatus;
   hardback_print_cost: string | null;
   hardback_transaction_id: string | null;
-  // The author's own Google Drive link to the Ebook file — only ever
-  // handed to a buyer after purchase; here (the author's own book list)
-  // it's fine to see it, since they're the one who set it.
+  // Legacy Google Drive delivery link — retired: new links can't be
+  // added, and buyers only receive one while no PDF is uploaded yet.
+  // Kept so authors with an old link can see/clear it.
   ebook_drive_link: string;
   // The first-party-hosted PDF (see Book.ebook_file's docstring
   // server-side) — an ImageKit URL when set, blank otherwise. Kept
@@ -118,6 +118,9 @@ export interface MyBook {
   has_hardback: boolean;
   has_ebook: boolean;
   has_ebook_file: boolean;
+  // Live purchases of this ebook — each one's copy is watermarked with
+  // its own copy ID (see apps.storefront.pdf_delivery server-side).
+  watermarked_copies: number;
   pages: number | null;
   sales: number;
   earned: string;
@@ -373,6 +376,18 @@ export function updateBookEbookPermissions(
   return apiFetch<MyBook>(`/books/mine/${bookId}/ebook/`, {
     method: "PATCH",
     body: JSON.stringify(permissions),
+  });
+}
+
+// An author flagging a leaked copy of their own book — capture-only,
+// staff follow up (see apps.books.views.BookLeakReportView).
+export function reportLeakedCopy(
+  bookId: string,
+  report: { location: string; copy_id?: string; details?: string },
+) {
+  return apiFetch<{ id: number; message: string }>(`/books/mine/${bookId}/leak-reports/`, {
+    method: "POST",
+    body: JSON.stringify(report),
   });
 }
 

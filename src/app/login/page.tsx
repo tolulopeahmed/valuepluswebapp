@@ -106,6 +106,15 @@ function FieldIcon({ icon }: { icon: ReactNode }) {
   );
 }
 
+// `?next=` sends someone back where they came from after signing in
+// (e.g. an order page's "Sign in to access your ebook"). Same-site paths
+// only — a full URL or protocol-relative "//host" would make this an
+// open redirect.
+function safeNextPath(value: string | null): string | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return null;
+  return value;
+}
+
 function LoginPageInner() {
   const searchParams = useSearchParams();
   // Lets a CTA (e.g. "Create free account" on the landing page) send
@@ -257,7 +266,7 @@ function LoginPageInner() {
       }
       clearStoredLearnerIntent();
     }
-    router.push("/app");
+    router.push(safeNextPath(searchParams.get("next")) ?? "/app");
   }
 
   async function handleSubmit(e: FormEvent) {

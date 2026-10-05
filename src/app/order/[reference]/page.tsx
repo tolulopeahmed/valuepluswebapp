@@ -6,26 +6,40 @@
 // Paystack directly if it hasn't yet — so this polls briefly rather
 // than trusting a single fetch.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, CheckCircle2, Clock, Copy, Download, BookOpen, XCircle } from "lucide-react";
+import { Check, CheckCircle2, Clock, Copy, Download, BookOpen, XCircle, LogIn, MailCheck, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
 import Button from "@/components/buttons/buttons";
-import { apiFetch, API_BASE_URL } from "@/lib/api";
+import { apiFetch, ApiError, getTokens } from "@/lib/api";
 import { clearCart } from "@/lib/cart";
 import { notify } from "@/lib/snackbar";
 import { openValuePlusApp } from "@/lib/openApp";
 
-interface EbookAccess {
-  token: string;
-  can_download: boolean;
-  can_read_in_app: boolean;
-}
+// Mirrors apps.storefront.services.ebook_item_access server-side. Access
+// links only ever come back for the signed-in account that owns the
+// purchase — the order reference in this page's URL isn't enough on its
+// own, so every other state explains what the visitor needs to do.
+type EbookAccess =
+  | {
+      state: "ready";
+      book_id: string;
+      token: string;
+      can_download: boolean;
+      can_read_in_app: boolean;
+      // "offer": author allows PDFs, so "Get PDF" is shown upfront.
+      // "request": author turned downloads off — "Request PDF from
+      // author" still self-serves the same watermarked copy by email.
+      pdf_access: "offer" | "request" | null;
+      copy_id: string;
+    }
+  | { state: "legacy_link"; drive_link: string }
+  | { state: "login_required" | "claim_required" | "other_account" | "preparing" | "revoked" };
 
 interface OrderItem {
   book_title: string;
@@ -33,14 +47,6 @@ interface OrderItem {
   format: string;
   line_total: string;
   book_cover: string | null;
-  // Only ever populated once the order is actually paid, and only for
-  // an Ebook line — see OrderItemSerializer.get_ebook_drive_link
-  // server-side. Null before that, or if the book has no link set.
-  ebook_drive_link: string | null;
-  // The new protected path (Book.ebook_file) — present alongside
-  // ebook_drive_link once the book has a real file uploaded. A fresh
-  // token every time this page (re)polls status, since it expires after
-  // 10 minutes — see OrderItemSerializer.get_ebook_access server-side.
   ebook_access: EbookAccess | null;
 }
 
@@ -58,6 +64,15 @@ function naira(value: number) {
   return `₦${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Sent with the visitor's session when there is one — that's what
+// unlocks their ebook links (see EbookAccess above). A signed-out
+// visitor still sees the order itself.
+function fetchStatus(reference: string) {
+  return apiFetch<OrderStatus>(`/storefront/orders/${reference}/status/`, {
+    skipAuth: !getTokens().access,
+  });
+}
+
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLLS = 8;
 
@@ -72,9 +87,7 @@ export default function OrderStatusPage() {
 
     const check = async () => {
       try {
-        const data = await apiFetch<OrderStatus>(`/storefront/orders/${reference}/status/`, {
-          skipAuth: true,
-        });
+        const data = await fetchStatus(reference);
         if (cancelled) return;
         setOrder(data);
         if (data.status === "paid") clearCart();
@@ -97,7 +110,7 @@ export default function OrderStatusPage() {
 
   useEffect(() => {
     if (pollCount === 0 || pollCount > MAX_POLLS || order?.status !== "pending") return;
-    apiFetch<OrderStatus>(`/storefront/orders/${reference}/status/`, { skipAuth: true })
+    fetchStatus(reference)
       .then((data) => {
         setOrder(data);
         if (data.status === "paid") clearCart();
@@ -153,71 +166,11 @@ export default function OrderStatusPage() {
                 ))}
               </div>
 
-              {order.items.some((item) => item.ebook_access || item.ebook_drive_link) && (
-                <div className="mt-4 flex flex-col gap-3 border-t border-black/5 pt-4">
-                  {order.items.map((item, i) => {
-                    if (item.ebook_access) {
-                      const { token, can_download, can_read_in_app } = item.ebook_access;
-                      return (
-                        <div key={i} className="flex flex-col gap-2">
-                          {order.items.length > 1 && (
-                            <p className="text-xs font-bold text-black/50">&ldquo;{item.book_title}&rdquo;</p>
-                          )}
-                          {can_download && (
-                            <Button
-                              href={`${API_BASE_URL}/storefront/library/read/${token}/?mode=download`}
-                              variant="primary"
-                              size="md"
-                              className="w-full"
-                            >
-                              <span className="inline-flex items-center gap-2">
-                                <Download size={16} strokeWidth={2.25} />
-                                Download PDF
-                              </span>
-                            </Button>
-                          )}
-                          {can_read_in_app && (
-                            <Button
-                              variant="secondary"
-                              size="md"
-                              // .btn-secondary is white-text-on-dark-glass,
-                              // tuned for the app shell's dark background —
-                              // invisible (blank white pill) on this
-                              // page's white card, so it's overridden here
-                              // to match the card's own light/dark-ink look
-                              // instead (same border/ink-text pattern the
-                              // rest of this page already uses).
-                              className="w-full border! border-black/15! bg-white! text-[#14181f]! shadow-none!"
-                              onClick={openValuePlusApp}
-                            >
-                              <span className="inline-flex items-center gap-2">
-                                <BookOpen size={16} strokeWidth={2.25} />
-                                Read in ValuePlus App
-                              </span>
-                            </Button>
-                          )}
-                        </div>
-                      );
-                    }
-                    if (item.ebook_drive_link) {
-                      return (
-                        <Button key={i} href={item.ebook_drive_link} variant="primary" size="md" className="w-full">
-                          <span className="inline-flex items-center gap-2">
-                            <Download size={16} strokeWidth={2.25} />
-                            Access &ldquo;{item.book_title}&rdquo;
-                          </span>
-                        </Button>
-                      );
-                    }
-                    return null;
-                  })}
-                  {order.items.some((item) => item.ebook_access?.can_download && item.ebook_access?.can_read_in_app) && (
-                    <p className="text-center text-[0.7rem] text-black/35">
-                      Your purchase includes both options at no extra cost.
-                    </p>
-                  )}
-                </div>
-              )}
+              <EbookAccessSection
+                order={order}
+                reference={reference}
+                onRefresh={async () => setOrder(await fetchStatus(reference))}
+              />
             </div>
 
             {order.distributor_links.length > 0 && (
@@ -264,7 +217,7 @@ export default function OrderStatusPage() {
             <div className="rounded-2xl border border-black/10 bg-white p-5 text-center">
               <p className="text-xs leading-relaxed text-black/40">
                 A receipt has been emailed to you
-                {order.items.some((item) => item.ebook_access || item.ebook_drive_link)
+                {order.items.some((item) => item.ebook_access)
                   ? " with your ebook access link"
                   : ""}
                 . Physical copies ship to the address you provided.
@@ -290,5 +243,219 @@ export default function OrderStatusPage() {
 
       <Footer />
     </main>
+  );
+}
+
+// .btn-secondary is white-text-on-dark-glass, tuned for the app shell's
+// dark background — invisible (blank white pill) on this page's white
+// card, so it's overridden to the card's own light/dark-ink look.
+const LIGHT_SECONDARY = "w-full border! border-black/15! bg-white! text-[#14181f]! shadow-none!";
+
+function StatePanel({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-black/10 bg-black/[0.03] p-4 text-center">
+      <div className="mx-auto mb-2 grid h-9 w-9 place-items-center rounded-full bg-black/[0.06] text-black/60">
+        {icon}
+      </div>
+      <p className="text-sm font-bold">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+type PdfRequest = { status: "idle" | "sending" | "sent" | "limited"; message?: string };
+
+function EbookAccessSection({
+  order,
+  reference,
+  onRefresh,
+}: {
+  order: OrderStatus;
+  reference: string;
+  onRefresh: () => Promise<void>;
+}) {
+  const [pdfRequests, setPdfRequests] = useState<Record<string, PdfRequest>>({});
+  const [claiming, setClaiming] = useState(false);
+
+  const ebookItems = order.items.filter((item) => item.ebook_access);
+  if (ebookItems.length === 0) return null;
+  const states = new Set(ebookItems.map((item) => item.ebook_access!.state));
+  const next = encodeURIComponent(`/order/${reference}`);
+
+  const requestPdf = async (bookId: string) => {
+    setPdfRequests((prev) => ({ ...prev, [bookId]: { status: "sending" } }));
+    try {
+      const result = await apiFetch<{ sent_to: string }>(`/storefront/library/books/${bookId}/pdf/`, {
+        method: "POST",
+      });
+      setPdfRequests((prev) => ({ ...prev, [bookId]: { status: "sent", message: result.sent_to } }));
+    } catch (err) {
+      const limited = err instanceof ApiError && err.status === 429;
+      setPdfRequests((prev) => ({
+        ...prev,
+        [bookId]: limited ? { status: "limited", message: err.message } : { status: "idle" },
+      }));
+    }
+  };
+
+  const claimOrder = async () => {
+    setClaiming(true);
+    try {
+      const { claimed } = await apiFetch<{ claimed: number }>("/storefront/library/claim/", {
+        method: "POST",
+        body: JSON.stringify({ order_reference: reference }),
+      });
+      if (claimed === 0) notify("This purchase is already linked to another account.", "error");
+      await onRefresh();
+    } catch {
+      // apiFetch already surfaced the error.
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  // Signed out: one panel for the whole order, not one per book.
+  if (states.has("login_required")) {
+    return (
+      <div className="mt-4 border-t border-black/5 pt-4">
+        <StatePanel icon={<LogIn size={17} strokeWidth={2.25} />} title="Sign in to access your ebook">
+          <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-black/50">
+            Your book opens only for the account that bought it. Sign in or create a free
+            account with the email you used at checkout.
+          </p>
+          <div className="mt-4 flex flex-col gap-2">
+            <Button href={`/login?next=${next}`} variant="primary" size="md" className="w-full">
+              Sign in
+            </Button>
+            <Button href={`/login?mode=signup&next=${next}`} variant="secondary" size="md" className={LIGHT_SECONDARY}>
+              Create free account
+            </Button>
+          </div>
+        </StatePanel>
+        <p className="mt-2 text-center text-[0.7rem] text-black/35">
+          Your receipt email also has your access links.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-4 border-t border-black/5 pt-4">
+      {states.has("claim_required") && (
+        <StatePanel icon={<LogIn size={17} strokeWidth={2.25} />} title="Bought with a different email?">
+          <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-black/50">
+            This order was placed with another email address. Add it to the account you&apos;re
+            signed in with to read it.
+          </p>
+          <Button variant="primary" size="md" className="mt-4 w-full" loading={claiming} onClick={claimOrder}>
+            Add to my account
+          </Button>
+        </StatePanel>
+      )}
+      {states.has("other_account") && (
+        <StatePanel icon={<LogIn size={17} strokeWidth={2.25} />} title="Signed in to a different account">
+          <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-black/50">
+            This purchase belongs to another ValuePlus account. Sign in with the account you
+            bought it with.
+          </p>
+        </StatePanel>
+      )}
+
+      {ebookItems.map((item, i) => {
+        const access = item.ebook_access!;
+        const heading =
+          ebookItems.length > 1 ? (
+            <p className="text-xs font-bold text-black/50">&ldquo;{item.book_title}&rdquo;</p>
+          ) : null;
+
+        if (access.state === "legacy_link") {
+          return (
+            <div key={i} className="flex flex-col gap-2">
+              {heading}
+              <Button href={access.drive_link} variant="primary" size="md" className="w-full">
+                <span className="inline-flex items-center gap-2">
+                  <Download size={16} strokeWidth={2.25} />
+                  Access &ldquo;{item.book_title}&rdquo;
+                </span>
+              </Button>
+            </div>
+          );
+        }
+        if (access.state === "preparing" || access.state === "revoked") {
+          return (
+            <div key={i} className="flex flex-col gap-2">
+              {heading}
+              <p className="rounded-xl bg-black/[0.03] px-3 py-2.5 text-center text-xs text-black/50">
+                {access.state === "preparing"
+                  ? "Your ebook is being prepared — we'll email you as soon as it's ready."
+                  : "Access to this book ended because the order was refunded."}
+              </p>
+            </div>
+          );
+        }
+        if (access.state !== "ready") return null;
+
+        const pdf = pdfRequests[access.book_id] ?? { status: "idle" };
+        const pdfButtonLabel = pdf.status === "sent" ? "PDF sent" : access.pdf_access === "offer" ? "Get PDF" : "Request PDF from author";
+
+        return (
+          <div key={i} className="flex flex-col gap-2">
+            {heading}
+            {access.can_read_in_app && (
+              <Button variant="primary" size="md" className="w-full" onClick={openValuePlusApp}>
+                <span className="inline-flex items-center gap-2">
+                  <BookOpen size={16} strokeWidth={2.25} />
+                  Read in ValuePlus App
+                </span>
+              </Button>
+            )}
+            {access.pdf_access === "offer" ? (
+              <Button
+                variant={access.can_read_in_app ? "secondary" : "primary"}
+                size="md"
+                className={access.can_read_in_app ? LIGHT_SECONDARY : "w-full"}
+                loading={pdf.status === "sending"}
+                disabled={pdf.status === "sent" || pdf.status === "limited"}
+                onClick={() => requestPdf(access.book_id)}
+              >
+                <span className="inline-flex items-center gap-2">
+                  {pdf.status === "sent" ? <MailCheck size={16} strokeWidth={2.25} /> : <Download size={16} strokeWidth={2.25} />}
+                  {pdfButtonLabel}
+                </span>
+              </Button>
+            ) : access.pdf_access === "request" && pdf.status !== "sent" ? (
+              <button
+                type="button"
+                onClick={() => requestPdf(access.book_id)}
+                disabled={pdf.status === "sending" || pdf.status === "limited"}
+                className="mx-auto text-xs font-bold text-black/55 underline underline-offset-4 transition-colors hover:text-black disabled:opacity-50"
+              >
+                {pdf.status === "sending" ? "Preparing your copy…" : "Request PDF from author"}
+              </button>
+            ) : null}
+            {pdf.status === "sent" && (
+              <p className="text-center text-xs text-[#16a34a]">
+                Sent to {pdf.message} — check your inbox.
+              </p>
+            )}
+            {pdf.status === "limited" && (
+              <p className="text-center text-xs text-black/50">{pdf.message}</p>
+            )}
+            <p className="inline-flex items-center justify-center gap-1.5 text-center text-[0.68rem] text-black/35">
+              <ShieldCheck size={12} strokeWidth={2.25} />
+              Personalised to you · Copy {access.copy_id}
+            </p>
+          </div>
+        );
+      })}
+    </div>
   );
 }

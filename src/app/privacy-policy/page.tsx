@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "How ValuePlus Media Limited collects, uses, and protects your personal information across the ValuePlus website and mobile app.",
 };
 
-const LAST_UPDATED = "August 13, 2026";
+const LAST_UPDATED = "September 30, 2026";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -131,6 +131,20 @@ export default function PrivacyPolicyPage() {
         </p>
         <p>
           <span className="font-bold text-white">
+            Personalised ebook copies.
+          </span>{" "}
+          Every ebook you buy is personalised to you to discourage
+          unauthorised sharing. Each copy — whether read in the ValuePlus
+          app or downloaded as a PDF — shows your full name, your full
+          email address, and a unique copy ID in small print at the bottom
+          of every page, and also stores your email address and order
+          reference inside the file&apos;s metadata. When you sign in to
+          view your order page, it shows the email address your PDF copy
+          was sent to. Anyone you share a copy with will be able to see
+          these details.
+        </p>
+        <p>
+          <span className="font-bold text-white">
             Reviews and public content.
           </span>{" "}
           If you leave a review on a book, that review, your name, and (in
@@ -190,6 +204,10 @@ export default function PrivacyPolicyPage() {
             your account, orders, or this Policy;
           </li>
           <li>
+            trace unauthorised copies of an ebook back to the purchase they
+            came from, including when an author reports a leaked copy;
+          </li>
+          <li>
             detect, investigate, and prevent fraud, abuse, or violations
             of our{" "}
             <Link
@@ -229,6 +247,7 @@ export default function PrivacyPolicyPage() {
             — receive the shipping address and order details needed to
             print and deliver a physical book to you.
           </li>
+
           <li>
             <span className="font-bold text-white">Legal and safety</span>{" "}
             — we may disclose information if required by law, court order,
