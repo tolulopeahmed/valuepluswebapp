@@ -27,7 +27,11 @@ interface Edition {
   format: string;
   label: string;
   price: number;
+  // Optional "was" price, shown struck through only when higher.
+  oldPrice: number | null;
 }
+
+const higher = (old: number | null | undefined, price: number) => (old != null && old > price ? old : null);
 
 export default function BuyBox({
   bookId,
@@ -35,6 +39,9 @@ export default function BuyBox({
   paperbackPrice,
   hardbackPrice,
   ebookPrice,
+  paperbackOldPrice = null,
+  hardbackOldPrice = null,
+  ebookOldPrice = null,
   hasPaperback,
   hasHardback,
   hasEbook,
@@ -44,6 +51,9 @@ export default function BuyBox({
   paperbackPrice: number | null;
   hardbackPrice: number | null;
   ebookPrice: number | null;
+  paperbackOldPrice?: number | null;
+  hardbackOldPrice?: number | null;
+  ebookOldPrice?: number | null;
   hasPaperback: boolean;
   hasHardback: boolean;
   hasEbook: boolean;
@@ -52,12 +62,12 @@ export default function BuyBox({
   // Paperback-first convention used elsewhere) so the tab row reads
   // Ebook / Paperback / Hardback left to right, per product decision.
   const editions: Edition[] = [
-    ...(hasEbook && ebookPrice !== null ? [{ format: "Ebook", label: "Ebook", price: ebookPrice }] : []),
+    ...(hasEbook && ebookPrice !== null ? [{ format: "Ebook", label: "Ebook", price: ebookPrice, oldPrice: higher(ebookOldPrice, ebookPrice) }] : []),
     ...(hasPaperback && paperbackPrice !== null
-      ? [{ format: "Paperback", label: "Paperback", price: paperbackPrice }]
+      ? [{ format: "Paperback", label: "Paperback", price: paperbackPrice, oldPrice: higher(paperbackOldPrice, paperbackPrice) }]
       : []),
     ...(hasHardback && hardbackPrice !== null
-      ? [{ format: "Hardback", label: "Hardback", price: hardbackPrice }]
+      ? [{ format: "Hardback", label: "Hardback", price: hardbackPrice, oldPrice: higher(hardbackOldPrice, hardbackPrice) }]
       : []),
   ];
 
@@ -118,7 +128,17 @@ export default function BuyBox({
       )}
 
       {selected && (
-        <p className="text-3xl font-black text-[#14181f]">₦{selected.price.toLocaleString()}</p>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p className="text-3xl font-black text-[#14181f]">₦{selected.price.toLocaleString()}</p>
+          {selected.oldPrice !== null && (
+            <>
+              <p className="text-lg font-semibold text-[#14181f]/45 line-through">₦{selected.oldPrice.toLocaleString()}</p>
+              <span className="rounded-full bg-[#16a34a]/12 px-2.5 py-1 text-xs font-black text-[#15803d]">
+                {Math.round((1 - selected.price / selected.oldPrice) * 100)}% off
+              </span>
+            </>
+          )}
+        </div>
       )}
 
       {selected && (

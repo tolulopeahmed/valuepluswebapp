@@ -27,6 +27,9 @@ interface PublicBook {
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
+  paperback_old_price?: string | null;
+  hardback_old_price?: string | null;
+  ebook_old_price?: string | null;
   has_paperback: boolean;
   has_hardback: boolean;
   has_ebook: boolean;
@@ -60,6 +63,7 @@ export default async function BookPage({
   const paperbackPrice = book.paperback_price !== null ? Number(book.paperback_price) : null;
   const hardbackPrice = book.hardback_price !== null ? Number(book.hardback_price) : null;
   const ebookPrice = book.ebook_price !== null ? Number(book.ebook_price) : null;
+  const oldPrice = (value?: string | null) => (value != null ? Number(value) : null);
 
   return (
     <main className="vp-product-page-bg min-h-screen overflow-x-hidden text-white">
@@ -124,6 +128,9 @@ export default async function BookPage({
                 paperbackPrice={paperbackPrice}
                 hardbackPrice={hardbackPrice}
                 ebookPrice={ebookPrice}
+                paperbackOldPrice={oldPrice(book.paperback_old_price)}
+                hardbackOldPrice={oldPrice(book.hardback_old_price)}
+                ebookOldPrice={oldPrice(book.ebook_old_price)}
                 hasPaperback={book.has_paperback}
                 hasHardback={book.has_hardback}
                 hasEbook={book.has_ebook}

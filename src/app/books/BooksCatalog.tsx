@@ -26,17 +26,29 @@ export interface PublicBookSummary {
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
+  paperback_old_price?: string | null;
+  hardback_old_price?: string | null;
+  ebook_old_price?: string | null;
   has_paperback: boolean;
   has_hardback: boolean;
   has_ebook: boolean;
   author_name: string;
 }
 
-// The catalog card only has room for one headline price — Paperback
-// wins as the most common edition, falling back to Hardback then
-// Ebook for a title that skips straight to one of those.
-function displayPrice(book: PublicBookSummary): string | null {
-  return book.paperback_price ?? book.hardback_price ?? book.ebook_price;
+// The catalog card only has room for one headline price — Ebook leads
+// (the default edition when buying, matching BuyBox), then Paperback,
+// then Hardback for titles without an ebook. Its optional "was" price
+// (oldPrice) is shown struck through when higher.
+function displayPrice(book: PublicBookSummary): { price: number; oldPrice: number | null } | null {
+  const pick =
+    book.ebook_price !== null ? [book.ebook_price, book.ebook_old_price]
+    : book.paperback_price !== null ? [book.paperback_price, book.paperback_old_price]
+    : book.hardback_price !== null ? [book.hardback_price, book.hardback_old_price]
+    : null;
+  if (!pick) return null;
+  const price = Number(pick[0]);
+  const old = pick[1] != null ? Number(pick[1]) : null;
+  return { price, oldPrice: old !== null && old > price ? old : null };
 }
 
 export interface PaginatedBooks {
@@ -81,14 +93,18 @@ function BookCard({ book }: { book: PublicBookSummary }) {
       <div className="min-w-0">
         <p className="truncate text-[0.82rem] font-bold text-white">{book.title}</p>
         <p className="truncate text-[0.66rem] text-white/40">By {book.author_name}</p>
-        {displayPrice(book) !== null && (
-          <p
-            className="mt-0.5 text-[0.8rem] font-black"
-            style={{ color: "rgb(var(--vp-accent-rgb))" }}
-          >
-            {naira(Number(displayPrice(book)))}
-          </p>
-        )}
+        {(() => {
+          const shown = displayPrice(book);
+          if (!shown) return null;
+          return (
+            <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[0.8rem] font-black" style={{ color: "rgb(var(--vp-accent-rgb))" }}>
+              {naira(shown.price)}
+              {shown.oldPrice !== null && (
+                <span className="text-[0.68rem] font-semibold text-white/40 line-through">{naira(shown.oldPrice)}</span>
+              )}
+            </p>
+          );
+        })()}
       </div>
     </Link>
   );
