@@ -61,10 +61,24 @@ function naira(value: number) {
   return `₦${value.toLocaleString()}`;
 }
 
-function BookCard({ book }: { book: PublicBookSummary }) {
+// Same cycling border colours as the portfolio shelf (BookLibrary.tsx /
+// .vp-portfolio-book-card-*) so each title stands apart in the grid.
+const BORDER_COLORS = [
+  "rgba(184,84,66,0.65)",
+  "rgba(133,190,170,0.65)",
+  "rgba(176,76,135,0.65)",
+  "rgba(235,204,146,0.6)",
+  "rgba(84,126,191,0.65)",
+  "rgba(227,179,109,0.6)",
+];
+
+function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
   return (
     <Link href={`/book/${book.slug}`} className="group flex min-w-0 flex-col gap-2">
-      <div className="relative aspect-[3/4.4] w-full overflow-hidden rounded-xl border border-white/10 bg-white/5">
+      <div
+        className="relative aspect-[3/4.4] w-full overflow-hidden rounded-xl border-2 bg-white/5 transition-transform duration-200 group-hover:-translate-y-0.5"
+        style={{ borderColor: BORDER_COLORS[index % BORDER_COLORS.length] }}
+      >
         {book.cover ? (
           <Image
             src={book.cover}
@@ -212,8 +226,8 @@ export default function BooksCatalog({ initial }: { initial: PaginatedBooks | nu
           ) : (
             <>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {books.map((book) => (
-                  <BookCard key={book.id} book={book} />
+                {books.map((book, index) => (
+                  <BookCard key={book.id} book={book} index={index} />
                 ))}
               </div>
 
