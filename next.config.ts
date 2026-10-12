@@ -1,6 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The book catalog moved from /books to /shelf ("ValuePlus Shelf" —
+  // see app/shelf/ShelfCatalog.tsx). `permanent: true` makes Next.js
+  // serve this as a 308 (not literally 301, but SEO engines treat the
+  // two the same) so any link or bookmark to the old URL still lands
+  // on the catalog instead of a 404.
+  async redirects() {
+    return [
+      {
+        source: "/books",
+        destination: "/shelf",
+        permanent: true,
+      },
+    ];
+  },
   allowedDevOrigins: [
     "localhost",
     "localhost:3000",

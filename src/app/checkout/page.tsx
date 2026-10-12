@@ -167,10 +167,10 @@ function CheckoutForm() {
       return;
     }
 
-    setLoadingSteps([{ label: "Preparing your secure payment...", done: false }]);
+    setLoadingSteps([{ label: total === 0 ? "Completing your free order..." : "Preparing your secure payment...", done: false }]);
     setSubmitting(true);
     try {
-      const result = await apiFetch<{ authorization_url: string; reference: string }>(
+      const result = await apiFetch<{ authorization_url: string; reference: string; payment_required?: boolean }>(
         "/storefront/checkout/initiate/",
         {
           method: "POST",
@@ -187,8 +187,8 @@ function CheckoutForm() {
         },
       );
       setLoadingSteps([
-        { label: "Preparing your secure payment...", done: true },
-        { label: "Opening Paystack...", done: false },
+        { label: result.payment_required === false ? "Free order completed" : "Preparing your secure payment...", done: true },
+        { label: result.payment_required === false ? "Opening your order..." : "Opening Paystack...", done: false },
       ]);
       await new Promise((resolve) => setTimeout(resolve, 250));
       window.location.href = result.authorization_url;
@@ -335,7 +335,7 @@ function CheckoutForm() {
                 disabled={(hasPhysicalItem && !deliveryCostAck) || (becomeDistributor && !user)}
                 className="mt-5 w-full"
               >
-                {submitting ? "Redirecting to payment…" : `Pay ${naira(total)}`}
+                {submitting ? "Completing checkout…" : total === 0 ? "Get free copy" : `Pay ${naira(total)}`}
               </Button>
             </>
           )}

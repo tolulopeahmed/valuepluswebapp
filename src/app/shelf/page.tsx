@@ -2,9 +2,12 @@
 // on the server and caches it (ISR), so visitors get books in the HTML
 // straight from the CDN instead of waiting for the browser to call an API
 // that may be cold-starting. Search/load-more stay client-side
-// (BooksCatalog). If the API is unreachable, `initial` is null and the
+// (ShelfCatalog). If the API is unreachable, `initial` is null and the
 // client falls back to fetching as before.
-import BooksCatalog, { type PaginatedBooks } from "./BooksCatalog";
+//
+// Formerly /books — see next.config.ts for the permanent redirect from
+// the old URL.
+import ShelfCatalog, { type PaginatedBooks } from "./ShelfCatalog";
 
 // Refresh the cached first page in the background at most every 5 min -
 // new titles appear within minutes without any visitor waiting on the API.
@@ -24,6 +27,6 @@ async function getFirstPage(): Promise<PaginatedBooks | null> {
   }
 }
 
-export default async function BooksPage() {
-  return <BooksCatalog initial={await getFirstPage()} />;
+export default async function ShelfPage() {
+  return <ShelfCatalog initial={await getFirstPage()} />;
 }

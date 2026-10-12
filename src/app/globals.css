@@ -1956,6 +1956,20 @@ header {
   display: none;
 }
 
+/* The /shelf catalog's per-category rows (ShelfRow in
+   app/shelf/ShelfCatalog.tsx) — a plain swipeable row, not the
+   homepage portfolio's auto-scrolling marquee above, so it gets its
+   own class even though the scrollbar-hiding rule is identical. */
+.vp-shelf-page-row {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.vp-shelf-page-row::-webkit-scrollbar {
+  display: none;
+}
+
 .vp-shelf-marquee-track {
   display: flex;
   width: max-content;
