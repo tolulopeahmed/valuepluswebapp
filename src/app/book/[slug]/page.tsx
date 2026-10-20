@@ -24,6 +24,9 @@ interface PublicBook {
   subtitle: string;
   category: string;
   cover: string | null;
+  pages?: number | null;
+  // "A5", "A4", "6 x 9 in" ... from the ebook PDF; "" if unknown.
+  trim_size?: string;
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
@@ -106,6 +109,12 @@ export default async function BookPage({
             <p className="mt-2 text-sm text-white/50">
               By {book.author_name} · Published via ValuePlus
             </p>
+
+            {(!!book.pages || !!book.trim_size) && (
+              <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-white/40">
+                {[book.pages ? `${book.pages} pages` : "", book.trim_size].filter(Boolean).join(" · ")}
+              </p>
+            )}
 
             {(book.has_paperback || book.has_hardback || book.has_ebook) && (
               <div className="mt-3 flex flex-wrap gap-1.5">

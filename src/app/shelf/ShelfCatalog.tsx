@@ -17,6 +17,8 @@ export interface PublicBookSummary {
   category: string;
   slug: string;
   cover: string | null;
+  // "A5", "A4", "6 x 9 in" ... from the ebook PDF; "" if unknown.
+  trim_size?: string;
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
@@ -64,7 +66,7 @@ function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
       <span className={styles.openBook} aria-hidden="true"><ArrowUpRight size={16} /></span>
     </div>
     <div className={styles.bookInfo}>
-      <p className={styles.category}>{book.category || "ValuePlus edition"}</p>
+      <p className={styles.category}>{[book.category || "ValuePlus edition", book.trim_size].filter(Boolean).join(" · ")}</p>
       <h3>{book.title}</h3>
       <p className={styles.author}>{book.author_name}</p>
       <div className={styles.price}>{shown ? <><span>{naira(shown.price)}</span>{shown.oldPrice !== null && <del>{naira(shown.oldPrice)}</del>}</> : <span className={styles.author}>View editions</span>}</div>

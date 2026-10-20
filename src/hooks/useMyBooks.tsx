@@ -122,6 +122,8 @@ export interface MyBook {
   // its own copy ID (see apps.storefront.pdf_delivery server-side).
   watermarked_copies: number;
   pages: number | null;
+  // Trim size read from the ebook PDF: "A5", "A4", "6 x 9 in" - "" if unknown.
+  trim_size?: string;
   sales: number;
   earned: string;
   affiliate_enabled: boolean;

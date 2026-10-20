@@ -249,7 +249,7 @@ function BookListRow({
             {book.title}
           </p>
           <p className="truncate text-[0.62rem] text-white/40">
-            {book.category}
+            {[book.category, book.trim_size].filter(Boolean).join(" · ")}
           </p>
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5">

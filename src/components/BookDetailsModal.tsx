@@ -323,9 +323,9 @@ export default function BookDetailsModal({
                 <FormatBadge format="Ebook" className="!px-2 !py-0.5 !text-[0.54rem]" />
               )}
 
-              {book.pages !== null && (
+              {(book.pages !== null || !!book.trim_size) && (
                 <span className="text-[0.54rem] font-black uppercase tracking-[0.1em] text-white/35">
-                  {book.pages} pages
+                  {[book.pages !== null ? `${book.pages} pages` : "", book.trim_size].filter(Boolean).join(" · ")}
                 </span>
               )}
             </div>

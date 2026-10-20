@@ -2031,10 +2031,10 @@ export default function BookLivePage() {
               {book.has_paperback && <FormatBadge format="Paperback" />}
               {book.has_hardback && <FormatBadge format="Hardback" />}
               {book.has_ebook && <FormatBadge format="Ebook" />}
-              {book.pages !== null && (
+              {(book.pages !== null || !!book.trim_size) && (
                 <span className="inline-flex items-center gap-1 text-[0.62rem] font-bold text-white/40">
                   <Layers size={11} />
-                  {book.pages} pages
+                  {[book.pages !== null ? `${book.pages} pages` : "", book.trim_size].filter(Boolean).join(" · ")}
                 </span>
               )}
               {book.date_published && (
