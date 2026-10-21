@@ -1,0 +1,389 @@
+/* Featured slider - full-bleed hero, one new release per slide. */
+.featured {
+  position: relative;
+  min-height: min(82vh, 720px);
+  overflow: hidden;
+  isolation: isolate;
+  background: #0c1015;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.9s ease, visibility 0s linear 0.9s;
+}
+.slide.active {
+  position: relative;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.9s ease;
+}
+
+/* Blurred, darkened cover as the backdrop - the cinematic "poster wash". */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.backdropImage {
+  object-fit: cover;
+  filter: blur(42px) saturate(1.25) brightness(0.55);
+  transform: scale(1.35);
+}
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #0c1015 0%, #0c1015e6 30%, #0c101599 58%, #0c101540 100%),
+    linear-gradient(180deg, #0c101566 0%, transparent 25%, transparent 62%, #0c1015 100%);
+}
+
+.inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  min-height: min(82vh, 720px);
+  padding: 140px 48px 110px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  align-items: center;
+  gap: 48px;
+}
+
+.copy {
+  max-width: 620px;
+}
+.active .copy > * {
+  animation: rise 0.8s both cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.active .copy > *:nth-child(2) { animation-delay: 60ms; }
+.active .copy > *:nth-child(3) { animation-delay: 110ms; }
+.active .copy > *:nth-child(4) { animation-delay: 150ms; }
+.active .copy > *:nth-child(5) { animation-delay: 190ms; }
+.active .copy > *:nth-child(6) { animation-delay: 230ms; }
+.active .copy > *:nth-child(7) { animation-delay: 270ms; }
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #e9cb83;
+  font-size: 11px;
+  letter-spacing: 2.6px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+}
+.eyebrow > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e9cb83;
+  box-shadow: 0 0 14px #e9cb83aa;
+}
+
+.title {
+  font-size: clamp(34px, 5vw, 64px);
+  line-height: 1.04;
+  font-weight: 800;
+  letter-spacing: -1.6px;
+  color: #fbfaf7;
+  text-wrap: balance;
+}
+.subtitle {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #c9cbd0;
+}
+.author {
+  margin-top: 12px;
+  font-size: 15px;
+  color: #aeb4bd;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 18px;
+  font-size: 13px;
+  color: #c8ccd2;
+}
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.rating strong {
+  color: #f2c94c;
+  font-size: 15px;
+}
+.rating > span:last-child {
+  color: #8c93a0;
+  font-size: 12px;
+}
+.metaItem::before {
+  content: "•";
+  margin-right: 14px;
+  color: #5f6672;
+}
+.newTag,
+.formatTag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.newTag {
+  background: #e9cb83;
+  color: #1d1a12;
+}
+.formatTag {
+  border: 1px solid #ffffff2e;
+  color: #dfe2e6;
+}
+
+.description {
+  margin-top: 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #b8bec7;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 28px;
+}
+.primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  background: #f5cf4a;
+  color: #17140a;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 10px 30px #f5cf4a33;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px #f5cf4a55;
+}
+.price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #f5f2ea;
+}
+.price del {
+  font-size: 13px;
+  font-weight: 400;
+  color: #7c8390;
+}
+
+/* The real cover: a flat paperback standing on a short shelf ledge. */
+.coverWrap {
+  justify-self: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(100%, 330px);
+}
+.cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 2px 5px 5px 2px;
+  background: #1c222b;
+  box-shadow: 0 30px 60px #000a, 0 8px 18px #0008;
+  transform: rotate(-2deg);
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.active .cover {
+  animation: settle 1s both cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.coverWrap:hover .cover {
+  transform: rotate(0deg) translateY(-6px);
+}
+/* Paperback page block on the right edge. */
+.cover::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: -4px;
+  width: 4px;
+  border-radius: 0 2px 2px 0;
+  background: repeating-linear-gradient(180deg, #e9e4d6 0 1px, #c9c3b3 1px 2px);
+}
+.coverImage {
+  object-fit: cover;
+  border-radius: inherit;
+}
+/* Soft spine crease near the left edge, like a bent paperback cover. */
+.crease {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(90deg, #0006 0%, #0001 3%, #ffffff26 4.5%, #0002 6%, transparent 10%, transparent 92%, #0002 100%);
+}
+.ledge {
+  width: 135%;
+  height: 14px;
+  margin-top: -2px;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, #00000014 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, #8a5c38 0%, #5c3a21 30%, #3c2514 65%, #1f1208 100%);
+  box-shadow: 0 18px 26px #0009;
+}
+
+/* Arrows + progress dots. */
+.controls {
+  position: absolute;
+  left: 50%;
+  bottom: 34px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 2;
+}
+.arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #f1f0ed;
+  background: #ffffff12;
+  border: 1px solid #ffffff22;
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.arrow:hover {
+  background: #ffffff26;
+}
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dot {
+  position: relative;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #ffffff40;
+  overflow: hidden;
+  cursor: pointer;
+  transition: width 0.35s, background 0.35s;
+}
+.dotActive {
+  width: 42px;
+  background: #ffffff33;
+}
+.dotProgress {
+  position: absolute;
+  inset: 0;
+  background: #f5cf4a;
+  transform-origin: left;
+  animation: progress linear both;
+}
+.dotActive:not(:has(.dotProgress)) {
+  background: #f5cf4a;
+}
+.arrow:focus-visible,
+.dot:focus-visible,
+.primary:focus-visible,
+.coverWrap:focus-visible {
+  outline: 2px solid #f5cf4a;
+  outline-offset: 3px;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes settle {
+  from { opacity: 0; transform: rotate(-6deg) translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: rotate(-2deg); }
+}
+@keyframes progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (max-width: 900px) {
+  .inner {
+    grid-template-columns: 1fr;
+    padding: 120px 30px 26px;
+    gap: 34px;
+  }
+  /* Slide heights vary with each book's text, so sit the controls below
+     the slide instead of over it. */
+  .controls {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    justify-content: center;
+    padding: 0 0 30px;
+    /* Solid, so a fading-out slide never shows through behind the dots. */
+    background: #0c1015;
+  }
+  .coverWrap {
+    order: -1;
+    width: min(58vw, 240px);
+  }
+  .copy {
+    max-width: none;
+    text-align: center;
+  }
+  .eyebrow,
+  .meta,
+  .actions {
+    justify-content: center;
+  }
+  .backdrop::after {
+    background: linear-gradient(180deg, #0c101599 0%, #0c1015cc 45%, #0c1015 100%);
+  }
+}
+@media (max-width: 600px) {
+  .inner {
+    padding: 104px 20px 22px;
+  }
+  .title {
+    letter-spacing: -0.8px;
+  }
+  .description {
+    font-size: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide,
+  .active .copy > *,
+  .active .cover {
+    animation: none !important;
+    transition: none !important;
+  }
+}

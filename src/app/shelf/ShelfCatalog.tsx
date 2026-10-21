@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, BookOpen, Search, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, Search, Star, X } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import FormatBadge from "@/components/FormatBadge";
 import { apiFetch } from "@/lib/api";
 import styles from "./shelf.module.css";
+import p from "./paperback.module.css";
+import ShelfFeatured from "./ShelfFeatured";
+import { Stars, bookYear, displayPrice, firstParagraph, isNewRelease, naira } from "./shelfUtils";
 
 export interface PublicBookSummary {
   id: string;
@@ -29,18 +31,11 @@ export interface PublicBookSummary {
   has_hardback: boolean;
   has_ebook: boolean;
   author_name: string;
-}
-
-function displayPrice(book: PublicBookSummary): { price: number; oldPrice: number | null } | null {
-  const pick =
-    book.ebook_price !== null ? [book.ebook_price, book.ebook_old_price]
-    : book.paperback_price !== null ? [book.paperback_price, book.paperback_old_price]
-    : book.hardback_price !== null ? [book.hardback_price, book.hardback_old_price]
-    : null;
-  if (!pick) return null;
-  const price = Number(pick[0]);
-  const old = pick[1] != null ? Number(pick[1]) : null;
-  return { price, oldPrice: old !== null && old > price ? old : null };
+  pages?: number | null;
+  description?: string;
+  date_published?: string | null;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 export interface PaginatedBooks {
@@ -49,34 +44,40 @@ export interface PaginatedBooks {
   results: PublicBookSummary[];
 }
 
-function naira(value: number) {
-  return `₦${value.toLocaleString()}`;
-}
-
-
+// One paperback on the shelf, with movie-poster badges and a details
+// panel that slides up on hover.
 function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
   const shown = displayPrice(book);
-  return <Link href={`/book/${book.slug}`} className={styles.bookCard} style={{ "--delay": `${Math.min(index, 7) * 45}ms` } as CSSProperties}>
-    <div className={styles.stage}>
-      <div className={styles.book}>
-        {book.cover ? <Image src={book.cover} alt={book.title} fill sizes="(max-width: 600px) 38vw, (max-width: 1000px) 24vw, 220px" className={styles.cover} priority={index < 4} /> : <div className={styles.fallback}><BookOpen size={26} /><span>{book.title}</span><small>{book.author_name}</small></div>}
-        <span className={styles.binding} aria-hidden="true" />
-        <span className={styles.sheen} aria-hidden="true" />
-      </div>
-      <span className={styles.openBook} aria-hidden="true"><ArrowUpRight size={16} /></span>
-    </div>
-    <div className={styles.bookInfo}>
-      <p className={styles.category}>{[book.category || "ValuePlus edition", book.trim_size].filter(Boolean).join(" · ")}</p>
-      <h3>{book.title}</h3>
-      <p className={styles.author}>{book.author_name}</p>
-      <div className={styles.price}>{shown ? <><span>{naira(shown.price)}</span>{shown.oldPrice !== null && <del>{naira(shown.oldPrice)}</del>}</> : <span className={styles.author}>View editions</span>}</div>
-      {(book.has_ebook || book.has_paperback || book.has_hardback) && (
-        <div className={styles.formats}>
-          {book.has_ebook && <FormatBadge format="Ebook" className="!px-2 !py-0.5 !text-[0.48rem]" />}
-          {book.has_paperback && <FormatBadge format="Paperback" className="!px-2 !py-0.5 !text-[0.48rem]" />}
-          {book.has_hardback && <FormatBadge format="Hardback" className="!px-2 !py-0.5 !text-[0.48rem]" />}
+  const year = bookYear(book);
+  const rated = (book.review_count ?? 0) > 0;
+  const format = book.has_ebook ? "EBOOK" : book.has_paperback ? "PAPERBACK" : book.has_hardback ? "HARDBACK" : "";
+  const meta = [year, book.pages ? `${book.pages} pages` : "", book.trim_size].filter(Boolean).join(" · ");
+  return <Link href={`/book/${book.slug}`} className={p.card} style={{ "--delay": `${Math.min(index, 9) * 40}ms` } as CSSProperties}>
+    <div className={p.slot}>
+      <div className={p.book}>
+        {book.cover
+          ? <Image src={book.cover} alt={book.title} fill sizes="(max-width: 520px) 46vw, (max-width: 820px) 31vw, (max-width: 1100px) 23vw, 230px" className={p.cover} priority={index < 5} />
+          : <div className={p.fallback}><BookOpen size={24} /><span>{book.title}</span><small>{book.author_name}</small></div>}
+        <span className={p.crease} aria-hidden="true" />
+        {rated
+          ? <span className={`${p.badge} ${p.ratingBadge}`}><Star size={10} fill="#f2c94c" strokeWidth={0} aria-hidden="true" />{Number(book.average_rating ?? 0).toFixed(1)}</span>
+          : isNewRelease(book) && <span className={`${p.badge} ${p.newBadge}`}>NEW</span>}
+        {format && <span className={`${p.badge} ${p.formatBadge}`}>{format}</span>}
+        {year && <span className={`${p.badge} ${p.yearBadge}`}>{year}</span>}
+        <div className={p.peek} aria-hidden="true">
+          <h4>{book.title}</h4>
+          {rated && <div className={p.peekRating}><Stars value={Number(book.average_rating ?? 0)} size={11} />{Number(book.average_rating ?? 0).toFixed(1)}</div>}
+          {meta && <p className={p.peekMeta}>{meta}</p>}
+          {book.description && <p className={p.peekText}>{firstParagraph(book.description)}</p>}
+          <span className={p.peekCta}>View book <ArrowRight size={12} /></span>
         </div>
-      )}
+      </div>
+    </div>
+    <div className={p.info}>
+      <p className={p.category}>{[book.category || "ValuePlus edition", book.trim_size].filter(Boolean).join(" · ")}</p>
+      <h3>{book.title}</h3>
+      <p className={p.author}>{book.author_name}</p>
+      <div className={p.price}>{shown ? <><span>{naira(shown.price)}</span>{shown.oldPrice !== null && <del>{naira(shown.oldPrice)}</del>}</> : <span className={p.author}>View editions</span>}</div>
     </div>
   </Link>;
 }
@@ -126,13 +127,17 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
     return matches;
   }, [books, category, query, sort]);
   const reset = () => { setCategory(null); setQuery(""); };
+  // Newest releases with a cover lead the featured slider (the API returns
+  // books newest first).
+  const featured = useMemo(() => books.filter(book => book.cover).slice(0, 5), [books]);
 
   return <main className={styles.page}>
     <Navbar />
+    <ShelfFeatured books={featured} />
     <div className={styles.ambient} aria-hidden="true" />
-    <div className={styles.content}>
-      <header className={styles.hero}>
-        <div><p className={styles.eyebrow}><span />THE VALUEPLUS COLLECTION</p><h1>ValuePlus <span>Shelf</span><span className={styles.period}>.</span></h1><p className={styles.intro}>Find your next great read.<br className={styles.mobileBreak} /> Keep a little of it with you.</p></div>
+    <div className={`${styles.content} ${featured.length ? p.afterHero : ""}`}>
+      <header className={p.pageHeading}>
+        <div><p className={styles.eyebrow}><span />THE VALUEPLUS COLLECTION</p><h1>ValuePlus <span>Shelf</span><i>.</i></h1><p>Find your next great read. Keep a little of it with you.</p></div>
         <div className={styles.heroNote}><BookOpen size={23} strokeWidth={1.3} /><span>Original voices.<br /><strong>Extraordinary perspectives.</strong></span></div>
       </header>
 
@@ -150,7 +155,7 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
       <section className={styles.collection} aria-label="Books" aria-busy={loading}>
         <div className={styles.collectionHeading}><h2>{category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
         {error && <div className={styles.notice} role="alert">We couldn’t load {books.length ? "the rest of " : ""}the collection. <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div>}
-        {loading && !books.length ? <div className={styles.grid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={styles.skeleton}><div /><span /><span /></div>)}</div> : visible.length ? <div className={styles.grid} key={`${category}-${query}-${sort}`}>{visible.map((book, index) => <BookCard key={book.id} book={book} index={index} />)}</div> : !loading && !error ? <div className={styles.empty}><BookOpen size={34} strokeWidth={1} /><h3>{books.length ? "A different search. A new discovery." : "Good reads are on their way."}</h3><p>{books.length ? "Try another title or author, or explore the full collection." : "Check back soon for our first titles."}</p>{books.length > 0 && <button type="button" onClick={reset}>Explore all books <ArrowUpRight size={15} /></button>}</div> : null}
+        {loading && !books.length ? <div className={p.grid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={styles.skeleton}><div /><span /><span /></div>)}</div> : visible.length ? <div className={p.grid} key={`${category}-${query}-${sort}`}>{visible.map((book, index) => <BookCard key={book.id} book={book} index={index} />)}</div> : !loading && !error ? <div className={styles.empty}><BookOpen size={34} strokeWidth={1} /><h3>{books.length ? "A different search. A new discovery." : "Good reads are on their way."}</h3><p>{books.length ? "Try another title or author, or explore the full collection." : "Check back soon for our first titles."}</p>{books.length > 0 && <button type="button" onClick={reset}>Explore all books <ArrowUpRight size={15} /></button>}</div> : null}
         {visible.length > 0 && <div className={styles.endnote}><span />Made to be read. Made to stay with you.<span /></div>}
       </section>
     </div>
