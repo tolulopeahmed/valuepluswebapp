@@ -14,6 +14,7 @@ import BuyBox from "@/components/storefront/BuyBox";
 import ProductReviews from "@/components/storefront/ProductReviews";
 import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
+import DescriptionParagraphs from "@/components/DescriptionParagraphs";
 
 // Real published-book shape from the Django backend (GET /books/public/
 // <slug>/) — deliberately narrow (see PublicBookSerializer): no contact
@@ -125,9 +126,13 @@ export default async function BookPage({
             )}
 
             {book.description && (
-              <p className="mt-6 text-base leading-relaxed text-white/70">
-                {book.description}
-              </p>
+              <div className="mt-6">
+                <DescriptionParagraphs
+                  text={book.description}
+                  className="text-base leading-relaxed text-white/70"
+                  gapClassName="mt-3"
+                />
+              </div>
             )}
 
             <div className="mt-8">

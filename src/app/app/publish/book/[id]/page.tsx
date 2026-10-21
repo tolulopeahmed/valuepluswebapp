@@ -73,6 +73,7 @@ import {
   type FormatRequestStatus,
 } from "../../../../../hooks/useMyBooks";
 import { useTransactions } from "../../../../../hooks/useWallet";
+import DescriptionParagraphs from "@/components/DescriptionParagraphs";
 
 function StatTile({
   icon,
@@ -2055,9 +2056,13 @@ export default function BookLivePage() {
                 onClick={() => setDescriptionOpen(true)}
                 className="mt-3 flex w-full items-start gap-2 rounded-xl text-left transition-opacity hover:opacity-80 sm:text-left"
               >
-                <p className="min-w-0 flex-1 whitespace-pre-line text-[0.78rem] leading-relaxed text-white/55">
-                  {book.description}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <DescriptionParagraphs
+                    text={book.description}
+                    className="text-[0.78rem] leading-relaxed text-white/55"
+                    gapClassName="mt-2"
+                  />
+                </div>
                 <Pencil
                   size={12}
                   strokeWidth={2.3}
