@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BookOpen, Search, Star, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BookOpen, ChevronDown, Search, Star, X } from "lucide-react";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { apiFetch } from "@/lib/api";
@@ -131,29 +131,36 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   // books newest first).
   const featured = useMemo(() => books.filter(book => book.cover).slice(0, 5), [books]);
 
+  // Search + category live in the header (top right; own row on mobile).
+  const headerControls = <div className={p.headerControls}>
+    <label className={p.headerSearch}>
+      <Search size={16} strokeWidth={1.8} aria-hidden="true" />
+      <span className={styles.srOnly}>Search by title, author or category</span>
+      <input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search books or authors" />
+      {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={14} /></button>}
+    </label>
+    <label className={p.headerSelect}>
+      <span className={styles.srOnly}>Category</span>
+      <select value={category ?? ""} onChange={e => setCategory(e.target.value || null)}>
+        <option value="">All categories ({books.length})</option>
+        {categories.map(item => <option key={item} value={item}>{item}</option>)}
+      </select>
+      <ChevronDown size={14} aria-hidden="true" />
+    </label>
+  </div>;
+
   return <main className={styles.page}>
-    <Navbar />
+    <Navbar brandSuffix="Shelf" searchSlot={headerControls} />
     <ShelfFeatured books={featured} />
     <div className={styles.ambient} aria-hidden="true" />
     <div className={`${styles.content} ${featured.length ? p.afterHero : ""}`}>
-      <header className={p.pageHeading}>
-        <div><p className={styles.eyebrow}><span />THE VALUEPLUS COLLECTION</p><h1>ValuePlus <span>Shelf</span><i>.</i></h1><p>Find your next great read. Keep a little of it with you.</p></div>
-        <div className={styles.heroNote}><BookOpen size={23} strokeWidth={1.3} /><span>Original voices.<br /><strong>Extraordinary perspectives.</strong></span></div>
-      </header>
-
-      <section className={styles.controls} aria-label="Browse the collection">
-        <div className={styles.toolbar}>
-          <label className={styles.search}><Search size={18} strokeWidth={1.7} /><span className={styles.srOnly}>Search by title, author or category</span><input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Find a book, author or idea…" />{query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={16} /></button>}</label>
-          <div className={styles.sort}><label htmlFor="shelf-sort">Sort by</label><select id="shelf-sort" value={sort} onChange={e => setSort(e.target.value)}><option value="latest">Latest releases</option><option value="title">Title, A–Z</option><option value="price">Price, low to high</option></select></div>
-        </div>
-        <div className={styles.categoryBar} role="group" aria-label="Filter by category">
-          <button type="button" aria-pressed={category === null} className={category === null ? styles.activeCategory : ""} onClick={() => setCategory(null)}>All books <span>{books.length}</span></button>
-          {categories.map(item => <button type="button" key={item} aria-pressed={category === item} className={category === item ? styles.activeCategory : ""} onClick={() => setCategory(item)}>{item}</button>)}
-        </div>
-      </section>
-
       <section className={styles.collection} aria-label="Books" aria-busy={loading}>
-        <div className={styles.collectionHeading}><h2>{category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
+        <div className={styles.collectionHeading}>
+          <div><h2>{category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
+          <label className={p.sortSelect}>Sort by
+            <select value={sort} onChange={e => setSort(e.target.value)}><option value="latest">Latest releases</option><option value="title">Title, A–Z</option><option value="price">Price, low to high</option></select>
+          </label>
+        </div>
         {error && <div className={styles.notice} role="alert">We couldn’t load {books.length ? "the rest of " : ""}the collection. <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div>}
         {loading && !books.length ? <div className={p.grid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={styles.skeleton}><div /><span /><span /></div>)}</div> : visible.length ? <div className={p.grid} key={`${category}-${query}-${sort}`}>{visible.map((book, index) => <BookCard key={book.id} book={book} index={index} />)}</div> : !loading && !error ? <div className={styles.empty}><BookOpen size={34} strokeWidth={1} /><h3>{books.length ? "A different search. A new discovery." : "Good reads are on their way."}</h3><p>{books.length ? "Try another title or author, or explore the full collection." : "Check back soon for our first titles."}</p>{books.length > 0 && <button type="button" onClick={reset}>Explore all books <ArrowUpRight size={15} /></button>}</div> : null}
         {visible.length > 0 && <div className={styles.endnote}><span />Made to be read. Made to stay with you.<span /></div>}

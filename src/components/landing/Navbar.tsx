@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import Button from "@/components/buttons/buttons";
@@ -88,7 +88,16 @@ function CartIconLink({ className }: { className?: string }) {
   );
 }
 
-export default function Navbar() {
+// Optional page extras (used by the Shelf): a word shown beside the logo,
+// and controls (search/categories) shown at the top right - on mobile they
+// get their own row under the main bar.
+export default function Navbar({
+  brandSuffix,
+  searchSlot,
+}: {
+  brandSuffix?: string;
+  searchSlot?: ReactNode;
+} = {}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [quoteEstimate, setQuoteEstimate] =
@@ -201,6 +210,11 @@ export default function Navbar() {
                   priority
                   className="h-8 w-auto object-contain md:h-9"
                 />
+                {brandSuffix && (
+                  <span className="border-l border-white/20 pl-3 text-[1.15rem] font-light tracking-[-0.02em] text-[#edd896] md:text-[1.3rem]">
+                    {brandSuffix}
+                  </span>
+                )}
               </Link>
 
               {showMobileQuoteEstimate && (
@@ -220,8 +234,9 @@ export default function Navbar() {
             </div>
 
             {/* Desktop nav links */}
-            <div className="hidden items-center gap-7 text-[0.7rem] font-black uppercase tracking-widest text-white/60 md:flex">
-              {menuItems.map((item) => (
+            <div className={`hidden items-center gap-7 whitespace-nowrap text-[0.7rem] font-black uppercase tracking-widest text-white/60 ${searchSlot ? "xl:flex xl:gap-5 2xl:gap-7" : "md:flex"}`}>
+              {/* On the Shelf page the logo already says "Shelf". */}
+              {menuItems.filter((item) => !(brandSuffix && item.href === "/shelf")).map((item) => (
                 <Link key={item.label} className="nav-link" href={item.href}>
                   <span>{item.label}</span>
                   {item.badge && (
@@ -235,13 +250,16 @@ export default function Navbar() {
 
             {/* Desktop CTA buttons */}
             <div className="hidden items-center gap-3 md:flex">
+              {searchSlot}
               <CartIconLink />
               <Button href="/login" variant="secondary" size="sm">
                 Log in
               </Button>
+              <span className={searchSlot ? "hidden 2xl:inline-flex" : "inline-flex"}>
               <Button href="/login?mode=signup" variant="primary" size="sm">
                 Create free account
               </Button>
+              </span>
             </div>
 
             {/* Mobile right cluster: cart icon + login icon + hamburger */}
@@ -282,6 +300,9 @@ export default function Navbar() {
               </label>
             </div>
           </div>
+          {searchSlot && (
+            <div className="flex items-center gap-2 px-4 pb-3 md:hidden">{searchSlot}</div>
+          )}
         </nav>
       </header>
 

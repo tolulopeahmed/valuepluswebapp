@@ -54,6 +54,9 @@ export default function ShelfFeatured({ books }: { books: PublicBookSummary[] })
     >
       {books.map((book, i) => {
         const active = i === index;
+        // Only the current slide and its neighbours load images, so the page
+        // doesn't download every featured cover up front.
+        const near = active || i === (index + 1) % count || i === (index - 1 + count) % count;
         const shown = displayPrice(book);
         const year = bookYear(book);
         const meta = [year, book.pages ? `${book.pages} pages` : "", book.trim_size].filter(Boolean);
@@ -67,7 +70,8 @@ export default function ShelfFeatured({ books }: { books: PublicBookSummary[] })
             inert={!active}
           >
             <div className={styles.backdrop} aria-hidden="true">
-              {book.cover && <Image src={book.cover} alt="" fill sizes="50vw" className={styles.backdropImage} priority={i === 0} />}
+              {/* Heavily blurred, so a small, low-quality image is plenty. */}
+              {book.cover && near && <Image src={book.cover} alt="" fill sizes="25vw" className={styles.backdropImage} priority={i === 0} />}
             </div>
             <div className={styles.inner}>
               <div className={styles.copy}>
@@ -102,7 +106,7 @@ export default function ShelfFeatured({ books }: { books: PublicBookSummary[] })
               </div>
               <Link href={`/book/${book.slug}`} className={styles.coverWrap} aria-label={`View ${book.title}`} tabIndex={-1}>
                 <div className={styles.cover}>
-                  {book.cover && <Image src={book.cover} alt={book.title} fill sizes="(max-width: 800px) 45vw, 320px" className={styles.coverImage} priority={i === 0} />}
+                  {book.cover && near && <Image src={book.cover} alt={book.title} fill sizes="(max-width: 900px) 60vw, 330px" className={styles.coverImage} priority={i === 0} />}
                   <span className={styles.crease} aria-hidden="true" />
                 </div>
                 <span className={styles.ledge} aria-hidden="true" />
