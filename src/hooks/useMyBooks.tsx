@@ -73,6 +73,7 @@ export type FormatRequestStatus = "none" | "pending" | "quoted" | "paid";
 export interface MyBook {
   id: string;
   title: string;
+  author_name: string;
   subtitle: string;
   category: string;
   slug: string;
@@ -618,7 +619,7 @@ export function BookCover({ book, sizes }: { book: MyBook; sizes: string }) {
     );
   }
 
-  const authorName = book.quotation?.full_name;
+  const authorName = book.author_name || book.quotation?.full_name;
 
   return (
     // container-type lets the title/subtitle/author text below size

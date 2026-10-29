@@ -633,6 +633,7 @@ export default function GetQuote({
   const [words, setWords] = useState("");
   const [chapters, setChapters] = useState("");
   const [fullName, setFullName] = useState("");
+  const [authorName, setAuthorName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
   // Lazy initializer — auto-fills from a `?ref=` link captured earlier
@@ -679,6 +680,9 @@ export default function GetQuote({
   if (isAuthenticated && user && prefilledForEmail !== user.email) {
     setPrefilledForEmail(user.email);
     setFullName(
+      (current) => current || `${user.first_name} ${user.last_name}`.trim(),
+    );
+    setAuthorName(
       (current) => current || `${user.first_name} ${user.last_name}`.trim(),
     );
     setEmail((current) => current || user.email);
@@ -1228,6 +1232,7 @@ export default function GetQuote({
         skipAuth: true,
         body: JSON.stringify({
           full_name: fullName,
+          author_name: authorName.trim() || fullName.trim(),
           email,
           whatsapp_number: whatsapp,
           book_title: bookTitle,
@@ -2232,6 +2237,24 @@ export default function GetQuote({
 
                       {shouldShowFieldTag("name", fullName) && (
                         <span className="vpgq-field-tag">Name</span>
+                      )}
+                    </div>
+
+                    <div className={getFieldClassName("author", authorName)}>
+                      <FieldIcon>
+                        <Type size={16} strokeWidth={2} />
+                      </FieldIcon>
+                      <input
+                        value={authorName}
+                        onChange={(event) => setAuthorName(event.target.value)}
+                        onFocus={() => setFocusedField("author")}
+                        onBlur={() => markFieldComplete("author", authorName)}
+                        placeholder="Author name / pen name"
+                        autoComplete="off"
+                      />
+
+                      {shouldShowFieldTag("author", authorName) && (
+                        <span className="vpgq-field-tag">Byline</span>
                       )}
                     </div>
 
