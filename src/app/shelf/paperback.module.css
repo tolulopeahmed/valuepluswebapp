@@ -148,19 +148,6 @@
   background: #e9cb83;
   color: #1d1a12;
 }
-.formatBadge {
-  bottom: 8px;
-  left: 8px;
-  background: #f5cf4a;
-  color: #17140a;
-}
-.yearBadge {
-  bottom: 8px;
-  right: 8px;
-  background: #3355d6;
-  color: #fff;
-}
-
 /* Details panel - slides up over the cover on hover (desktop). */
 .peek {
   position: absolute;
@@ -235,6 +222,41 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.editionMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: -1px 0 7px;
+}
+.editionBadge,
+.yearBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 19px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.55px;
+  line-height: 1;
+}
+.paperbackBadge {
+  background: #c2410c;
+  color: #fff7ed;
+}
+.hardbackBadge {
+  background: #51433c;
+  color: #fff7ed;
+}
+.ebookBadge {
+  background: #f5cf4a;
+  color: #17140a;
+}
+.yearBadge {
+  background: #3355d6;
+  color: #fff;
 }
 .info h3 {
   font-size: 13.5px;

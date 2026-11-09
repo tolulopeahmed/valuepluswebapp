@@ -50,7 +50,14 @@ function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
   const shown = displayPrice(book);
   const year = bookYear(book);
   const rated = (book.review_count ?? 0) > 0;
-  const format = book.has_ebook ? "EBOOK" : book.has_paperback ? "PAPERBACK" : book.has_hardback ? "HARDBACK" : "";
+  // Editions belong with the title metadata, not over the artwork. Keep
+  // physical editions before Ebook so a book published in both formats is
+  // immediately clear from the shelf.
+  const formats = [
+    book.has_paperback && "PAPERBACK",
+    book.has_hardback && "HARDBACK",
+    book.has_ebook && "EBOOK",
+  ].filter(Boolean) as string[];
   const meta = [year, book.pages ? `${book.pages} pages` : "", book.trim_size].filter(Boolean).join(" · ");
   return <Link href={`/book/${book.slug}`} className={p.card} style={{ "--delay": `${Math.min(index, 9) * 40}ms` } as CSSProperties}>
     <div className={p.slot}>
@@ -62,8 +69,6 @@ function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
         {rated
           ? <span className={`${p.badge} ${p.ratingBadge}`}><Star size={10} fill="#f2c94c" strokeWidth={0} aria-hidden="true" />{Number(book.average_rating ?? 0).toFixed(1)}</span>
           : isNewRelease(book) && <span className={`${p.badge} ${p.newBadge}`}>NEW</span>}
-        {format && <span className={`${p.badge} ${p.formatBadge}`}>{format}</span>}
-        {year && <span className={`${p.badge} ${p.yearBadge}`}>{year}</span>}
         <div className={p.peek} aria-hidden="true">
           <h4>{book.title}</h4>
           {rated && <div className={p.peekRating}><Stars value={Number(book.average_rating ?? 0)} size={11} />{Number(book.average_rating ?? 0).toFixed(1)}</div>}
@@ -75,6 +80,25 @@ function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
     </div>
     <div className={p.info}>
       <p className={p.category}>{[book.category || "ValuePlus edition", book.trim_size].filter(Boolean).join(" · ")}</p>
+      {(formats.length > 0 || year) && (
+        <div className={p.editionMeta} aria-label="Available editions and publication year">
+          {formats.map((format) => (
+            <span
+              key={format}
+              className={`${p.editionBadge} ${
+                format === "PAPERBACK"
+                  ? p.paperbackBadge
+                  : format === "HARDBACK"
+                    ? p.hardbackBadge
+                    : p.ebookBadge
+              }`}
+            >
+              {format}
+            </span>
+          ))}
+          {year && <span className={p.yearBadge}>{year}</span>}
+        </div>
+      )}
       <h3>{book.title}</h3>
       <p className={p.author}>{book.author_name}</p>
       <div className={p.price}>{shown ? <><span>{naira(shown.price)}</span>{shown.oldPrice !== null && <del>{naira(shown.oldPrice)}</del>}</> : <span className={p.author}>View editions</span>}</div>
@@ -99,7 +123,16 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
     (async () => {
       setError(false); setLoading(true);
       try {
-        let page = initial ?? await apiFetch<PaginatedBooks>("/books/public/", { skipAuth: true, signal: controller.signal });
+        // Keep the cached server result for a fast first paint, then refresh
+        // page one in the browser so a title just published in Django appears
+        // immediately rather than waiting for the server cache window.
+        let page: PaginatedBooks;
+        try {
+          page = await apiFetch<PaginatedBooks>("/books/public/", { skipAuth: true, signal: controller.signal });
+        } catch (fetchError) {
+          if (!initial) throw fetchError;
+          page = initial;
+        }
         let collected = page.results;
         if (active) setBooks(collected);
         const visited = new Set<string>();
