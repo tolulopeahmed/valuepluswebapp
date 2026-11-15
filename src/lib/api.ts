@@ -124,6 +124,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 interface ApiFetchOptions extends RequestInit {
   skipAuth?: boolean;
+  // Background calls (e.g. a live delivery quote while typing) handle
+  // their own errors inline instead of toasting.
+  silent?: boolean;
 }
 
 // One-shot 401 refresh-and-retry: attaches the access token (unless
@@ -133,7 +136,7 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { skipAuth, headers, ...rest } = options;
+  const { skipAuth, silent, headers, ...rest } = options;
 
   async function doFetch(): Promise<Response> {
     const { access } = getTokens();
@@ -165,7 +168,7 @@ export async function apiFetch<T = unknown>(
 
   if (!res.ok) {
     const message = extractErrorMessage(body);
-    notify(message, "error");
+    if (!silent) notify(message, "error");
     throw new ApiError(res.status, body, message);
   }
 

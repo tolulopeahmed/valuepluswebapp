@@ -45,6 +45,7 @@ export default function BuyBox({
   hasPaperback,
   hasHardback,
   hasEbook,
+  authorShipsPhysical = false,
 }: {
   bookId: string;
   slug: string;
@@ -57,6 +58,7 @@ export default function BuyBox({
   hasPaperback: boolean;
   hasHardback: boolean;
   hasEbook: boolean;
+  authorShipsPhysical?: boolean;
 }) {
   // Ebook, Paperback, Hardback — deliberately in this order (not the
   // Paperback-first convention used elsewhere) so the tab row reads
@@ -77,7 +79,7 @@ export default function BuyBox({
     editions[0]?.format ?? "",
   );
   const selected = editions.find((e) => e.format === selectedFormat) ?? editions[0] ?? null;
-  const minQty = minQuantityFor(selected?.format ?? "");
+  const minQty = minQuantityFor(selected?.format ?? "", authorShipsPhysical);
   const [quantity, setQuantity] = useState(minQty);
 
   // Different edition, different minimum (Ebook has none, physical has
@@ -85,8 +87,8 @@ export default function BuyBox({
   // that might now be below the new edition's floor.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setQuantity(minQuantityFor(selected?.format ?? ""));
-  }, [selected?.format]);
+    setQuantity(minQuantityFor(selected?.format ?? "", authorShipsPhysical));
+  }, [selected?.format, authorShipsPhysical]);
 
   const handleAddToCart = () => {
     if (!selected) return;
@@ -196,7 +198,9 @@ export default function BuyBox({
       ) : (
         selected && (
           <p className="mt-2.5 text-center text-[0.68rem] leading-relaxed text-black/40">
-            A physical copy — delivery cost is paid separately by you, arranged at checkout.
+            {authorShipsPhysical
+              ? "Delivered by the author — track it on your order page. Delivery cost is paid separately by you."
+              : "A physical copy — delivery cost is paid separately by you, arranged at checkout."}
           </p>
         )
       )}

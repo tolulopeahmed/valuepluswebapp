@@ -37,6 +37,7 @@ interface PublicBook {
   has_paperback: boolean;
   has_hardback: boolean;
   has_ebook: boolean;
+  author_ships_physical?: boolean;
   description: string;
   author_name: string;
   average_rating: number | null;
@@ -148,6 +149,7 @@ export default async function BookPage({
                 hasPaperback={book.has_paperback}
                 hasHardback={book.has_hardback}
                 hasEbook={book.has_ebook}
+                authorShipsPhysical={!!book.author_ships_physical}
               />
 
               <ProductReviews

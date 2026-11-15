@@ -119,6 +119,13 @@ export function subscribeToCartChanges(callback: () => void): () => void {
 export const MIN_PHYSICAL_QUANTITY = 50;
 const PHYSICAL_FORMATS = new Set(["Paperback", "Hardback"]);
 
-export function minQuantityFor(format: string): number {
-  return PHYSICAL_FORMATS.has(format) ? MIN_PHYSICAL_QUANTITY : 1;
+export function isPhysicalFormat(format: string): boolean {
+  return PHYSICAL_FORMATS.has(format);
+}
+
+// `authorShipsPhysical`: the author keeps printed copies and delivers
+// single orders themselves (Book.author_ships_physical), so one copy is
+// fine - no press run.
+export function minQuantityFor(format: string, authorShipsPhysical = false): number {
+  return PHYSICAL_FORMATS.has(format) && !authorShipsPhysical ? MIN_PHYSICAL_QUANTITY : 1;
 }

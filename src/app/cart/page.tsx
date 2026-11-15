@@ -32,6 +32,7 @@ interface PublicBook {
   paperback_price: string | null;
   hardback_price: string | null;
   ebook_price: string | null;
+  author_ships_physical?: boolean;
 }
 
 interface CartLine extends CartItem {
@@ -153,7 +154,7 @@ export default function CartPage() {
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-3 rounded-2xl border border-black/10 bg-white p-4">
               {lines.map((line) => {
-                const minQty = minQuantityFor(line.format);
+                const minQty = minQuantityFor(line.format, !!line.book.author_ships_physical);
                 const price = priceForLine(line);
                 return (
                 <div key={`${line.bookId}-${line.format}`} className="flex items-center gap-3 border-b border-black/5 pb-3 last:border-0 last:pb-0">

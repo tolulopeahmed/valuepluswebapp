@@ -118,6 +118,8 @@ export interface MyBook {
   has_paperback: boolean;
   has_hardback: boolean;
   has_ebook: boolean;
+  // The author delivers single physical copies from their own stock.
+  author_ships_physical?: boolean;
   has_ebook_file: boolean;
   // Live purchases of this ebook — each one's copy is watermarked with
   // its own copy ID (see apps.storefront.pdf_delivery server-side).

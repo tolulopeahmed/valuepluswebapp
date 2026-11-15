@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   Landmark,
   UserPlus,
   Users,
+  Truck,
   ShieldCheck,
   // KeyRound, — only used by the commented-out Transaction PIN row below
   HelpCircle,
@@ -37,6 +38,7 @@ import { useKYCProfile, type KYCStatus } from "../../../hooks/useKYC";
 import { useMyBooks } from "../../../hooks/useMyBooks";
 import { useLearnerCurriculum } from "../CurriculumModules";
 import LogoutConfirmModal from "../../../components/LogoutConfirmModal";
+import { apiFetch } from "../../../lib/api";
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
   not_started: "Not started",
@@ -253,6 +255,7 @@ function buildItems({
   currentLessonTitle,
   overallCurriculumPercent,
   affiliateCount,
+  deliveriesOpen,
 }: {
   publishedCount: number;
   isBankLinked: boolean;
@@ -265,6 +268,8 @@ function buildItems({
   currentLessonTitle: string | null;
   overallCurriculumPercent: number;
   affiliateCount: number;
+  // null = no book ships single copies, so the row is hidden.
+  deliveriesOpen: number | null;
 }): SettingItem[] {
   const items: SettingItem[] = [
     {
@@ -303,6 +308,22 @@ function buildItems({
       href: "/app/more/affiliates",
       trailing: <StatusChip tone={affiliateCount > 0 ? "accent" : "neutral"}>{affiliateCount}</StatusChip>,
     },
+    ...(deliveriesOpen === null
+      ? []
+      : [
+          {
+            id: "deliveries",
+            label: "Deliveries",
+            subtitle: "Copies readers bought that you deliver",
+            Icon: Truck,
+            href: "/app/more/deliveries",
+            trailing: (
+              <StatusChip tone={deliveriesOpen > 0 ? "accent" : "neutral"}>
+                {deliveriesOpen > 0 ? `${deliveriesOpen} to deliver` : "0"}
+              </StatusChip>
+            ),
+          },
+        ]),
     {
       id: "referrals",
       label: `My Referrals (${referralCount})`,
@@ -509,6 +530,15 @@ export default function Settings() {
     0,
   );
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // Deliveries row: only for authors who ship single copies themselves.
+  const shipsCopies = books.some((book) => book.author_ships_physical);
+  const [deliveriesOpen, setDeliveriesOpen] = useState(0);
+  useEffect(() => {
+    if (!shipsCopies) return;
+    apiFetch<{ open_count: number }>("/storefront/deliveries/mine/?state=open")
+      .then((data) => setDeliveriesOpen(data.open_count))
+      .catch(() => {});
+  }, [shipsCopies]);
 
   const defaultBankAccount =
     bankAccounts.find((a) => a.isDefault) ?? bankAccounts[0];
@@ -534,6 +564,7 @@ export default function Settings() {
     currentLessonTitle: currentLesson?.title ?? null,
     overallCurriculumPercent,
     affiliateCount: distributorCount,
+    deliveriesOpen: shipsCopies ? deliveriesOpen : null,
   });
 
   const handleSelect = (id: string) => {

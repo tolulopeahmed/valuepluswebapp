@@ -20,6 +20,7 @@ import { apiFetch, ApiError, getTokens } from "@/lib/api";
 import { clearCart } from "@/lib/cart";
 import { notify } from "@/lib/snackbar";
 import { openValuePlusApp } from "@/lib/openApp";
+import DeliveryTracker, { type DeliveryView } from "@/components/storefront/DeliveryTracker";
 
 // Mirrors apps.storefront.services.ebook_item_access server-side. Access
 // links only ever come back for the signed-in account that owns the
@@ -48,6 +49,8 @@ interface OrderItem {
   line_total: string;
   book_cover: string | null;
   ebook_access: EbookAccess | null;
+  // Set only for a physical copy the author delivers themselves.
+  delivery: DeliveryView | null;
 }
 
 interface OrderStatus {
@@ -55,6 +58,7 @@ interface OrderStatus {
   status: "pending" | "paid" | "failed" | "cancelled";
   subtotal: string;
   discount_amount: string;
+  delivery_fee?: string;
   total: string;
   items: OrderItem[];
   distributor_links: { book_title: string; code: string; commission_percentage: string; url: string }[];
@@ -108,6 +112,19 @@ export default function OrderStatusPage() {
     };
   }, [reference]);
 
+  // An author-delivered copy still on its way: refresh every minute so
+  // the timeline moves without a reload.
+  const deliveryOpen = !!order?.items.some(
+    (item) => item.delivery && !item.delivery.cancelled && item.delivery.status !== "delivered",
+  );
+  useEffect(() => {
+    if (!deliveryOpen) return;
+    const id = setInterval(() => {
+      fetchStatus(reference).then(setOrder).catch(() => {});
+    }, 60000);
+    return () => clearInterval(id);
+  }, [deliveryOpen, reference]);
+
   useEffect(() => {
     if (pollCount === 0 || pollCount > MAX_POLLS || order?.status !== "pending") return;
     fetchStatus(reference)
@@ -148,7 +165,8 @@ export default function OrderStatusPage() {
               <p className="mb-3 text-xs font-black uppercase tracking-wide text-black/40">Your order</p>
               <div className="flex flex-col gap-3">
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
+                  <div key={i}>
+                  <div className="flex items-center gap-3">
                     <div className="h-14 w-11 shrink-0 overflow-hidden rounded-md bg-black/5">
                       {item.book_cover && (
                         <Image src={item.book_cover} alt="" width={44} height={56} className="h-full w-full object-cover" />
@@ -162,6 +180,11 @@ export default function OrderStatusPage() {
                       </div>
                     </div>
                     <span className="shrink-0 text-sm font-bold">{naira(Number(item.line_total))}</span>
+                  </div>
+                  {/* One tracker per shipment: lines from the same author travel together. */}
+                  {item.delivery && !order.items.slice(0, i).some((prev) => prev.delivery?.id === item.delivery?.id) && (
+                    <DeliveryTracker delivery={item.delivery} />
+                  )}
                   </div>
                 ))}
               </div>
@@ -220,7 +243,10 @@ export default function OrderStatusPage() {
                 {order.items.some((item) => item.ebook_access)
                   ? " with your ebook access link"
                   : ""}
-                . Physical copies ship to the address you provided.
+                .{" "}
+                {order.items.some((item) => item.delivery)
+                  ? "We'll email you at each step of your delivery."
+                  : "Physical copies ship to the address you provided."}
               </p>
               <Link href="/" className="mt-4 inline-block text-sm font-bold underline underline-offset-4">
                 Back to ValuePlus

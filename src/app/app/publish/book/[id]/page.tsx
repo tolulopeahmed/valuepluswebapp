@@ -31,6 +31,7 @@ import {
   Tag,
   Trash2,
   TrendingUp,
+  Truck,
   Users,
   Wallet,
   X,
@@ -42,7 +43,7 @@ import BookCoverCropModal from "../../../../../components/BookCoverCropModal";
 import ReorderPrintsModal from "../../../../../components/ReorderPrintsModal";
 import FormatBadge from "../../../../../components/FormatBadge";
 import { notify } from "../../../../../lib/snackbar";
-import { ApiError } from "../../../../../lib/api";
+import { ApiError, apiFetch } from "../../../../../lib/api";
 import {
   useMyBooks,
   naira,
@@ -737,6 +738,116 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
           </div>
         )}
       </div>
+    </Modal>
+  );
+}
+
+// "I deliver single copies myself": readers can then buy ONE Paperback/
+// Hardback (no 50-copy press run) and each sale lands in Deliveries,
+// where the author records the rider (inDrive or anyone) and the reader
+// tracks it. PUT /books/mine/<id>/shipping/.
+function ShippingModal({ open, onClose, book, onSaved }: {
+  open: boolean;
+  onClose: () => void;
+  book: MyBook;
+  onSaved: () => void;
+}) {
+  const [enabled, setEnabled] = useState(!!book.author_ships_physical);
+  const [saving, setSaving] = useState(false);
+  const [pickup, setPickup] = useState({ name: "", phone: "", address: "" });
+  const [hasPickup, setHasPickup] = useState(false);
+  const [editingPickup, setEditingPickup] = useState(false);
+  const hasPhysicalPrice = book.paperback_price != null || book.hardback_price != null;
+
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEnabled(!!book.author_ships_physical);
+    apiFetch<{ name: string; phone: string; address: string; exists: boolean; verified: boolean }>("/storefront/pickup-address/")
+      .then((data) => {
+        setPickup({ name: data.name ?? "", phone: data.phone ?? "", address: data.address ?? "" });
+        setHasPickup(data.exists);
+        setEditingPickup(!data.exists);
+      })
+      .catch(() => {});
+  }, [open, book.author_ships_physical]);
+
+  const savePickup = async () => {
+    setSaving(true);
+    try {
+      await apiFetch("/storefront/pickup-address/", { method: "PUT", body: JSON.stringify(pickup) });
+      setHasPickup(true);
+      setEditingPickup(false);
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Could not save your pickup address.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      // apiFetch shows the server's message / error itself.
+      await apiFetch(`/books/mine/${book.id}/shipping/`, {
+        method: "PUT",
+        body: JSON.stringify({ author_ships_physical: enabled }),
+      });
+      onSaved();
+      onClose();
+    } catch (err) {
+      if (!(err instanceof ApiError)) notify("Could not update delivery settings.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const field = "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30";
+
+  return (
+    <Modal open={open} onClose={() => !saving && onClose()}>
+      <h3 className="text-[1.05rem] font-black text-white">Deliver single copies</h3>
+      <p className="mt-1 text-[0.75rem] leading-relaxed text-white/45">
+        Sell one Paperback or Hardback at a time from the copies you have. When a reader buys, pack it and tap
+        <strong className="text-white/70"> Ready for pickup</strong> - a rider collects it from you and we keep the
+        reader updated. Readers pay for delivery at checkout.
+      </p>
+      <button
+        type="button"
+        disabled={!hasPhysicalPrice}
+        onClick={() => setEnabled((v) => !v)}
+        className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 px-3.5 py-3 disabled:opacity-50"
+      >
+        <span className="text-sm font-bold text-white">Sell single copies</span>
+        <span className={`rounded-full px-2.5 py-1 text-[0.65rem] font-black ${enabled ? "bg-green-500/20 text-green-300" : "bg-white/10 text-white/45"}`}>
+          {enabled ? "ON" : "OFF"}
+        </span>
+      </button>
+      {!hasPhysicalPrice && (
+        <p className="mt-2 text-xs text-amber-300">Set a Paperback or Hardback price first — that&apos;s what readers pay per copy.</p>
+      )}
+
+      <p className="mt-4 mb-2 text-[0.65rem] font-black uppercase tracking-wider text-white/40">Pickup address</p>
+      {editingPickup ? (
+        <div className="grid gap-2">
+          <input value={pickup.name} onChange={(e) => setPickup({ ...pickup, name: e.target.value })} placeholder="Your name" className={field} />
+          <input value={pickup.phone} onChange={(e) => setPickup({ ...pickup, phone: e.target.value })} placeholder="Phone the rider can call" inputMode="tel" className={field} />
+          <textarea value={pickup.address} onChange={(e) => setPickup({ ...pickup, address: e.target.value })} placeholder="House number, street, area, state" rows={2} className={field} />
+          <Button variant="secondary" size="md" onClick={savePickup} loading={saving} className="w-full">Save pickup address</Button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setEditingPickup(true)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3 text-left">
+          <span className="block text-sm font-bold text-white">{pickup.address}</span>
+          <span className="text-xs text-white/45">{pickup.name} · {pickup.phone} · <u>Change</u></span>
+        </button>
+      )}
+
+      <Button variant="primary" size="md" onClick={save} loading={saving} disabled={!hasPhysicalPrice || (enabled && !hasPickup)} className="mt-4 w-full">
+        Save
+      </Button>
+      <Link href="/app/more/deliveries" className="mt-3 block text-center text-xs font-bold text-white/50 underline underline-offset-4">
+        Open Deliveries
+      </Link>
     </Modal>
   );
 }
@@ -1763,6 +1874,7 @@ export default function BookLivePage() {
   const [couponOpen, setCouponOpen] = useState(false);
   const [earningsOpen, setEarningsOpen] = useState(false);
   const [affiliatesOpen, setAffiliatesOpen] = useState(false);
+  const [shippingOpen, setShippingOpen] = useState(false);
   const [ebookOpen, setEbookOpen] = useState(false);
   const [leakReportOpen, setLeakReportOpen] = useState(false);
   // Which format card's pencil opened the actions menu (Edit Price/Copy
@@ -2268,6 +2380,12 @@ export default function BookLivePage() {
           description={book.affiliate_enabled ? `${book.affiliate_percentage}% share enabled` : "Set distributor profit share"}
           onClick={() => setAffiliatesOpen(true)}
         />
+        <ActionCard
+          icon={<Truck size={18} strokeWidth={1.9} />}
+          label="Deliver Single Copies"
+          description={book.author_ships_physical ? "On — you deliver from your stock" : "Sell one copy, you deliver"}
+          onClick={() => setShippingOpen(true)}
+        />
       </div>
 
       <AssetsModal
@@ -2319,6 +2437,13 @@ export default function BookLivePage() {
         onClose={() => setEarningsOpen(false)}
         book={book}
       />
+      <ShippingModal
+        open={shippingOpen}
+        onClose={() => setShippingOpen(false)}
+        book={book}
+        onSaved={refetch}
+      />
+
       <AffiliateProgramModal
         open={affiliatesOpen}
         onClose={() => setAffiliatesOpen(false)}
