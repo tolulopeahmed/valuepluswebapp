@@ -9,6 +9,7 @@ import FormatBadge from "@/components/FormatBadge";
 import BackButton from "@/components/storefront/BackButton";
 import Button from "@/components/buttons/buttons";
 import { apiFetch, ApiError } from "@/lib/api";
+import AddressAutocomplete, { type PickedPlace } from "@/components/storefront/AddressAutocomplete";
 import { notify } from "@/lib/snackbar";
 import { getCart } from "@/lib/cart";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,8 @@ function CheckoutForm() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [pickedPlace, setPickedPlace] = useState<PickedPlace | null>(null);
   const [deliveryCostAck, setDeliveryCostAck] = useState(false);
   const [becomeDistributor, setBecomeDistributor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -153,7 +156,8 @@ function CheckoutForm() {
   const [quote, setQuote] = useState<{ fee: number; eta: string; ids: string[]; key: string } | null>(null);
   const [quoteState, setQuoteState] = useState<"idle" | "loading" | "error" | "unavailable">("idle");
   const [quoteError, setQuoteError] = useState("");
-  const quoteKey = JSON.stringify([courierItems.map((b) => [b.id, b.format, b.quantity]), buyerEmail.trim(), buyerPhone.trim(), shippingAddress.trim()]);
+  const fullAddress = [shippingAddress.trim(), landmark.trim() && `Flat/landmark: ${landmark.trim()}`].filter(Boolean).join("\n");
+  const quoteKey = JSON.stringify([courierItems.map((b) => [b.id, b.format, b.quantity]), buyerEmail.trim(), buyerPhone.trim(), fullAddress, pickedPlace]);
   const quoteReady = courierItems.length > 0 && buyerPhone.trim().length >= 7 && shippingAddress.trim().length >= 10 && /@/.test(buyerEmail);
 
   useEffect(() => {
@@ -172,7 +176,9 @@ function CheckoutForm() {
               buyer_name: buyerName.trim(),
               buyer_email: buyerEmail.trim(),
               buyer_phone: buyerPhone.trim(),
-              shipping_address: shippingAddress.trim(),
+              shipping_address: fullAddress,
+              latitude: pickedPlace?.lat ?? null,
+              longitude: pickedPlace?.lng ?? null,
             }),
           },
         );
@@ -249,7 +255,7 @@ function CheckoutForm() {
             buyer_name: buyerName.trim(),
             buyer_email: buyerEmail.trim(),
             buyer_phone: buyerPhone.trim(),
-            shipping_address: shippingAddress.trim(),
+            shipping_address: fullAddress,
             delivery_cost_acknowledged: deliveryCostAck,
             delivery_quote_ids: quoteFresh ? quote.ids : [],
             become_distributor: becomeDistributor,
@@ -352,11 +358,17 @@ function CheckoutForm() {
                 />
                 {hasPhysicalItem && (
                   <>
-                    <textarea
+                    <AddressAutocomplete
                       value={shippingAddress}
-                      onChange={(e) => setShippingAddress(e.target.value)}
-                      placeholder="Delivery address: house number, street, area, state *"
-                      rows={3}
+                      onChange={setShippingAddress}
+                      onPick={setPickedPlace}
+                      placeholder="Delivery address - start typing and pick from the list *"
+                      className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
+                    />
+                    <input
+                      value={landmark}
+                      onChange={(e) => setLandmark(e.target.value)}
+                      placeholder="Flat / house no. or landmark (optional), e.g. Flat 3B, opposite GTBank"
                       className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
                     />
                     {courierItems.length > 0 && quoteState === "error" && (

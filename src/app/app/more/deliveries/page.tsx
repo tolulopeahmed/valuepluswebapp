@@ -14,8 +14,9 @@ import Title from "@/components/Title";
 import Subtitle from "@/components/Subtitle";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
+import DeliveryStepBar from "@/components/storefront/DeliveryStepBar";
 
-type Status = "preparing" | "booked" | "in_transit" | "delivered" | "cancelled";
+type Status = "preparing" | "booked" | "picked_up" | "in_transit" | "delivered" | "cancelled";
 
 interface Delivery {
   id: string;
@@ -29,6 +30,7 @@ interface Delivery {
   rider_phone: string;
   pickup_eta: string;
   delivery_eta: string;
+  picked_up_at: string | null;
   in_transit_at: string | null;
   delivered_at: string | null;
   items: { title: string; format: string; quantity: number }[];
@@ -39,7 +41,6 @@ interface Delivery {
   shipping_address: string;
 }
 
-const STEPS: Status[] = ["preparing", "booked", "in_transit", "delivered"];
 
 const areaOf = (address: string) => {
   const parts = address.replace(/\n/g, ",").split(",").map((p) => p.trim()).filter((p) => p && !/^nigeria$/i.test(p));
@@ -75,7 +76,7 @@ export default function DeliveriesPage() {
 
   // Courier updates arrive server-side; poll while something is moving.
   useEffect(() => {
-    if (tab !== "open" || !rows?.some((r) => r.status === "booked" || r.status === "in_transit")) return;
+    if (tab !== "open" || !rows?.some((r) => ["booked", "picked_up", "in_transit"].includes(r.status))) return;
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, [tab, rows, load]);
@@ -84,7 +85,7 @@ export default function DeliveriesPage() {
     <div className="space-y-5">
       <div>
         <Title>Deliveries</Title>
-        <Subtitle>Single copies readers bought from you.</Subtitle>
+        <Subtitle>Delivery requests for copies readers bought</Subtitle>
       </div>
 
       <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
@@ -130,7 +131,6 @@ export default function DeliveriesPage() {
 
 function DeliveryCard({ delivery, pickupAddress, onChanged }: { delivery: Delivery; pickupAddress: string; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
-  const stepIndex = STEPS.indexOf(delivery.status);
   const first = delivery.items[0];
   const copies = delivery.items.reduce((n, i) => n + i.quantity, 0);
   const isSelf = delivery.provider === "self";
@@ -173,10 +173,8 @@ function DeliveryCard({ delivery, pickupAddress, onChanged }: { delivery: Delive
       </div>
 
       {delivery.status !== "cancelled" && (
-        <div className="mt-3 flex items-center gap-1.5">
-          {STEPS.map((step, i) => (
-            <span key={step} className="h-1.5 flex-1 rounded-full" style={{ background: i <= stepIndex ? "#34D399" : "rgba(255,255,255,0.1)" }} />
-          ))}
+        <div className="mt-3.5">
+          <DeliveryStepBar status={delivery.status} tone="dark" />
         </div>
       )}
 
@@ -241,11 +239,11 @@ function DeliveryCard({ delivery, pickupAddress, onChanged }: { delivery: Delive
         </div>
       )}
 
-      {delivery.status === "in_transit" && (
+      {(delivery.status === "picked_up" || delivery.status === "in_transit") && (
         <div className="mt-3 grid gap-2">
           <p className="flex items-start gap-2 text-xs leading-relaxed text-white/65">
             <Truck size={14} className="mt-0.5 shrink-0 text-emerald-400" />
-            {isSelf ? "You're on your way." : `Picked up ${when(delivery.in_transit_at)} - on its way to ${delivery.reader_name}.`}
+            {isSelf ? "You're on your way." : `Picked up ${when(delivery.picked_up_at ?? delivery.in_transit_at)} - on its way to ${delivery.reader_name}.`}
             {!isSelf && delivery.delivery_eta ? ` Expected ${delivery.delivery_eta.toLowerCase()}.` : ""}
           </p>
           {isSelf && (
