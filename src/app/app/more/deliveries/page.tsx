@@ -15,6 +15,7 @@ import Subtitle from "@/components/Subtitle";
 import { apiFetch, ApiError } from "@/lib/api";
 import { notify } from "@/lib/snackbar";
 import DeliveryStepBar from "@/components/storefront/DeliveryStepBar";
+import ChatAdminFab from "../ChatAdminFab";
 
 type Status = "preparing" | "booked" | "picked_up" | "in_transit" | "delivered" | "cancelled";
 
@@ -83,6 +84,7 @@ export default function DeliveriesPage() {
 
   return (
     <div className="space-y-5">
+      <ChatAdminFab />
       <div>
         <Title>Deliveries</Title>
         <Subtitle>Delivery requests for copies readers bought</Subtitle>
@@ -135,7 +137,7 @@ function DeliveryCard({ delivery, pickupAddress, onChanged }: { delivery: Delive
   const copies = delivery.items.reduce((n, i) => n + i.quantity, 0);
   const isSelf = delivery.provider === "self";
 
-  const run = async (action: "ready" | "self" | "cancel", body: object = {}) => {
+  const run = async (action: "ready" | "self" | "cancel" | "cancel-pickup", body: object = {}) => {
     setBusy(true);
     try {
       // apiFetch shows the server's success message or error itself.
@@ -236,6 +238,24 @@ function DeliveryCard({ delivery, pickupAddress, onChanged }: { delivery: Delive
               <Phone size={14} /> Call {delivery.rider_name || "the courier"}
             </a>
           )}
+          <div className="flex justify-between text-[0.7rem] text-white/40">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => window.confirm("Cancel the pickup? The rider won't come; tap Ready for pickup again when it's packed.") && run("cancel-pickup")}
+              className="underline underline-offset-2"
+            >
+              Cancel pickup
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => window.confirm("Cancel this order? We'll refund the reader.") && run("cancel", { reason: "Author couldn't fulfil" })}
+              className="underline underline-offset-2"
+            >
+              Can&apos;t fulfil it
+            </button>
+          </div>
         </div>
       )}
 
