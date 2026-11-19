@@ -115,6 +115,20 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   const [category, setCategory] = useState<string | null>(null);
   const [sort, setSort] = useState("latest");
 
+  // Shareable filtered links, e.g. /shelf?q=Tolulope%20Ahmed shows one
+  // author's books (search matches title, subtitle, author and category).
+  // Read from window rather than useSearchParams so the cached (ISR) shelf
+  // page stays static.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("q")?.trim();
+    if (!q) return;
+    const frame = requestAnimationFrame(() => {
+      setQuery(q);
+      document.getElementById("collection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   // Load remaining catalogue pages before applying local filters, so a
   // category/search never silently omits titles on a later API page.
   useEffect(() => {
@@ -187,7 +201,7 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
     <ShelfFeatured books={featured} />
     <div className={styles.ambient} aria-hidden="true" />
     <div className={`${styles.content} ${featured.length ? p.afterHero : ""}`}>
-      <section className={styles.collection} aria-label="Books" aria-busy={loading}>
+      <section id="collection" className={styles.collection} aria-label="Books" aria-busy={loading}>
         <div className={styles.collectionHeading}>
           <div><h2>{category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
           <label className={p.sortSelect}>Sort by
