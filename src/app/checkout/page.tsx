@@ -49,7 +49,6 @@ function CheckoutForm() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [shippingAddress, setShippingAddress] = useState("");
-  const [landmark, setLandmark] = useState("");
   const [pickedPlace, setPickedPlace] = useState<PickedPlace | null>(null);
   const [deliveryCostAck, setDeliveryCostAck] = useState(false);
   const [becomeDistributor, setBecomeDistributor] = useState(false);
@@ -156,7 +155,7 @@ function CheckoutForm() {
   const [quote, setQuote] = useState<{ fee: number; eta: string; ids: string[]; key: string } | null>(null);
   const [quoteState, setQuoteState] = useState<"idle" | "loading" | "error" | "unavailable">("idle");
   const [quoteError, setQuoteError] = useState("");
-  const fullAddress = [shippingAddress.trim(), landmark.trim() && `Flat/landmark: ${landmark.trim()}`].filter(Boolean).join("\n");
+  const fullAddress = shippingAddress.trim();
   const quoteKey = JSON.stringify([courierItems.map((b) => [b.id, b.format, b.quantity]), buyerEmail.trim(), buyerPhone.trim(), fullAddress, pickedPlace]);
   const quoteReady = courierItems.length > 0 && buyerPhone.trim().length >= 7 && shippingAddress.trim().length >= 10 && /@/.test(buyerEmail);
 
@@ -219,6 +218,10 @@ function CheckoutForm() {
     }
     if (!buyerName.trim() || !buyerEmail.trim()) {
       notify("Please enter your name and email.", "error");
+      return;
+    }
+    if (courierItems.length > 0 && !buyerName.trim().includes(" ")) {
+      notify("Enter your full name (first and last) for the delivery.", "error");
       return;
     }
     if (hasPhysicalItem && !buyerPhone.trim()) {
@@ -340,7 +343,7 @@ function CheckoutForm() {
                 <input
                   value={buyerName}
                   onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Full name *"
+                  placeholder={hasPhysicalItem ? "Full name (first and last) *" : "Full name *"}
                   className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
                 />
                 <input
@@ -362,13 +365,8 @@ function CheckoutForm() {
                       value={shippingAddress}
                       onChange={setShippingAddress}
                       onPick={setPickedPlace}
+                      picked={pickedPlace}
                       placeholder="Delivery address - start typing and pick from the list *"
-                      className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
-                    />
-                    <input
-                      value={landmark}
-                      onChange={(e) => setLandmark(e.target.value)}
-                      placeholder="Flat / house no. or landmark (optional), e.g. Flat 3B, opposite GTBank"
                       className="w-full rounded-xl border border-black/10 bg-black/[0.03] px-3.5 py-3 text-sm outline-none placeholder:text-black/35"
                     />
                     {courierItems.length > 0 && quoteState === "error" && (

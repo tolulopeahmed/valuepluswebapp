@@ -1,9 +1,10 @@
 "use client";
 
 // Delivery address with suggestions as you type (Google Places via our
-// server, Nigeria only). Picking one fills the full address and its exact
-// map point, which the delivery quote passes to the courier. If
-// suggestions aren't available it behaves like a plain textarea.
+// server, Nigeria only). Like Bolt: picking one locks it in as a card
+// (exact map point included, which the courier uses), with Change to
+// search again - no half-edited picks. If suggestions aren't available
+// it behaves like a plain textarea.
 
 import { useEffect, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
@@ -27,6 +28,7 @@ export default function AddressAutocomplete({
   value,
   onChange,
   onPick,
+  picked,
   placeholder,
   className,
 }: {
@@ -34,6 +36,8 @@ export default function AddressAutocomplete({
   onChange: (text: string) => void;
   /** Called with the exact location when a suggestion is chosen, or null when the text is edited by hand. */
   onPick: (place: PickedPlace | null) => void;
+  /** The current pick, if any: the address then shows as a locked card. */
+  picked?: PickedPlace | null;
   placeholder: string;
   className: string;
 }) {
@@ -93,6 +97,27 @@ export default function AddressAutocomplete({
     }
     session.current = newSession(); // a pick ends the billing session
   };
+
+  if (picked && value) {
+    return (
+      <div className="flex items-start gap-2.5 rounded-xl border border-[#c2410c]/30 bg-[#c2410c]/[0.05] px-3.5 py-3">
+        <MapPin size={16} className="mt-0.5 shrink-0 text-[#c2410c]" />
+        <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-[#14181f]">{value}</p>
+        <button
+          type="button"
+          onClick={() => {
+            skipNext.current = true;
+            onChange("");
+            onPick(null);
+            setOpen(true);
+          }}
+          className="shrink-0 text-xs font-bold text-[#c2410c] underline underline-offset-2"
+        >
+          Change
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
