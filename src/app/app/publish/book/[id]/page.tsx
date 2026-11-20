@@ -745,7 +745,9 @@ function AffiliateProgramModal({ open, onClose, book, onSaved }: {
 // "I deliver single copies myself": readers can then buy ONE Paperback/
 // Hardback (no 50-copy press run) and each sale lands in Deliveries,
 // where the author records the rider (inDrive or anyone) and the reader
-// tracks it. PUT /books/mine/<id>/shipping/.
+// tracks it. PUT /books/mine/<id>/shipping/. A book with no printed
+// edition yet (e.g. ebook only) picks a format + price right here: copies
+// the author already has need no print quote.
 function ShippingModal({ open, onClose, book, onSaved }: {
   open: boolean;
   onClose: () => void;
@@ -758,6 +760,9 @@ function ShippingModal({ open, onClose, book, onSaved }: {
   const [hasPickup, setHasPickup] = useState(false);
   const [editingPickup, setEditingPickup] = useState(false);
   const hasPhysicalPrice = book.paperback_price != null || book.hardback_price != null;
+  const [stockFormat, setStockFormat] = useState<"Paperback" | "Hardback">("Paperback");
+  const [stockPrice, setStockPrice] = useState("");
+  const needsStockPrice = enabled && !hasPhysicalPrice;
 
   useEffect(() => {
     if (!open) return;
@@ -791,7 +796,11 @@ function ShippingModal({ open, onClose, book, onSaved }: {
       // apiFetch shows the server's message / error itself.
       await apiFetch(`/books/mine/${book.id}/shipping/`, {
         method: "PUT",
-        body: JSON.stringify({ author_ships_physical: enabled }),
+        body: JSON.stringify(
+          needsStockPrice
+            ? { author_ships_physical: enabled, format: stockFormat, price: Number(stockPrice) }
+            : { author_ships_physical: enabled },
+        ),
       });
       onSaved();
       onClose();
@@ -814,17 +823,41 @@ function ShippingModal({ open, onClose, book, onSaved }: {
       </p>
       <button
         type="button"
-        disabled={!hasPhysicalPrice}
         onClick={() => setEnabled((v) => !v)}
-        className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 px-3.5 py-3 disabled:opacity-50"
+        className="mt-4 flex w-full items-center justify-between rounded-xl border border-white/10 px-3.5 py-3"
       >
         <span className="text-sm font-bold text-white">Sell single copies</span>
         <span className={`rounded-full px-2.5 py-1 text-[0.65rem] font-black ${enabled ? "bg-green-500/20 text-green-300" : "bg-white/10 text-white/45"}`}>
           {enabled ? "ON" : "OFF"}
         </span>
       </button>
-      {!hasPhysicalPrice && (
-        <p className="mt-2 text-xs text-amber-300">Set a Paperback or Hardback price first — that&apos;s what readers pay per copy.</p>
+      {needsStockPrice && (
+        <div className="mt-3 grid gap-2">
+          <p className="text-[0.65rem] font-black uppercase tracking-wider text-white/40">Which copies do you have?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {(["Paperback", "Hardback"] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setStockFormat(f)}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-bold ${stockFormat === f ? "border-[rgb(var(--vp-accent-rgb))] text-white" : "border-white/10 text-white/50"}`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5">
+            <span className="text-white/40">₦</span>
+            <input
+              inputMode="numeric"
+              value={stockPrice}
+              onChange={(e) => setStockPrice(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="Price per copy"
+              className="w-full bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30"
+            />
+          </div>
+          <p className="text-[0.7rem] text-white/40">No print quote needed. These are copies you already have.</p>
+        </div>
       )}
 
       <p className="mt-4 mb-2 text-[0.65rem] font-black uppercase tracking-wider text-white/40">Pickup address</p>
@@ -842,7 +875,7 @@ function ShippingModal({ open, onClose, book, onSaved }: {
         </button>
       )}
 
-      <Button variant="primary" size="md" onClick={save} loading={saving} disabled={!hasPhysicalPrice || (enabled && !hasPickup)} className="mt-4 w-full">
+      <Button variant="primary" size="md" onClick={save} loading={saving} disabled={(enabled && !hasPickup) || (needsStockPrice && !(Number(stockPrice) > 0))} className="mt-4 w-full">
         Save
       </Button>
       <Link href="/app/more/deliveries" className="mt-3 block text-center text-xs font-bold text-white/50 underline underline-offset-4">
@@ -2383,7 +2416,7 @@ export default function BookLivePage() {
         <ActionCard
           icon={<Truck size={18} strokeWidth={1.9} />}
           label="Deliver Single Copies"
-          description={book.author_ships_physical ? "On — you deliver from your stock" : "Sell one copy, you deliver"}
+          description={book.author_ships_physical ? "On — you deliver from your stock" : "Sell printed copies you already have"}
           onClick={() => setShippingOpen(true)}
         />
       </div>
