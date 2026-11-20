@@ -42,6 +42,7 @@ interface PublicBook {
   description: string;
   author_name: string;
   author_key?: string;
+  author_handle?: string;
   average_rating: number | null;
   review_count: number;
 }
@@ -112,10 +113,10 @@ export default async function BookPage({
 
             <p className="mt-2 text-sm text-white/50">
               By {book.author_name} · Published via ValuePlus
-              {book.author_key && (
+              {(book.author_handle || book.author_key) && (
                 <>
                   {" · "}
-                  <Link href={`/shelf?author=${book.author_key}`} className="font-bold text-white/70 underline underline-offset-4 hover:text-white">
+                  <Link href={book.author_handle ? `/${book.author_handle}` : `/shelf?author=${book.author_key}`} className="font-bold text-white/70 underline underline-offset-4 hover:text-white">
                     More from this author
                   </Link>
                 </>

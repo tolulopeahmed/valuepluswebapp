@@ -33,6 +33,8 @@ export interface PublicBookSummary {
   author_name: string;
   // Same for every title by one author: /shelf?author=<key> shows them all.
   author_key?: string;
+  // The author's page: valuepluspublishing.com/<author_handle>.
+  author_handle?: string;
   pages?: number | null;
   description?: string;
   date_published?: string | null;
@@ -48,6 +50,11 @@ export interface PaginatedBooks {
 
 // One paperback on the shelf, with movie-poster badges and a details
 // panel that slides up on hover.
+// An author filter matches either their page handle or the older key link.
+function byAuthor(book: PublicBookSummary, author: string | null) {
+  return !author || book.author_handle === author || book.author_key === author;
+}
+
 function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
   const shown = displayPrice(book);
   const year = bookYear(book);
@@ -108,7 +115,9 @@ function BookCard({ book, index }: { book: PublicBookSummary; index: number }) {
   </Link>;
 }
 
-export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | null }) {
+// `authorHandle` renders an author's own page (/<handle>): only their
+// titles, under "Books by ...".
+export default function ShelfCatalog({ initial, authorHandle }: { initial: PaginatedBooks | null; authorHandle?: string }) {
   const [books, setBooks] = useState(initial?.results ?? []);
   const [loading, setLoading] = useState(!initial || !!initial.next);
   const [error, setError] = useState(false);
@@ -116,7 +125,7 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [sort, setSort] = useState("latest");
-  const [author, setAuthor] = useState<string | null>(null);
+  const [author, setAuthor] = useState<string | null>(authorHandle ?? null);
 
   // Shareable filtered links: /shelf?author=<key> is an author's own shelf
   // (every title of theirs, only theirs - the link their dashboard shares);
@@ -135,6 +144,10 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
     return () => cancelAnimationFrame(frame);
   }, []);
   const clearAuthor = () => {
+    if (authorHandle) {
+      window.location.href = "/shelf";
+      return;
+    }
     setAuthor(null);
     window.history.replaceState(null, "", window.location.pathname);
   };
@@ -178,7 +191,7 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   const categories = useMemo(() => Array.from(new Set(books.map(book => book.category.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [books]);
   const visible = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
-    const matches = books.filter(book => (!author || book.author_key === author) && (!category || book.category.trim() === category) && (!search || `${book.title} ${book.subtitle} ${book.author_name} ${book.category}`.toLocaleLowerCase().includes(search)));
+    const matches = books.filter(book => byAuthor(book, author) && (!category || book.category.trim() === category) && (!search || `${book.title} ${book.subtitle} ${book.author_name} ${book.category}`.toLocaleLowerCase().includes(search)));
     if (sort === "title") matches.sort((a, b) => a.title.localeCompare(b.title));
     if (sort === "price") matches.sort((a, b) => (displayPrice(a)?.price ?? Infinity) - (displayPrice(b)?.price ?? Infinity));
     return matches;
@@ -187,11 +200,11 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   // Byline for an author's shelf: the shortest of their titles' bylines,
   // so a co-written title ("A & B") doesn't name the shelf.
   const authorName = author
-    ? books.filter(book => book.author_key === author).map(book => book.author_name).sort((a, b) => a.length - b.length)[0] ?? ""
+    ? books.filter(book => byAuthor(book, author)).map(book => book.author_name).sort((a, b) => a.length - b.length)[0] ?? ""
     : "";
   // Newest releases with a cover lead the featured slider (the API returns
   // books newest first).
-  const featured = useMemo(() => books.filter(book => book.cover).slice(0, 5), [books]);
+  const featured = useMemo(() => books.filter(book => book.cover && (!authorHandle || book.author_handle === authorHandle)).slice(0, 5), [books, authorHandle]);
 
   // Search + category live in the header (top right; own row on mobile).
   const headerControls = <div className={p.headerControls}>
