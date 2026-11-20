@@ -74,6 +74,8 @@ export interface MyBook {
   id: string;
   title: string;
   author_name: string;
+  // One public link to ALL this author's titles: /shelf?author=<key>.
+  author_shelf_url?: string;
   subtitle: string;
   category: string;
   slug: string;

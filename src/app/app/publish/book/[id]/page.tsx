@@ -2413,6 +2413,21 @@ export default function BookLivePage() {
           description={book.affiliate_enabled ? `${book.affiliate_percentage}% share enabled` : "Set distributor profit share"}
           onClick={() => setAffiliatesOpen(true)}
         />
+        {book.author_shelf_url && (
+          <ActionCard
+            icon={<BookOpen size={18} strokeWidth={1.9} />}
+            label="All My Books"
+            description="One public link to all your titles"
+            onClick={() => {
+              const url = book.author_shelf_url!;
+              navigator.clipboard?.writeText(url).then(
+                () => notify("Your shelf link is copied. Share it anywhere.", "success"),
+                () => {},
+              );
+              window.open(url, "_blank", "noopener");
+            }}
+          />
+        )}
         <ActionCard
           icon={<Truck size={18} strokeWidth={1.9} />}
           label="Deliver Single Copies"

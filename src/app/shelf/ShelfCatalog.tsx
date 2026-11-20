@@ -31,6 +31,8 @@ export interface PublicBookSummary {
   has_hardback: boolean;
   has_ebook: boolean;
   author_name: string;
+  // Same for every title by one author: /shelf?author=<key> shows them all.
+  author_key?: string;
   pages?: number | null;
   description?: string;
   date_published?: string | null;
@@ -114,20 +116,28 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [sort, setSort] = useState("latest");
+  const [author, setAuthor] = useState<string | null>(null);
 
-  // Shareable filtered links, e.g. /shelf?q=Tolulope%20Ahmed shows one
-  // author's books (search matches title, subtitle, author and category).
-  // Read from window rather than useSearchParams so the cached (ISR) shelf
-  // page stays static.
+  // Shareable filtered links: /shelf?author=<key> is an author's own shelf
+  // (every title of theirs, only theirs - the link their dashboard shares);
+  // /shelf?q=... pre-fills the search. Read from window rather than
+  // useSearchParams so the cached (ISR) shelf page stays static.
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("q")?.trim();
-    if (!q) return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q")?.trim();
+    const a = params.get("author")?.trim();
+    if (!q && !a) return;
     const frame = requestAnimationFrame(() => {
-      setQuery(q);
+      if (q) setQuery(q);
+      if (a) setAuthor(a);
       document.getElementById("collection")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     return () => cancelAnimationFrame(frame);
   }, []);
+  const clearAuthor = () => {
+    setAuthor(null);
+    window.history.replaceState(null, "", window.location.pathname);
+  };
 
   // Load remaining catalogue pages before applying local filters, so a
   // category/search never silently omits titles on a later API page.
@@ -168,12 +178,17 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
   const categories = useMemo(() => Array.from(new Set(books.map(book => book.category.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)), [books]);
   const visible = useMemo(() => {
     const search = query.trim().toLocaleLowerCase();
-    const matches = books.filter(book => (!category || book.category.trim() === category) && (!search || `${book.title} ${book.subtitle} ${book.author_name} ${book.category}`.toLocaleLowerCase().includes(search)));
+    const matches = books.filter(book => (!author || book.author_key === author) && (!category || book.category.trim() === category) && (!search || `${book.title} ${book.subtitle} ${book.author_name} ${book.category}`.toLocaleLowerCase().includes(search)));
     if (sort === "title") matches.sort((a, b) => a.title.localeCompare(b.title));
     if (sort === "price") matches.sort((a, b) => (displayPrice(a)?.price ?? Infinity) - (displayPrice(b)?.price ?? Infinity));
     return matches;
-  }, [books, category, query, sort]);
-  const reset = () => { setCategory(null); setQuery(""); };
+  }, [books, category, query, sort, author]);
+  const reset = () => { setCategory(null); setQuery(""); if (author) clearAuthor(); };
+  // Byline for an author's shelf: the shortest of their titles' bylines,
+  // so a co-written title ("A & B") doesn't name the shelf.
+  const authorName = author
+    ? books.filter(book => book.author_key === author).map(book => book.author_name).sort((a, b) => a.length - b.length)[0] ?? ""
+    : "";
   // Newest releases with a cover lead the featured slider (the API returns
   // books newest first).
   const featured = useMemo(() => books.filter(book => book.cover).slice(0, 5), [books]);
@@ -203,13 +218,14 @@ export default function ShelfCatalog({ initial }: { initial: PaginatedBooks | nu
     <div className={`${styles.content} ${featured.length ? p.afterHero : ""}`}>
       <section id="collection" className={styles.collection} aria-label="Books" aria-busy={loading}>
         <div className={styles.collectionHeading}>
-          <div><h2>{category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
+          <div><h2>{author ? (authorName ? `Books by ${authorName}` : "Author's books") : category || "The complete collection"}</h2><p role="status" aria-live="polite">{loading ? "Curating your shelf…" : `${visible.length} ${visible.length === 1 ? "title" : "titles"}${query ? " found" : " to discover"}`}</p></div>
+          {author && <button type="button" onClick={clearAuthor} className={p.sortSelect}>All books <ArrowRight size={14} /></button>}
           <label className={p.sortSelect}>Sort by
             <select value={sort} onChange={e => setSort(e.target.value)}><option value="latest">Latest releases</option><option value="title">Title, A–Z</option><option value="price">Price, low to high</option></select>
           </label>
         </div>
         {error && <div className={styles.notice} role="alert">We couldn’t load {books.length ? "the rest of " : ""}the collection. <button type="button" onClick={() => setRetry(n => n + 1)}>Try again</button></div>}
-        {loading && !books.length ? <div className={p.grid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={styles.skeleton}><div /><span /><span /></div>)}</div> : visible.length ? <div className={p.grid} key={`${category}-${query}-${sort}`}>{visible.map((book, index) => <BookCard key={book.id} book={book} index={index} />)}</div> : !loading && !error ? <div className={styles.empty}><BookOpen size={34} strokeWidth={1} /><h3>{books.length ? "A different search. A new discovery." : "Good reads are on their way."}</h3><p>{books.length ? "Try another title or author, or explore the full collection." : "Check back soon for our first titles."}</p>{books.length > 0 && <button type="button" onClick={reset}>Explore all books <ArrowUpRight size={15} /></button>}</div> : null}
+        {loading && !books.length ? <div className={p.grid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={styles.skeleton}><div /><span /><span /></div>)}</div> : visible.length ? <div className={p.grid} key={`${author}-${category}-${query}-${sort}`}>{visible.map((book, index) => <BookCard key={book.id} book={book} index={index} />)}</div> : !loading && !error ? <div className={styles.empty}><BookOpen size={34} strokeWidth={1} /><h3>{books.length ? "A different search. A new discovery." : "Good reads are on their way."}</h3><p>{books.length ? "Try another title or author, or explore the full collection." : "Check back soon for our first titles."}</p>{books.length > 0 && <button type="button" onClick={reset}>Explore all books <ArrowUpRight size={15} /></button>}</div> : null}
         {visible.length > 0 && <div className={styles.endnote}><span />Made to be read. Made to stay with you.<span /></div>}
       </section>
     </div>

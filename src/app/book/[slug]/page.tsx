@@ -8,6 +8,7 @@
 
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BuyBox from "@/components/storefront/BuyBox";
@@ -40,6 +41,7 @@ interface PublicBook {
   author_ships_physical?: boolean;
   description: string;
   author_name: string;
+  author_key?: string;
   average_rating: number | null;
   review_count: number;
 }
@@ -110,6 +112,14 @@ export default async function BookPage({
 
             <p className="mt-2 text-sm text-white/50">
               By {book.author_name} · Published via ValuePlus
+              {book.author_key && (
+                <>
+                  {" · "}
+                  <Link href={`/shelf?author=${book.author_key}`} className="font-bold text-white/70 underline underline-offset-4 hover:text-white">
+                    More from this author
+                  </Link>
+                </>
+              )}
             </p>
 
             {(!!book.pages || !!book.trim_size) && (
