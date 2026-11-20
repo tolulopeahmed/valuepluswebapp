@@ -17,6 +17,7 @@ import { useLearnerCurriculum, LearnerRoadmap } from "./CurriculumModules";
 import { completeLesson } from "../../hooks/useAcademy";
 import { notify } from "../../lib/snackbar";
 import { PublisherBookShelf } from "./PublisherBooks";
+import HomeDeliveries from "./HomeDeliveries";
 import LessonDetailModal, {
   type LessonDetail,
 } from "../../components/LessonDetailsModal";
@@ -135,6 +136,9 @@ export default function HomeScreen() {
           />
         </div>
       </div>
+
+      {/* Orders to pack, then to track - only when there are any. */}
+      <HomeDeliveries />
 
       {/* Publisher mode has no equivalent hero-card slide anymore — the
           book shelf below is the first thing they see, same role
